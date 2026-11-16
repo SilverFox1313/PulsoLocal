@@ -13,6 +13,7 @@ import {
   Search,
   Send,
 } from 'lucide-react';
+import FormattedDate from '@/components/FormattedDate';
 import type { ReviewRequest, ReviewRequestStatus } from '@/types/database';
 
 interface ReviewRequestsTableProps {
@@ -47,13 +48,7 @@ const STATUS_META: Record<
   },
 };
 
-const DATE_FORMATTER = new Intl.DateTimeFormat('es-ES', {
-  day: '2-digit',
-  month: 'short',
-  year: 'numeric',
-  hour: '2-digit',
-  minute: '2-digit',
-});
+
 
 export default function ReviewRequestsTable({
   requests,
@@ -235,7 +230,7 @@ export default function ReviewRequestsTable({
                       </span>
                     </td>
                     <td className="px-6 py-3.5 text-right font-mono text-xs tabular-nums text-zinc-400">
-                      {DATE_FORMATTER.format(new Date(item.scheduled_for))}
+                      <FormattedDate dateString={item.scheduled_for} />
                     </td>
                     <td className="px-6 py-3.5 text-right">
                       <div className="inline-flex items-center justify-end gap-2">

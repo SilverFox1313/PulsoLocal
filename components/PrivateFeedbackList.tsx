@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { MessageSquareOff, Search, Star } from 'lucide-react';
+import FormattedDate from '@/components/FormattedDate';
 import type { PrivateFeedbackItem } from '@/types/database';
 
 interface PrivateFeedbackListProps {
@@ -10,13 +11,7 @@ interface PrivateFeedbackListProps {
 
 type RatingFilter = 'negative' | 'all';
 
-const DATE_FORMATTER = new Intl.DateTimeFormat('es-ES', {
-  day: '2-digit',
-  month: 'short',
-  year: 'numeric',
-  hour: '2-digit',
-  minute: '2-digit',
-});
+
 
 export default function PrivateFeedbackList({ items }: PrivateFeedbackListProps) {
   const [ratingFilter, setRatingFilter] = useState<RatingFilter>('negative');
@@ -145,7 +140,7 @@ export default function PrivateFeedbackList({ items }: PrivateFeedbackListProps)
                   )}
                   <span aria-hidden="true">·</span>
                   <span className="font-mono tabular-nums text-zinc-500">
-                    {DATE_FORMATTER.format(new Date(item.created_at))}
+                    <FormattedDate dateString={item.created_at} />
                   </span>
                 </div>
 
