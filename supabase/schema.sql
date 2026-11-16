@@ -1,0 +1,254 @@
+-- ============================================================================
+-- PulsoLocal — Automatizador de Reseñas y Reputación Local
+-- Script SQL inicial para ejecutar en el SQL Editor de Supabase
+-- ============================================================================
+
+-- Extensión necesaria para gen_random_uuid() (habilitada por defecto en Supabase)
+create extension if not exists "pgcrypto";
+
+-- ----------------------------------------------------------------------------
+-- 1. TABLA: businesses
+-- Almacena la configuración de cada negocio vinculado a un usuario de auth.users
+-- ----------------------------------------------------------------------------
+create table if not exists public.businesses (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null unique references auth.users(id) on delete cascade,
+  business_name text not null default 'Mi Negocio',
+  google_review_url text,
+  message_template text not null default 'Hola {{customer_name}}, gracias por elegir {{business_name}}. ¿Cómo calificarías tu experiencia hoy? {{review_link}}',
+  delay_minutes integer not null default 60 check (delay_minutes >= 0 and delay_minutes <= 10080),
+  subscription_status text not null default 'trialing' check (subscription_status in ('trialing', 'active', 'past_due', 'canceled', 'inactive')),
+  created_at timestamptz not null default now()
+);
+
+create index if not exists idx_businesses_user_id on public.businesses(user_id);
+
+-- ----------------------------------------------------------------------------
+-- 2. TABLA: review_requests
+-- Registro de solicitudes de reseña enviadas o programadas para clientes
+-- ----------------------------------------------------------------------------
+create table if not exists public.review_requests (
+  id uuid primary key default gen_random_uuid(),
+  business_id uuid not null references public.businesses(id) on delete cascade,
+  customer_name text not null,
+  customer_phone text not null,
+  status text not null default 'pending' check (status in ('pending', 'sent', 'clicked', 'completed')),
+  scheduled_for timestamptz not null default now(),
+  created_at timestamptz not null default now()
+);
+
+create index if not exists idx_review_requests_business_id on public.review_requests(business_id);
+create index if not exists idx_review_requests_status_scheduled on public.review_requests(status, scheduled_for);
+
+-- ----------------------------------------------------------------------------
+-- 3. TABLA: feedback
+-- Calificaciones (1-5) y comentarios internos capturados antes de redirigir a Google
+-- ----------------------------------------------------------------------------
+create table if not exists public.feedback (
+  id uuid primary key default gen_random_uuid(),
+  request_id uuid not null references public.review_requests(id) on delete cascade,
+  business_id uuid not null references public.businesses(id) on delete cascade,
+  rating smallint not null check (rating >= 1 and rating <= 5),
+  comment text,
+  redirected_to_google boolean not null default false,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists idx_feedback_business_id on public.feedback(business_id);
+create index if not exists idx_feedback_request_id on public.feedback(request_id);
+
+-- ----------------------------------------------------------------------------
+-- 4. ROW LEVEL SECURITY (RLS)
+-- Garantiza que cada usuario autenticado solo acceda a los datos de su negocio
+-- ----------------------------------------------------------------------------
+alter table public.businesses enable row level security;
+alter table public.review_requests enable row level security;
+alter table public.feedback enable row level security;
+
+-- Políticas para businesses
+drop policy if exists "Users can view their own business" on public.businesses;
+create policy "Users can view their own business"
+  on public.businesses
+  for select
+  to authenticated
+  using ((select auth.uid()) = user_id);
+
+drop policy if exists "Users can insert their own business" on public.businesses;
+create policy "Users can insert their own business"
+  on public.businesses
+  for insert
+  to authenticated
+  with check ((select auth.uid()) = user_id);
+
+drop policy if exists "Users can update their own business" on public.businesses;
+create policy "Users can update their own business"
+  on public.businesses
+  for update
+  to authenticated
+  using ((select auth.uid()) = user_id)
+  with check ((select auth.uid()) = user_id);
+
+drop policy if exists "Users can delete their own business" on public.businesses;
+create policy "Users can delete their own business"
+  on public.businesses
+  for delete
+  to authenticated
+  using ((select auth.uid()) = user_id);
+
+-- Políticas para review_requests
+drop policy if exists "Users can view their own review requests" on public.review_requests;
+create policy "Users can view their own review requests"
+  on public.review_requests
+  for select
+  to authenticated
+  using (
+    exists (
+      select 1
+      from public.businesses b
+      where b.id = review_requests.business_id
+        and b.user_id = (select auth.uid())
+    )
+  );
+
+drop policy if exists "Users can insert their own review requests" on public.review_requests;
+create policy "Users can insert their own review requests"
+  on public.review_requests
+  for insert
+  to authenticated
+  with check (
+    exists (
+      select 1
+      from public.businesses b
+      where b.id = review_requests.business_id
+        and b.user_id = (select auth.uid())
+    )
+  );
+
+drop policy if exists "Users can update their own review requests" on public.review_requests;
+create policy "Users can update their own review requests"
+  on public.review_requests
+  for update
+  to authenticated
+  using (
+    exists (
+      select 1
+      from public.businesses b
+      where b.id = review_requests.business_id
+        and b.user_id = (select auth.uid())
+    )
+  )
+  with check (
+    exists (
+      select 1
+      from public.businesses b
+      where b.id = review_requests.business_id
+        and b.user_id = (select auth.uid())
+    )
+  );
+
+drop policy if exists "Users can delete their own review requests" on public.review_requests;
+create policy "Users can delete their own review requests"
+  on public.review_requests
+  for delete
+  to authenticated
+  using (
+    exists (
+      select 1
+      from public.businesses b
+      where b.id = review_requests.business_id
+        and b.user_id = (select auth.uid())
+    )
+  );
+
+-- Políticas para feedback
+drop policy if exists "Users can view their own feedback" on public.feedback;
+create policy "Users can view their own feedback"
+  on public.feedback
+  for select
+  to authenticated
+  using (
+    exists (
+      select 1
+      from public.businesses b
+      where b.id = feedback.business_id
+        and b.user_id = (select auth.uid())
+    )
+  );
+
+drop policy if exists "Users can insert their own feedback" on public.feedback;
+create policy "Users can insert their own feedback"
+  on public.feedback
+  for insert
+  to authenticated
+  with check (
+    exists (
+      select 1
+      from public.businesses b
+      where b.id = feedback.business_id
+        and b.user_id = (select auth.uid())
+    )
+  );
+
+drop policy if exists "Users can update their own feedback" on public.feedback;
+create policy "Users can update their own feedback"
+  on public.feedback
+  for update
+  to authenticated
+  using (
+    exists (
+      select 1
+      from public.businesses b
+      where b.id = feedback.business_id
+        and b.user_id = (select auth.uid())
+    )
+  )
+  with check (
+    exists (
+      select 1
+      from public.businesses b
+      where b.id = feedback.business_id
+        and b.user_id = (select auth.uid())
+    )
+  );
+
+drop policy if exists "Users can delete their own feedback" on public.feedback;
+create policy "Users can delete their own feedback"
+  on public.feedback
+  for delete
+  to authenticated
+  using (
+    exists (
+      select 1
+      from public.businesses b
+      where b.id = feedback.business_id
+        and b.user_id = (select auth.uid())
+    )
+  );
+
+-- ----------------------------------------------------------------------------
+-- 5. TRIGGER AUTOMÁTICO DE ONBOARDING
+-- Crea la fila inicial en public.businesses cuando un usuario se registra en auth.users
+-- ----------------------------------------------------------------------------
+create or replace function public.handle_new_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  insert into public.businesses (user_id, business_name)
+  values (
+    new.id,
+    coalesce(nullif(trim(new.raw_user_meta_data ->> 'business_name'), ''), 'Mi Negocio')
+  )
+  on conflict (user_id) do nothing;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row
+  execute function public.handle_new_user();

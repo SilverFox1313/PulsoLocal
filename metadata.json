@@ -1,0 +1,6 @@
+{
+  "name": "PulsoLocal",
+  "description": "Automatizador de Reseñas y Reputación Local para negocios locales.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
