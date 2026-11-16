@@ -36,6 +36,8 @@ export const metadata: Metadata = {
   },
 };
 
+const THEME_INIT_SCRIPT = `(function(){try{var t=localStorage.getItem('pulsolocal-theme');var r=document.documentElement;if(t==='light'){r.classList.remove('dark');r.style.colorScheme='light';}else{r.classList.add('dark');r.style.colorScheme='dark';}}catch(e){}})();`;
+
 export default function RootLayout({
   children,
 }: {
@@ -44,10 +46,14 @@ export default function RootLayout({
   return (
     <html
       lang="es"
+      suppressHydrationWarning
       className={`dark ${plusJakarta.variable} ${jetbrainsMono.variable}`}
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+      </head>
       <body
-        className="min-h-screen bg-[#09090B] font-sans text-zinc-100 antialiased selection:bg-amber-500/20 selection:text-amber-200"
+        className="min-h-screen bg-slate-50 font-sans text-slate-900 antialiased transition-colors duration-300 ease-in-out selection:bg-amber-500/20 selection:text-amber-700 dark:bg-black dark:text-zinc-100 dark:selection:text-amber-200"
         suppressHydrationWarning
       >
         <Suspense fallback={null}>

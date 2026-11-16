@@ -102,12 +102,12 @@ export default function BusinessSettingsForm({
   }
 
   return (
-    <section className="rounded-xl border border-zinc-800 bg-[#111114] p-6 sm:p-8">
-      <div className="border-b border-zinc-800/80 pb-5">
-        <h2 className="text-lg font-semibold tracking-tight text-zinc-50">
+    <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-xs transition-colors duration-300 ease-in-out sm:p-8 dark:border-zinc-800 dark:bg-[#111114] dark:shadow-none">
+      <div className="border-b border-slate-200 pb-5 dark:border-zinc-800/80">
+        <h2 className="text-lg font-semibold tracking-tight text-slate-900 dark:text-zinc-50">
           Configuración del negocio
         </h2>
-        <p className="mt-1 text-sm text-zinc-400">
+        <p className="mt-1 text-sm text-slate-600 dark:text-zinc-300">
           Define el nombre visible, tu enlace de Google Maps y la plantilla de
           invitación para tus clientes.
         </p>
@@ -116,10 +116,10 @@ export default function BusinessSettingsForm({
       {error && (
         <div
           role="alert"
-          className="mt-6 flex items-start gap-2.5 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200"
+          className="mt-6 flex items-start gap-2.5 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-700 dark:text-red-200"
         >
           <AlertCircle
-            className="mt-0.5 h-4 w-4 shrink-0 text-red-400"
+            className="mt-0.5 h-4 w-4 shrink-0 text-red-600 dark:text-red-400"
             aria-hidden="true"
           />
           <span>{error}</span>
@@ -129,10 +129,10 @@ export default function BusinessSettingsForm({
       {savedMessage && (
         <div
           role="status"
-          className="mt-6 flex items-start gap-2.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200"
+          className="mt-6 flex items-start gap-2.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-200"
         >
           <CheckCircle2
-            className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400"
+            className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400"
             aria-hidden="true"
           />
           <span>{savedMessage}</span>
@@ -144,7 +144,7 @@ export default function BusinessSettingsForm({
           <div>
             <label
               htmlFor="settings-business-name"
-              className="mb-1.5 block text-sm font-medium text-zinc-300"
+              className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-zinc-300"
             >
               Nombre del negocio
             </label>
@@ -160,14 +160,14 @@ export default function BusinessSettingsForm({
                 setBusinessName(e.target.value);
               }}
               placeholder="Ej. Clínica Dental Norte"
-              className="h-11 w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3.5 text-sm text-zinc-100 placeholder:text-zinc-500 transition-colors focus:border-amber-500/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30 disabled:cursor-not-allowed disabled:opacity-60"
+              className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3.5 text-sm text-slate-900 placeholder:text-slate-400 transition-colors focus:border-amber-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-400 dark:focus:border-amber-500/60"
             />
           </div>
 
           <div>
             <label
               htmlFor="settings-delay-minutes"
-              className="mb-1.5 block text-sm font-medium text-zinc-300"
+              className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-zinc-300"
             >
               Minutos de retraso antes de enviar
             </label>
@@ -185,12 +185,17 @@ export default function BusinessSettingsForm({
                 setSavedMessage(null);
                 setDelayMinutes(e.target.value);
               }}
-              className="h-11 w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3.5 font-mono text-sm tabular-nums text-zinc-100 placeholder:text-zinc-500 transition-colors focus:border-amber-500/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30 disabled:cursor-not-allowed disabled:opacity-60"
+              className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3.5 font-mono text-sm tabular-nums text-slate-900 placeholder:text-slate-400 transition-colors focus:border-amber-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-400 dark:focus:border-amber-500/60"
             />
-            <p className="mt-1.5 text-xs text-zinc-500">
-              Usa <span className="font-mono tabular-nums text-zinc-400">0</span>{' '}
+            <p className="mt-1.5 text-xs text-slate-500 dark:text-zinc-400">
+              Usa{' '}
+              <span className="font-mono tabular-nums text-slate-700 dark:text-zinc-300">
+                0
+              </span>{' '}
               para programar el envío inmediato o define minutos de espera (ej.{' '}
-              <span className="font-mono tabular-nums text-zinc-400">60</span>{' '}
+              <span className="font-mono tabular-nums text-slate-700 dark:text-zinc-300">
+                60
+              </span>{' '}
               para 1 hora).
             </p>
           </div>
@@ -199,7 +204,7 @@ export default function BusinessSettingsForm({
         <div>
           <label
             htmlFor="settings-google-url"
-            className="mb-1.5 block text-sm font-medium text-zinc-300"
+            className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-zinc-300"
           >
             Enlace directo de reseñas en Google Maps
           </label>
@@ -214,9 +219,9 @@ export default function BusinessSettingsForm({
               setGoogleReviewUrl(e.target.value);
             }}
             placeholder="https://g.page/r/tu-codigo-de-google/review"
-            className="h-11 w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3.5 font-mono text-sm text-zinc-100 placeholder:font-sans placeholder:text-zinc-500 transition-colors focus:border-amber-500/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30 disabled:cursor-not-allowed disabled:opacity-60"
+            className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3.5 font-mono text-sm text-slate-900 placeholder:font-sans placeholder:text-slate-400 transition-colors focus:border-amber-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-400 dark:focus:border-amber-500/60"
           />
-          <p className="mt-1.5 text-xs text-zinc-500">
+          <p className="mt-1.5 text-xs text-slate-500 dark:text-zinc-400">
             Copia este enlace desde tu perfil de Google Business Profile en la
             opción &ldquo;Solicitar reseñas&rdquo;.
           </p>
@@ -226,7 +231,7 @@ export default function BusinessSettingsForm({
           <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2">
             <label
               htmlFor="settings-message-template"
-              className="block text-sm font-medium text-zinc-300"
+              className="block text-sm font-medium text-slate-700 dark:text-zinc-300"
             >
               Plantilla del mensaje de texto
             </label>
@@ -237,7 +242,7 @@ export default function BusinessSettingsForm({
                   type="button"
                   disabled={saving}
                   onClick={() => insertVariable(item.token)}
-                  className="rounded-md border border-zinc-800 bg-zinc-900 px-2.5 py-1 font-mono text-xs text-zinc-300 transition-colors hover:border-zinc-700 hover:text-amber-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/50 disabled:opacity-50 whitespace-nowrap shrink-0"
+                  className="rounded-md border border-slate-200 bg-slate-100 px-2.5 py-1 font-mono text-xs text-slate-700 transition-colors hover:border-slate-300 hover:text-amber-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/50 disabled:opacity-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-zinc-700 dark:hover:text-amber-300 whitespace-nowrap shrink-0"
                 >
                   {item.label}
                 </button>
@@ -257,24 +262,24 @@ export default function BusinessSettingsForm({
               setMessageTemplate(e.target.value);
             }}
             placeholder="Hola {nombre}, gracias por visitarnos en {negocio}. ¿Cómo calificarías tu experiencia? {enlace}"
-            className="w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3.5 py-3 text-sm leading-relaxed text-zinc-100 placeholder:text-zinc-500 transition-colors focus:border-amber-500/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30 disabled:cursor-not-allowed disabled:opacity-60"
+            className="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-3 text-sm leading-relaxed text-slate-900 placeholder:text-slate-400 transition-colors focus:border-amber-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-400 dark:focus:border-amber-500/60"
           />
 
-          <div className="mt-4 border-t border-zinc-800/70 pt-3.5">
-            <p className="text-xs font-medium text-zinc-400">
+          <div className="mt-4 border-t border-slate-200 pt-3.5 dark:border-zinc-800/70">
+            <p className="text-xs font-medium text-slate-500 dark:text-zinc-400">
               Vista previa con datos de ejemplo
             </p>
-            <p className="mt-1.5 text-sm leading-relaxed text-zinc-300">
+            <p className="mt-1.5 text-sm leading-relaxed text-slate-700 dark:text-zinc-300">
               {renderPreview() || 'Escribe un mensaje para previsualizarlo.'}
             </p>
           </div>
         </div>
 
-        <div className="flex items-center justify-end border-t border-zinc-800/80 pt-5">
+        <div className="flex items-center justify-end border-t border-slate-200 pt-5 dark:border-zinc-800/80">
           <button
             type="submit"
             disabled={saving}
-            className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-amber-500 px-5 text-sm font-semibold text-zinc-950 transition-colors hover:bg-amber-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#111114] disabled:cursor-not-allowed disabled:opacity-60 whitespace-nowrap shrink-0"
+            className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 px-5 text-sm font-semibold text-slate-950 shadow-md shadow-amber-500/20 transition-all hover:from-amber-400 hover:to-orange-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/60 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#111114] disabled:cursor-not-allowed disabled:opacity-60 whitespace-nowrap shrink-0"
           >
             {saving ? (
               <>

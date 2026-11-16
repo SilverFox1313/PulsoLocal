@@ -88,20 +88,20 @@ export default async function PublicReviewPage({
   const { data, error } = await fetchPublicReviewRequest(requestId);
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#09090B] px-4 py-12 text-zinc-100">
+    <div className="flex min-h-screen flex-col bg-slate-50 px-4 py-12 text-slate-900 transition-colors duration-200 dark:bg-black dark:text-zinc-100">
       <main className="flex flex-1 items-center justify-center">
         {data ? (
           <PublicReviewFlow data={data} />
         ) : (
-          <div className="w-full max-w-md rounded-2xl border border-zinc-800 bg-[#111114] p-8 text-center">
-            <h1 className="text-xl font-semibold tracking-tight text-zinc-50">
+          <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm dark:border-zinc-800 dark:bg-[#111114] dark:shadow-none">
+            <h1 className="text-xl font-semibold tracking-tight text-slate-900 dark:text-zinc-50">
               {error === 'invalid_id'
                 ? 'Enlace no válido'
                 : error === 'rpc_error'
                 ? 'No se pudo cargar la encuesta'
                 : 'Solicitud no encontrada'}
             </h1>
-            <p className="mt-2 text-sm leading-relaxed text-zinc-400">
+            <p className="mt-2 text-sm leading-relaxed text-slate-600 dark:text-zinc-300">
               {error === 'invalid_id'
                 ? 'El identificador de esta invitación no tiene un formato válido.'
                 : error === 'rpc_error'

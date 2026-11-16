@@ -65,20 +65,20 @@ export default function ReviewRequestForm({
   }
 
   return (
-    <section className="rounded-xl border border-zinc-800 bg-[#111114] p-6 sm:p-8">
-      <div className="flex flex-col gap-1 border-b border-zinc-800/80 pb-5 sm:flex-row sm:items-baseline sm:justify-between">
+    <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-xs transition-colors duration-300 ease-in-out sm:p-8 dark:border-zinc-800 dark:bg-[#111114] dark:shadow-none">
+      <div className="flex flex-col gap-1 border-b border-slate-200 pb-5 sm:flex-row sm:items-baseline sm:justify-between dark:border-zinc-800/80">
         <div>
-          <h2 className="text-lg font-semibold tracking-tight text-zinc-50">
+          <h2 className="text-lg font-semibold tracking-tight text-slate-900 dark:text-zinc-50">
             Añadir cliente para reseña
           </h2>
-          <p className="mt-1 text-sm text-zinc-400">
+          <p className="mt-1 text-sm text-slate-600 dark:text-zinc-300">
             Registra un cliente atendido para programar su solicitud automática.
           </p>
         </div>
 
-        <p className="text-xs text-zinc-400 tabular-nums">
+        <p className="text-xs text-slate-500 tabular-nums dark:text-zinc-300">
           Retraso configurado:{' '}
-          <span className="font-mono text-zinc-200">
+          <span className="font-mono text-slate-800 dark:text-zinc-200">
             {delayMinutes === 0 ? 'Inmediato (0 min)' : `${delayMinutes} min`}
           </span>
         </p>
@@ -87,10 +87,10 @@ export default function ReviewRequestForm({
       {error && (
         <div
           role="alert"
-          className="mt-5 flex items-start gap-2.5 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200"
+          className="mt-5 flex items-start gap-2.5 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-700 dark:text-red-200"
         >
           <AlertCircle
-            className="mt-0.5 h-4 w-4 shrink-0 text-red-400"
+            className="mt-0.5 h-4 w-4 shrink-0 text-red-600 dark:text-red-400"
             aria-hidden="true"
           />
           <span>{error}</span>
@@ -100,10 +100,10 @@ export default function ReviewRequestForm({
       {successMessage && (
         <div
           role="status"
-          className="mt-5 flex items-start gap-2.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200"
+          className="mt-5 flex items-start gap-2.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-200"
         >
           <CheckCircle2
-            className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400"
+            className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400"
             aria-hidden="true"
           />
           <span>{successMessage}</span>
@@ -118,7 +118,7 @@ export default function ReviewRequestForm({
         <div className="md:col-span-5">
           <label
             htmlFor="customer-name"
-            className="mb-1.5 block text-sm font-medium text-zinc-300"
+            className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-zinc-300"
           >
             Nombre del cliente
           </label>
@@ -134,14 +134,14 @@ export default function ReviewRequestForm({
               setCustomerName(e.target.value);
             }}
             placeholder="Ej. Carlos Mendoza"
-            className="h-11 w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3.5 text-sm text-zinc-100 placeholder:text-zinc-500 transition-colors focus:border-amber-500/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30 disabled:cursor-not-allowed disabled:opacity-60"
+            className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3.5 text-sm text-slate-900 placeholder:text-slate-400 transition-colors focus:border-amber-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-400 dark:focus:border-amber-500/60"
           />
         </div>
 
         <div className="md:col-span-4">
           <label
             htmlFor="customer-phone"
-            className="mb-1.5 block text-sm font-medium text-zinc-300"
+            className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-zinc-300"
           >
             Teléfono (WhatsApp / SMS)
           </label>
@@ -157,7 +157,7 @@ export default function ReviewRequestForm({
               setCustomerPhone(e.target.value);
             }}
             placeholder="+52 55 1234 5678"
-            className="h-11 w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3.5 font-mono text-sm tabular-nums text-zinc-100 placeholder:font-sans placeholder:text-zinc-500 transition-colors focus:border-amber-500/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30 disabled:cursor-not-allowed disabled:opacity-60"
+            className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3.5 font-mono text-sm tabular-nums text-slate-900 placeholder:font-sans placeholder:text-slate-400 transition-colors focus:border-amber-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-400 dark:focus:border-amber-500/60"
           />
         </div>
 
@@ -165,7 +165,7 @@ export default function ReviewRequestForm({
           <button
             type="submit"
             disabled={submitting}
-            className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-amber-500 px-4 text-sm font-semibold text-zinc-950 transition-colors hover:bg-amber-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#111114] disabled:cursor-not-allowed disabled:opacity-60 whitespace-nowrap shrink-0"
+            className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 px-4 text-sm font-semibold text-slate-950 shadow-md shadow-amber-500/20 transition-all hover:from-amber-400 hover:to-orange-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/60 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#111114] disabled:cursor-not-allowed disabled:opacity-60 whitespace-nowrap shrink-0"
           >
             {submitting ? (
               <>

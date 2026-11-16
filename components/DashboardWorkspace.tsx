@@ -170,112 +170,121 @@ export default function DashboardWorkspace({
 
   return (
     <div className="space-y-8">
-      <section className="flex flex-col gap-6 border-b border-zinc-800/80 pb-8 lg:flex-row lg:items-end lg:justify-between">
+      <section className="border-b border-slate-200 pb-8 dark:border-zinc-800/80">
         <div>
-          <p className="text-sm text-zinc-400">Panel de control</p>
-          <h1 className="mt-1 text-2xl font-semibold tracking-tight text-zinc-50 sm:text-3xl">
-            Bienvenido, {userEmail}
+          <h1 className="text-4xl font-extrabold tracking-tight text-zinc-900 sm:text-5xl dark:text-white">
+            <span>Bienvenido</span>
+            <span className="ml-2 inline-block">👋</span>
           </h1>
-          {business && (
-            <div className="mt-2.5 flex flex-wrap items-center gap-2 text-xs text-zinc-400">
-              <span className="font-medium text-zinc-200">
-                {business.business_name}
-              </span>
-              <span aria-hidden="true">·</span>
-              <span className="tabular-nums">
-                Retraso: {business.delay_minutes} min
-              </span>
-              <span aria-hidden="true">·</span>
-              <span>
-                {business.google_review_url
-                  ? 'Enlace de Google configurado'
-                  : 'Falta configurar enlace de Google'}
-              </span>
-              <span aria-hidden="true">·</span>
-              <span className="tabular-nums text-zinc-300">
-                {getHeaderPlanLabel(business)}
-              </span>
-            </div>
-          )}
+
+          <p className="mt-1 text-2xl font-bold tracking-tight text-zinc-800 sm:text-3xl dark:text-zinc-100">
+            {business?.business_name || 'Mi Negocio'}
+          </p>
+
+          <div className="mt-3 flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-sm text-zinc-600 dark:text-zinc-300">
+            <span className="font-medium text-slate-900 dark:text-zinc-100">
+              {userEmail}
+            </span>
+            {business && (
+              <>
+                <span aria-hidden="true">·</span>
+                <span className="tabular-nums">
+                  Retraso: {business.delay_minutes} min
+                </span>
+                <span aria-hidden="true">·</span>
+                <span>
+                  {business.google_review_url
+                    ? 'Enlace de Google configurado'
+                    : 'Falta configurar enlace de Google'}
+                </span>
+                <span aria-hidden="true">·</span>
+                <span className="font-medium tabular-nums text-slate-800 dark:text-zinc-200">
+                  {getHeaderPlanLabel(business)}
+                </span>
+              </>
+            )}
+          </div>
         </div>
 
-        <div
-          role="tablist"
-          aria-label="Secciones del panel"
-          className="inline-flex w-fit flex-wrap items-center gap-1 rounded-lg border border-zinc-800 bg-[#111114] p-1"
-        >
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === 'requests'}
-            onClick={() => setActiveTab('requests')}
-            className={`inline-flex h-9 items-center gap-2 rounded-md px-3.5 text-sm font-medium transition-colors whitespace-nowrap shrink-0 ${
-              activeTab === 'requests'
-                ? 'bg-amber-500 text-zinc-950'
-                : 'text-zinc-400 hover:text-zinc-100'
-            }`}
+        <div className="mt-5">
+          <div
+            role="tablist"
+            aria-label="Secciones del panel"
+            className="grid w-full grid-cols-2 gap-1 rounded-lg border border-slate-200 bg-white p-1 shadow-xs transition-colors duration-300 ease-in-out md:inline-flex md:w-auto md:flex-nowrap md:items-center md:gap-1 shrink-0 dark:border-zinc-800 dark:bg-[#111114] dark:shadow-none"
           >
-            <Users className="h-4 w-4" aria-hidden="true" />
-            <span>Solicitudes</span>
-          </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 'requests'}
+              onClick={() => setActiveTab('requests')}
+              className={`inline-flex h-9 items-center justify-center gap-2 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors whitespace-nowrap shrink-0 sm:px-3.5 sm:text-sm ${
+                activeTab === 'requests'
+                  ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-semibold shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900 dark:text-zinc-300 dark:hover:text-white'
+              }`}
+            >
+              <Users className="h-4 w-4 shrink-0" aria-hidden="true" />
+              <span>Solicitudes</span>
+            </button>
 
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === 'feedback'}
-            onClick={() => setActiveTab('feedback')}
-            className={`inline-flex h-9 items-center gap-2 rounded-md px-3.5 text-sm font-medium transition-colors whitespace-nowrap shrink-0 ${
-              activeTab === 'feedback'
-                ? 'bg-amber-500 text-zinc-950'
-                : 'text-zinc-400 hover:text-zinc-100'
-            }`}
-          >
-            <MessageSquareWarning className="h-4 w-4" aria-hidden="true" />
-            <span className="tabular-nums">
-              Opiniones Privadas
-              {negativeFeedbackCount > 0 ? ` (${negativeFeedbackCount})` : ''}
-            </span>
-          </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 'feedback'}
+              onClick={() => setActiveTab('feedback')}
+              className={`inline-flex h-9 items-center justify-center gap-2 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors whitespace-nowrap shrink-0 sm:px-3.5 sm:text-sm ${
+                activeTab === 'feedback'
+                  ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-semibold shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900 dark:text-zinc-300 dark:hover:text-white'
+              }`}
+            >
+              <MessageSquareWarning className="h-4 w-4 shrink-0" aria-hidden="true" />
+              <span className="tabular-nums">
+                Opiniones Privadas
+                {negativeFeedbackCount > 0 ? ` (${negativeFeedbackCount})` : ''}
+              </span>
+            </button>
 
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === 'settings'}
-            onClick={() => setActiveTab('settings')}
-            className={`inline-flex h-9 items-center gap-2 rounded-md px-3.5 text-sm font-medium transition-colors whitespace-nowrap shrink-0 ${
-              activeTab === 'settings'
-                ? 'bg-amber-500 text-zinc-950'
-                : 'text-zinc-400 hover:text-zinc-100'
-            }`}
-          >
-            <Settings className="h-4 w-4" aria-hidden="true" />
-            <span>Configuración</span>
-          </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 'settings'}
+              onClick={() => setActiveTab('settings')}
+              className={`inline-flex h-9 items-center justify-center gap-2 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors whitespace-nowrap shrink-0 sm:px-3.5 sm:text-sm ${
+                activeTab === 'settings'
+                  ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-semibold shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900 dark:text-zinc-300 dark:hover:text-white'
+              }`}
+            >
+              <Settings className="h-4 w-4 shrink-0" aria-hidden="true" />
+              <span>Configuración</span>
+            </button>
 
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === 'subscription'}
-            onClick={() => setActiveTab('subscription')}
-            className={`inline-flex h-9 items-center gap-2 rounded-md px-3.5 text-sm font-medium transition-colors whitespace-nowrap shrink-0 ${
-              activeTab === 'subscription'
-                ? 'bg-amber-500 text-zinc-950'
-                : 'text-zinc-400 hover:text-zinc-100'
-            }`}
-          >
-            <CreditCard className="h-4 w-4" aria-hidden="true" />
-            <span>Suscripción</span>
-          </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 'subscription'}
+              onClick={() => setActiveTab('subscription')}
+              className={`inline-flex h-9 items-center justify-center gap-2 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors whitespace-nowrap shrink-0 sm:px-3.5 sm:text-sm ${
+                activeTab === 'subscription'
+                  ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-semibold shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900 dark:text-zinc-300 dark:hover:text-white'
+              }`}
+            >
+              <CreditCard className="h-4 w-4 shrink-0" aria-hidden="true" />
+              <span>Suscripción</span>
+            </button>
+          </div>
         </div>
       </section>
 
       {loadError && (
         <div
           role="alert"
-          className="flex items-start gap-2.5 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200"
+          className="flex items-start gap-2.5 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-700 dark:text-red-200"
         >
           <AlertCircle
-            className="mt-0.5 h-4 w-4 shrink-0 text-red-400"
+            className="mt-0.5 h-4 w-4 shrink-0 text-red-600 dark:text-red-400"
             aria-hidden="true"
           />
           <span>{loadError}</span>
@@ -283,15 +292,15 @@ export default function DashboardWorkspace({
       )}
 
       {business && !business.google_review_url && activeTab === 'requests' && (
-        <div className="flex flex-col gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm text-amber-100">
+        <div className="flex flex-col gap-3 rounded-xl border border-amber-500/35 bg-amber-500/10 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-amber-900 dark:text-amber-100">
             Aún no has agregado tu enlace directo de reseñas de Google Maps.
             Configúralo antes de enviar tus primeras invitaciones.
           </p>
           <button
             type="button"
             onClick={() => setActiveTab('settings')}
-            className="inline-flex h-9 items-center justify-center rounded-lg border border-amber-500/40 bg-zinc-950/60 px-3.5 text-xs font-semibold text-amber-300 transition-colors hover:bg-zinc-950 whitespace-nowrap shrink-0"
+            className="inline-flex h-9 items-center justify-center rounded-lg border border-amber-500/40 bg-white px-3.5 text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-50 dark:bg-zinc-950/60 dark:text-amber-300 dark:hover:bg-zinc-950 whitespace-nowrap shrink-0"
           >
             Configurar enlace
           </button>
@@ -299,7 +308,7 @@ export default function DashboardWorkspace({
       )}
 
       {!business ? (
-        <section className="rounded-xl border border-zinc-800 bg-[#111114] p-8 text-sm text-zinc-400">
+        <section className="rounded-xl border border-slate-200 bg-white p-8 text-sm text-slate-600 shadow-xs dark:border-zinc-800 dark:bg-[#111114] dark:text-zinc-300 dark:shadow-none">
           No se encontró el perfil del negocio en Supabase. Verifica que hayas
           ejecutado el script SQL de creación de tablas y políticas RLS en tu
           proyecto.
@@ -311,13 +320,13 @@ export default function DashboardWorkspace({
             onCreated={handleRequestCreated}
           />
 
-          <section className="rounded-xl border border-zinc-800 bg-[#111114] p-6">
+          <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-xs transition-colors duration-300 ease-in-out dark:border-zinc-800 dark:bg-[#111114] dark:shadow-none">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h2 className="text-base font-semibold tracking-tight text-zinc-50">
+                <h2 className="text-base font-semibold tracking-tight text-slate-900 dark:text-zinc-50">
                   Automatización de envíos
                 </h2>
-                <p className="mt-1 text-sm text-zinc-400 tabular-nums">
+                <p className="mt-1 text-sm text-slate-600 tabular-nums dark:text-zinc-300">
                   {pendingCount === 0
                     ? 'No hay solicitudes en estado pendiente en este momento.'
                     : `${pendingCount} ${
@@ -332,7 +341,7 @@ export default function DashboardWorkspace({
                 type="button"
                 disabled={dispatching}
                 onClick={() => runSendReminders(false)}
-                className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-amber-500/40 bg-amber-500/15 px-4 text-sm font-semibold text-amber-300 transition-colors hover:bg-amber-500/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/60 disabled:cursor-not-allowed disabled:opacity-60 whitespace-nowrap shrink-0"
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-amber-500/40 bg-amber-500/15 px-4 text-sm font-semibold text-amber-800 transition-colors hover:bg-amber-500/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/60 disabled:cursor-not-allowed disabled:opacity-60 dark:text-amber-300 whitespace-nowrap shrink-0"
               >
                 {dispatching ? (
                   <>
@@ -354,10 +363,10 @@ export default function DashboardWorkspace({
             {dispatchError && (
               <div
                 role="alert"
-                className="mt-4 flex items-start gap-2.5 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200"
+                className="mt-4 flex items-start gap-2.5 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-700 dark:text-red-200"
               >
                 <AlertCircle
-                  className="mt-0.5 h-4 w-4 shrink-0 text-red-400"
+                  className="mt-0.5 h-4 w-4 shrink-0 text-red-600 dark:text-red-400"
                   aria-hidden="true"
                 />
                 <span>{dispatchError}</span>
@@ -365,21 +374,21 @@ export default function DashboardWorkspace({
             )}
 
             {dispatchSummary && (
-              <div className="mt-5 border-t border-zinc-800/80 pt-5">
+              <div className="mt-5 border-t border-slate-200 pt-5 dark:border-zinc-800/80">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex items-start gap-2.5 text-sm">
                     <CheckCircle2
-                      className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400"
+                      className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400"
                       aria-hidden="true"
                     />
                     <div>
-                      <p className="font-medium text-zinc-100 tabular-nums">
+                      <p className="font-medium text-slate-900 tabular-nums dark:text-zinc-100">
                         {dispatchSummary.processed}{' '}
                         {dispatchSummary.processed === 1
                           ? 'solicitud procesada'
                           : 'solicitudes procesadas'}{' '}
                         ·{' '}
-                        <span className="text-zinc-400">
+                        <span className="text-slate-600 dark:text-zinc-300">
                           {dispatchSummary.mode === 'twilio'
                             ? 'Enviado por Twilio SMS'
                             : 'Modo simulado (sin Twilio)'}
@@ -387,7 +396,7 @@ export default function DashboardWorkspace({
                       </p>
                       {dispatchSummary.processed === 0 &&
                         dispatchSummary.pendingFutureCount > 0 && (
-                          <p className="mt-1 text-xs text-zinc-400 tabular-nums">
+                          <p className="mt-1 text-xs text-slate-500 tabular-nums dark:text-zinc-300">
                             Tienes {dispatchSummary.pendingFutureCount}{' '}
                             {dispatchSummary.pendingFutureCount === 1
                               ? 'solicitud cuya hora programada aún no se cumple'
@@ -404,7 +413,7 @@ export default function DashboardWorkspace({
                         type="button"
                         disabled={dispatching}
                         onClick={() => runSendReminders(true)}
-                        className="inline-flex h-9 items-center justify-center rounded-lg border border-zinc-700 bg-zinc-900 px-3.5 text-xs font-medium text-zinc-200 transition-colors hover:border-zinc-600 hover:bg-zinc-800 disabled:opacity-60 whitespace-nowrap shrink-0"
+                        className="inline-flex h-9 items-center justify-center rounded-lg border border-slate-300 bg-slate-100 px-3.5 text-xs font-medium text-slate-800 transition-colors hover:border-slate-400 hover:bg-slate-200 disabled:opacity-60 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:border-zinc-600 dark:hover:bg-zinc-800 whitespace-nowrap shrink-0"
                       >
                         Forzar envío ahora (prueba)
                       </button>
@@ -412,7 +421,7 @@ export default function DashboardWorkspace({
                 </div>
 
                 {dispatchSummary.items.length > 0 && (
-                  <ul className="mt-4 divide-y divide-zinc-800/70 border-t border-zinc-800/70">
+                  <ul className="mt-4 divide-y divide-slate-200 border-t border-slate-200 dark:divide-zinc-800/70 dark:border-zinc-800/70">
                     {dispatchSummary.items.map((item) => {
                       const linkKey = `link-${item.id}`;
                       const msgKey = `msg-${item.id}`;
@@ -422,13 +431,13 @@ export default function DashboardWorkspace({
                           className="flex flex-col gap-3 py-3.5 sm:flex-row sm:items-center sm:justify-between"
                         >
                           <div className="min-w-0">
-                            <p className="text-sm font-medium text-zinc-100">
+                            <p className="text-sm font-medium text-slate-900 dark:text-zinc-100">
                               {item.customerName}{' '}
-                              <span className="font-mono text-xs tabular-nums text-zinc-400">
+                              <span className="font-mono text-xs tabular-nums text-slate-500 dark:text-zinc-300">
                                 · {item.customerPhone}
                               </span>
                             </p>
-                            <p className="mt-1 truncate font-mono text-xs text-zinc-400">
+                            <p className="mt-1 truncate font-mono text-xs text-slate-500 dark:text-zinc-300">
                               {item.reviewLink}
                             </p>
                           </div>
@@ -439,15 +448,15 @@ export default function DashboardWorkspace({
                               onClick={() =>
                                 handleCopyText(linkKey, item.reviewLink)
                               }
-                              className="inline-flex h-8 items-center gap-1.5 rounded-md border border-zinc-800 bg-zinc-950 px-2.5 text-xs font-medium text-zinc-300 transition-colors hover:border-zinc-700 hover:text-zinc-100 whitespace-nowrap shrink-0"
+                              className="inline-flex h-8 items-center gap-1.5 rounded-md border border-slate-200 bg-slate-50 px-2.5 text-xs font-medium text-slate-700 transition-colors hover:border-slate-300 hover:text-slate-900 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:border-zinc-700 dark:hover:text-zinc-100 whitespace-nowrap shrink-0"
                             >
                               {copiedKey === linkKey ? (
                                 <>
                                   <Check
-                                    className="h-3.5 w-3.5 text-emerald-400"
+                                    className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400"
                                     aria-hidden="true"
                                   />
-                                  <span className="text-emerald-300">
+                                  <span className="text-emerald-700 dark:text-emerald-300">
                                     Enlace copiado
                                   </span>
                                 </>
@@ -467,15 +476,15 @@ export default function DashboardWorkspace({
                               onClick={() =>
                                 handleCopyText(msgKey, item.messagePreview)
                               }
-                              className="inline-flex h-8 items-center gap-1.5 rounded-md border border-zinc-800 bg-zinc-950 px-2.5 text-xs font-medium text-zinc-300 transition-colors hover:border-zinc-700 hover:text-zinc-100 whitespace-nowrap shrink-0"
+                              className="inline-flex h-8 items-center gap-1.5 rounded-md border border-slate-200 bg-slate-50 px-2.5 text-xs font-medium text-slate-700 transition-colors hover:border-slate-300 hover:text-slate-900 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:border-zinc-700 dark:hover:text-zinc-100 whitespace-nowrap shrink-0"
                             >
                               {copiedKey === msgKey ? (
                                 <>
                                   <Check
-                                    className="h-3.5 w-3.5 text-emerald-400"
+                                    className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400"
                                     aria-hidden="true"
                                   />
-                                  <span className="text-emerald-300">
+                                  <span className="text-emerald-700 dark:text-emerald-300">
                                     Mensaje copiado
                                   </span>
                                 </>

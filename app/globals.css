@@ -8,14 +8,24 @@
 
 @layer base {
   html {
+    color-scheme: light;
+  }
+
+  html.dark {
     color-scheme: dark;
   }
 
   body {
-    background-color: #09090b;
-    color: #f4f4f5;
+    background-color: #f8fafc;
+    color: #0f172a;
+    transition: background-color 300ms ease-in-out, color 300ms ease-in-out;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+  }
+
+  html.dark body {
+    background-color: #000000;
+    color: #f4f4f5;
   }
 }

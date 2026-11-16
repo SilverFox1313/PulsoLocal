@@ -140,27 +140,27 @@ export default function SubscriptionPanel({
 
   return (
     <div className="space-y-8">
-      <section className="rounded-xl border border-zinc-800 bg-[#111114] p-6 sm:p-8">
-        <div className="flex flex-col gap-6 border-b border-zinc-800/80 pb-6 sm:flex-row sm:items-start sm:justify-between">
+      <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-xs transition-colors duration-300 ease-in-out sm:p-8 dark:border-zinc-800 dark:bg-[#111114] dark:shadow-none">
+        <div className="flex flex-col gap-6 border-b border-slate-200 pb-6 sm:flex-row sm:items-start sm:justify-between dark:border-zinc-800/80">
           <div>
-            <p className="text-xs font-medium text-zinc-400">
+            <p className="text-xs font-medium text-slate-500 dark:text-zinc-300">
               Estado actual de tu suscripción
             </p>
-            <h2 className="mt-1.5 flex items-center gap-2.5 text-xl font-semibold tracking-tight text-zinc-50 sm:text-2xl tabular-nums">
+            <h2 className="mt-1.5 flex items-center gap-2.5 text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl tabular-nums dark:text-zinc-50">
               {summary.isActive ? (
                 <CheckCircle2
-                  className="h-5 w-5 shrink-0 text-emerald-400"
+                  className="h-5 w-5 shrink-0 text-emerald-600 dark:text-emerald-400"
                   aria-hidden="true"
                 />
               ) : (
                 <Clock
-                  className="h-5 w-5 shrink-0 text-amber-400"
+                  className="h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400"
                   aria-hidden="true"
                 />
               )}
               <span>{summary.label}</span>
             </h2>
-            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-zinc-400">
+            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-600 dark:text-zinc-300">
               {summary.detail}
             </p>
           </div>
@@ -170,7 +170,7 @@ export default function SubscriptionPanel({
               type="button"
               disabled={loadingAction !== null}
               onClick={handleResetToTrial}
-              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-zinc-800 bg-zinc-950 px-3 text-xs font-medium text-zinc-300 transition-colors hover:border-zinc-700 hover:text-zinc-100 disabled:opacity-60 whitespace-nowrap shrink-0"
+              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-3 text-xs font-medium text-slate-700 transition-colors hover:border-slate-300 hover:text-slate-900 disabled:opacity-60 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:border-zinc-700 dark:hover:text-zinc-100 whitespace-nowrap shrink-0"
             >
               {loadingAction === 'reset' ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
@@ -184,14 +184,16 @@ export default function SubscriptionPanel({
 
         <div className="mt-6 grid gap-6 sm:grid-cols-3">
           <div>
-            <p className="text-xs text-zinc-500">Negocio</p>
-            <p className="mt-1 text-sm font-medium text-zinc-100">
+            <p className="text-xs text-slate-500 dark:text-zinc-400">Negocio</p>
+            <p className="mt-1 text-sm font-medium text-slate-900 dark:text-zinc-100">
               {business.business_name}
             </p>
           </div>
           <div>
-            <p className="text-xs text-zinc-500">Solicitudes registradas</p>
-            <p className="mt-1 font-mono text-sm font-medium tabular-nums text-zinc-100">
+            <p className="text-xs text-slate-500 dark:text-zinc-400">
+              Solicitudes registradas
+            </p>
+            <p className="mt-1 font-mono text-sm font-medium tabular-nums text-slate-900 dark:text-zinc-100">
               {totalRequestsCount}{' '}
               {business.subscription_status === 'active'
                 ? '/ Ilimitadas'
@@ -199,8 +201,10 @@ export default function SubscriptionPanel({
             </p>
           </div>
           <div>
-            <p className="text-xs text-zinc-500">Titular de facturación</p>
-            <p className="mt-1 truncate text-sm font-medium text-zinc-100">
+            <p className="text-xs text-slate-500 dark:text-zinc-400">
+              Titular de facturación
+            </p>
+            <p className="mt-1 truncate text-sm font-medium text-slate-900 dark:text-zinc-100">
               {userEmail}
             </p>
           </div>
@@ -209,10 +213,10 @@ export default function SubscriptionPanel({
         {error && (
           <div
             role="alert"
-            className="mt-6 flex items-start gap-2.5 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200"
+            className="mt-6 flex items-start gap-2.5 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-700 dark:text-red-200"
           >
             <AlertCircle
-              className="mt-0.5 h-4 w-4 shrink-0 text-red-400"
+              className="mt-0.5 h-4 w-4 shrink-0 text-red-600 dark:text-red-400"
               aria-hidden="true"
             />
             <span>{error}</span>
@@ -222,10 +226,10 @@ export default function SubscriptionPanel({
         {successMessage && (
           <div
             role="status"
-            className="mt-6 flex items-start gap-2.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200"
+            className="mt-6 flex items-start gap-2.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-200"
           >
             <CheckCircle2
-              className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400"
+              className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400"
               aria-hidden="true"
             />
             <span>{successMessage}</span>
@@ -234,87 +238,117 @@ export default function SubscriptionPanel({
       </section>
 
       <section className="grid gap-6 lg:grid-cols-2">
-        <div className="flex flex-col justify-between rounded-xl border border-zinc-800 bg-[#111114] p-6 sm:p-8">
+        <div className="flex flex-col justify-between rounded-xl border border-slate-200 bg-white p-6 shadow-xs transition-colors duration-300 ease-in-out sm:p-8 dark:border-zinc-800 dark:bg-[#111114] dark:shadow-none">
           <div>
-            <div className="flex items-baseline justify-between gap-4 border-b border-zinc-800/80 pb-5">
+            <div className="flex items-baseline justify-between gap-4 border-b border-slate-200 pb-5 dark:border-zinc-800/80">
               <div>
-                <h3 className="text-lg font-semibold text-zinc-50">
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-zinc-50">
                   Plan Trial
                 </h3>
-                <p className="mt-1 text-xs text-zinc-400">
+                <p className="mt-1 text-xs text-slate-500 dark:text-zinc-300">
                   Para negocios que prueban el flujo completo
                 </p>
               </div>
-              <p className="font-mono text-2xl font-bold tabular-nums text-zinc-100">
-                $0 <span className="text-xs font-normal text-zinc-500">/ 14 días</span>
+              <p className="font-mono text-2xl font-bold tabular-nums text-slate-900 dark:text-zinc-100">
+                $0{' '}
+                <span className="text-xs font-normal text-slate-500 dark:text-zinc-400">
+                  / 14 días
+                </span>
               </p>
             </div>
 
             <dl className="mt-6 space-y-3 text-sm">
-              <div className="flex items-center justify-between border-b border-zinc-800/50 pb-2.5">
-                <dt className="text-zinc-400">Solicitudes de reseña</dt>
-                <dd className="font-mono text-xs tabular-nums text-zinc-200">
+              <div className="flex items-center justify-between border-b border-slate-200/80 pb-2.5 dark:border-zinc-800/50">
+                <dt className="text-slate-600 dark:text-zinc-300">
+                  Solicitudes de reseña
+                </dt>
+                <dd className="font-mono text-xs tabular-nums text-slate-800 dark:text-zinc-200">
                   Hasta 25 envíos
                 </dd>
               </div>
-              <div className="flex items-center justify-between border-b border-zinc-800/50 pb-2.5">
-                <dt className="text-zinc-400">Filtro de 1–3 estrellas</dt>
-                <dd className="text-xs font-medium text-zinc-200">Incluido</dd>
+              <div className="flex items-center justify-between border-b border-slate-200/80 pb-2.5 dark:border-zinc-800/50">
+                <dt className="text-slate-600 dark:text-zinc-300">
+                  Filtro de 1–3 estrellas
+                </dt>
+                <dd className="text-xs font-medium text-slate-800 dark:text-zinc-200">
+                  Incluido
+                </dd>
               </div>
-              <div className="flex items-center justify-between border-b border-zinc-800/50 pb-2.5">
-                <dt className="text-zinc-400">Redirección a Google Maps</dt>
-                <dd className="text-xs font-medium text-zinc-200">Incluida</dd>
+              <div className="flex items-center justify-between border-b border-slate-200/80 pb-2.5 dark:border-zinc-800/50">
+                <dt className="text-slate-600 dark:text-zinc-300">
+                  Redirección a Google Maps
+                </dt>
+                <dd className="text-xs font-medium text-slate-800 dark:text-zinc-200">
+                  Incluida
+                </dd>
               </div>
               <div className="flex items-center justify-between">
-                <dt className="text-zinc-400">Canal privado de quejas</dt>
-                <dd className="text-xs font-medium text-zinc-200">Incluido</dd>
+                <dt className="text-slate-600 dark:text-zinc-300">
+                  Canal privado de quejas
+                </dt>
+                <dd className="text-xs font-medium text-slate-800 dark:text-zinc-200">
+                  Incluido
+                </dd>
               </div>
             </dl>
           </div>
 
-          <p className="mt-8 text-xs text-zinc-500">
+          <p className="mt-8 text-xs text-slate-500 dark:text-zinc-400">
             {business.subscription_status === 'trialing'
               ? 'Este es tu plan actual.'
               : 'Periodo inicial de evaluación.'}
           </p>
         </div>
 
-        <div className="flex flex-col justify-between rounded-xl border border-amber-500/35 bg-[#111114] p-6 sm:p-8">
+        <div className="flex flex-col justify-between rounded-xl border border-amber-500/40 bg-white p-6 shadow-xs transition-colors duration-300 ease-in-out sm:p-8 dark:border-amber-500/35 dark:bg-[#111114] dark:shadow-none">
           <div>
-            <div className="flex items-baseline justify-between gap-4 border-b border-zinc-800/80 pb-5">
+            <div className="flex items-baseline justify-between gap-4 border-b border-slate-200 pb-5 dark:border-zinc-800/80">
               <div>
-                <h3 className="text-lg font-semibold text-zinc-50">
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-zinc-50">
                   Plan Pro
                 </h3>
-                <p className="mt-1 text-xs text-amber-400">
+                <p className="mt-1 text-xs font-medium text-amber-600 dark:text-amber-400">
                   Para negocios locales en crecimiento continuo
                 </p>
               </div>
-              <p className="font-mono text-2xl font-bold tabular-nums text-zinc-50">
-                $29 <span className="text-xs font-normal text-zinc-400">USD / mes</span>
+              <p className="font-mono text-2xl font-bold tabular-nums text-slate-900 dark:text-zinc-50">
+                $29{' '}
+                <span className="text-xs font-normal text-slate-500 dark:text-zinc-300">
+                  USD / mes
+                </span>
               </p>
             </div>
 
             <dl className="mt-6 space-y-3 text-sm">
-              <div className="flex items-center justify-between border-b border-zinc-800/50 pb-2.5">
-                <dt className="text-zinc-400">Solicitudes de reseña</dt>
-                <dd className="text-xs font-semibold text-zinc-100">
+              <div className="flex items-center justify-between border-b border-slate-200/80 pb-2.5 dark:border-zinc-800/50">
+                <dt className="text-slate-600 dark:text-zinc-300">
+                  Solicitudes de reseña
+                </dt>
+                <dd className="text-xs font-semibold text-slate-900 dark:text-zinc-100">
                   Ilimitadas
                 </dd>
               </div>
-              <div className="flex items-center justify-between border-b border-zinc-800/50 pb-2.5">
-                <dt className="text-zinc-400">Automatización Cron y SMS</dt>
-                <dd className="text-xs font-medium text-zinc-200">
+              <div className="flex items-center justify-between border-b border-slate-200/80 pb-2.5 dark:border-zinc-800/50">
+                <dt className="text-slate-600 dark:text-zinc-300">
+                  Automatización Cron y SMS
+                </dt>
+                <dd className="text-xs font-medium text-slate-800 dark:text-zinc-200">
                   Twilio / Programación
                 </dd>
               </div>
-              <div className="flex items-center justify-between border-b border-zinc-800/50 pb-2.5">
-                <dt className="text-zinc-400">Desvío inteligente 4–5 estrellas</dt>
-                <dd className="text-xs font-medium text-zinc-200">Incluido</dd>
+              <div className="flex items-center justify-between border-b border-slate-200/80 pb-2.5 dark:border-zinc-800/50">
+                <dt className="text-slate-600 dark:text-zinc-300">
+                  Desvío inteligente 4–5 estrellas
+                </dt>
+                <dd className="text-xs font-medium text-slate-800 dark:text-zinc-200">
+                  Incluido
+                </dd>
               </div>
               <div className="flex items-center justify-between">
-                <dt className="text-zinc-400">Soporte prioritario</dt>
-                <dd className="text-xs font-medium text-zinc-200">
+                <dt className="text-slate-600 dark:text-zinc-300">
+                  Soporte prioritario
+                </dt>
+                <dd className="text-xs font-medium text-slate-800 dark:text-zinc-200">
                   Respuesta &lt; 24 h
                 </dd>
               </div>
@@ -323,7 +357,7 @@ export default function SubscriptionPanel({
 
           <div className="mt-8 space-y-3">
             {business.subscription_status === 'active' ? (
-              <div className="flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 text-sm font-semibold text-emerald-300">
+              <div className="flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 text-sm font-semibold text-emerald-700 dark:text-emerald-300">
                 <ShieldCheck className="h-4 w-4" aria-hidden="true" />
                 <span>Plan Pro activo</span>
               </div>
@@ -331,7 +365,7 @@ export default function SubscriptionPanel({
               <a
                 href={stripeCheckoutUrl}
                 rel="noopener noreferrer"
-                className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-amber-500 px-5 text-sm font-semibold text-zinc-950 transition-colors hover:bg-amber-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/60"
+                className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 px-5 text-sm font-semibold text-slate-950 shadow-md shadow-amber-500/20 transition-all hover:from-amber-400 hover:to-orange-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/60"
               >
                 <CreditCard className="h-4 w-4" aria-hidden="true" />
                 <span>Suscribirse / Activar Plan Pro</span>
@@ -342,7 +376,7 @@ export default function SubscriptionPanel({
                 type="button"
                 disabled={loadingAction !== null}
                 onClick={handleSimulatedActivation}
-                className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-amber-500 px-5 text-sm font-semibold text-zinc-950 transition-colors hover:bg-amber-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/60 disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 px-5 text-sm font-semibold text-slate-950 shadow-md shadow-amber-500/20 transition-all hover:from-amber-400 hover:to-orange-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/60 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {loadingAction === 'activate' ? (
                   <>
@@ -361,7 +395,7 @@ export default function SubscriptionPanel({
               </button>
             )}
 
-            <p className="text-center text-xs text-zinc-500">
+            <p className="text-center text-xs text-slate-500 dark:text-zinc-400">
               {stripeCheckoutUrl
                 ? 'Pago seguro procesado a través de Stripe Checkout.'
                 : 'Modo de activación instantánea para pruebas (configura NEXT_PUBLIC_STRIPE_PAYMENT_LINK para enlazar tu checkout real de Stripe).'}

@@ -29,24 +29,24 @@ export default function SignOutButton() {
         onClick={handleSignOut}
         disabled={isPending}
         aria-busy={isPending}
-        className={`inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-zinc-800 bg-zinc-900 px-4 text-sm font-medium text-zinc-100 transition-colors hover:border-zinc-700 hover:bg-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/60 disabled:cursor-not-allowed disabled:opacity-60 whitespace-nowrap shrink-0 ${
+        className={`inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3.5 text-sm font-medium text-slate-700 shadow-xs transition-colors hover:border-slate-300 hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/60 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100 dark:shadow-none dark:hover:border-zinc-700 dark:hover:bg-zinc-800 whitespace-nowrap shrink-0 ${
           isPending ? 'pointer-events-none opacity-60' : ''
         }`}
       >
         {isPending ? (
           <>
-            <Loader2 className="h-4 w-4 animate-spin text-zinc-400" aria-hidden="true" />
+            <Loader2 className="h-4 w-4 animate-spin text-slate-400 dark:text-zinc-400" aria-hidden="true" />
             <span>Cerrando sesión...</span>
           </>
         ) : (
           <>
-            <LogOut className="h-4 w-4 text-zinc-400" aria-hidden="true" />
+            <LogOut className="h-4 w-4 text-slate-500 dark:text-zinc-400" aria-hidden="true" />
             <span>Cerrar sesión</span>
           </>
         )}
       </button>
       {error && (
-        <p role="alert" className="text-xs text-red-400">
+        <p role="alert" className="text-xs text-red-600 dark:text-red-400">
           {error}
         </p>
       )}

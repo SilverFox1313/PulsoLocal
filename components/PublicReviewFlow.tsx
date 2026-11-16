@@ -136,18 +136,18 @@ export default function PublicReviewFlow({ data }: PublicReviewFlowProps) {
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-        className="w-full max-w-lg rounded-2xl border border-zinc-800 bg-[#111114] p-8 text-center sm:p-10"
+        className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm sm:p-10 dark:border-zinc-800 dark:bg-[#111114] dark:shadow-none"
       >
-        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl border border-emerald-500/25 bg-emerald-500/10 text-emerald-400">
+        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl border border-emerald-500/25 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
           <CheckCircle2 className="h-6 w-6" aria-hidden="true" />
         </div>
-        <p className="mt-5 text-xs font-medium tracking-wide text-zinc-400">
+        <p className="mt-5 text-xs font-medium tracking-wide text-slate-500 dark:text-zinc-300">
           {data.business_name}
         </p>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight text-zinc-50">
+        <h1 className="mt-2 text-2xl font-semibold tracking-tight text-slate-900 dark:text-zinc-50">
           Tu opinión ya fue registrada
         </h1>
-        <p className="mt-3 text-sm leading-relaxed text-zinc-400">
+        <p className="mt-3 text-sm leading-relaxed text-slate-600 dark:text-zinc-300">
           Muchas gracias por tomarte el tiempo de compartir tu experiencia con
           nosotros.
         </p>
@@ -161,21 +161,21 @@ export default function PublicReviewFlow({ data }: PublicReviewFlowProps) {
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-        className="w-full max-w-lg rounded-2xl border border-zinc-800 bg-[#111114] p-8 text-center sm:p-10"
+        className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm sm:p-10 dark:border-zinc-800 dark:bg-[#111114] dark:shadow-none"
       >
-        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl border border-amber-500/25 bg-amber-500/10 text-amber-400">
-          <Star className="h-6 w-6 fill-amber-400" aria-hidden="true" />
+        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl border border-amber-500/25 bg-amber-500/10 text-amber-500 dark:text-amber-400">
+          <Star className="h-6 w-6 fill-amber-500 dark:fill-amber-400" aria-hidden="true" />
         </div>
 
-        <p className="mt-5 text-xs font-medium text-zinc-400">
+        <p className="mt-5 text-xs font-medium text-slate-500 dark:text-zinc-300">
           {data.business_name} · {selectedRating} de 5 estrellas
         </p>
 
-        <h1 className="mt-2 text-balance text-2xl font-semibold tracking-tight text-zinc-50">
+        <h1 className="mt-2 text-balance text-2xl font-semibold tracking-tight text-slate-900 dark:text-zinc-50">
           ¡Muchas gracias, {data.customer_name}!
         </h1>
 
-        <p className="mt-3 text-sm leading-relaxed text-zinc-400">
+        <p className="mt-3 text-sm leading-relaxed text-slate-600 dark:text-zinc-300">
           Nos alegra muchísimo saber que tuviste una excelente experiencia. Tu
           reseña pública ayuda a que más personas nos conozcan.
         </p>
@@ -185,20 +185,20 @@ export default function PublicReviewFlow({ data }: PublicReviewFlowProps) {
             <a
               href={googleReviewUrl}
               rel="noopener noreferrer"
-              className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-amber-500 px-5 text-sm font-semibold text-zinc-950 transition-colors hover:bg-amber-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/60"
+              className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 px-5 text-sm font-semibold text-slate-950 shadow-md shadow-amber-500/20 transition-all hover:from-amber-400 hover:to-orange-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/60"
             >
               <span>Publicar reseña en Google Maps</span>
               <ExternalLink className="h-4 w-4" aria-hidden="true" />
             </a>
 
-            <p className="text-xs text-zinc-500 tabular-nums">
+            <p className="text-xs text-slate-500 tabular-nums dark:text-zinc-400">
               {countdown > 0
                 ? `Redirigiendo automáticamente a Google en ${countdown} s...`
                 : 'Abriendo Google Maps...'}
             </p>
           </div>
         ) : (
-          <p className="mt-6 text-xs text-zinc-500">
+          <p className="mt-6 text-xs text-slate-500 dark:text-zinc-400">
             Tu valoración ha sido guardada correctamente.
           </p>
         )}
@@ -212,15 +212,15 @@ export default function PublicReviewFlow({ data }: PublicReviewFlowProps) {
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-        className="w-full max-w-lg rounded-2xl border border-zinc-800 bg-[#111114] p-7 sm:p-9"
+        className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-7 shadow-sm sm:p-9 dark:border-zinc-800 dark:bg-[#111114] dark:shadow-none"
       >
-        <p className="text-xs font-medium text-zinc-400">
+        <p className="text-xs font-medium text-slate-500 dark:text-zinc-300">
           {data.business_name} · {selectedRating} de 5 estrellas
         </p>
-        <h1 className="mt-2 text-balance text-2xl font-semibold tracking-tight text-zinc-50">
+        <h1 className="mt-2 text-balance text-2xl font-semibold tracking-tight text-slate-900 dark:text-zinc-50">
           Lamentamos no haber cumplido tus expectativas
         </h1>
-        <p className="mt-2 text-sm leading-relaxed text-zinc-400">
+        <p className="mt-2 text-sm leading-relaxed text-slate-600 dark:text-zinc-300">
           Tu calificación quedó registrada de forma privada. Si lo deseas,
           cuéntanos qué ocurrió para que podamos solucionarlo.
         </p>
@@ -228,10 +228,10 @@ export default function PublicReviewFlow({ data }: PublicReviewFlowProps) {
         {error && (
           <div
             role="alert"
-            className="mt-5 flex items-start gap-2.5 rounded-lg border border-red-500/30 bg-red-500/10 px-3.5 py-3 text-sm text-red-200"
+            className="mt-5 flex items-start gap-2.5 rounded-lg border border-red-500/30 bg-red-500/10 px-3.5 py-3 text-sm text-red-700 dark:text-red-200"
           >
             <AlertCircle
-              className="mt-0.5 h-4 w-4 shrink-0 text-red-400"
+              className="mt-0.5 h-4 w-4 shrink-0 text-red-600 dark:text-red-400"
               aria-hidden="true"
             />
             <span>{error}</span>
@@ -242,7 +242,7 @@ export default function PublicReviewFlow({ data }: PublicReviewFlowProps) {
           <div>
             <label
               htmlFor="private-feedback-comment"
-              className="mb-1.5 block text-sm font-medium text-zinc-300"
+              className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-zinc-300"
             >
               ¿Cómo podemos mejorar? (opcional)
             </label>
@@ -253,7 +253,7 @@ export default function PublicReviewFlow({ data }: PublicReviewFlowProps) {
               value={comment}
               onChange={(e) => setComment(e.target.value)}
               placeholder="Escribe aquí tu experiencia o sugerencia..."
-              className="w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3.5 py-3 text-sm leading-relaxed text-zinc-100 placeholder:text-zinc-500 transition-colors focus:border-amber-500/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30 disabled:cursor-not-allowed disabled:opacity-60"
+              className="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-3 text-sm leading-relaxed text-slate-900 placeholder:text-slate-400 transition-colors focus:border-amber-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-400 dark:focus:border-amber-500/60"
             />
           </div>
 
@@ -262,14 +262,14 @@ export default function PublicReviewFlow({ data }: PublicReviewFlowProps) {
               type="button"
               disabled={submittingComment}
               onClick={() => setStep('empathetic_done')}
-              className="inline-flex h-11 items-center justify-center rounded-lg border border-zinc-800 bg-zinc-900 px-4 text-sm font-medium text-zinc-300 transition-colors hover:border-zinc-700 hover:text-zinc-100 disabled:opacity-60 whitespace-nowrap shrink-0"
+              className="inline-flex h-11 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 px-4 text-sm font-medium text-slate-700 transition-colors hover:border-slate-300 hover:text-slate-900 disabled:opacity-60 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-zinc-700 dark:hover:text-zinc-100 whitespace-nowrap shrink-0"
             >
               Omitir
             </button>
             <button
               type="submit"
               disabled={submittingComment}
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-amber-500 px-5 text-sm font-semibold text-zinc-950 transition-colors hover:bg-amber-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/60 disabled:cursor-not-allowed disabled:opacity-60 whitespace-nowrap shrink-0"
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 px-5 text-sm font-semibold text-slate-950 shadow-md shadow-amber-500/20 transition-all hover:from-amber-400 hover:to-orange-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/60 disabled:cursor-not-allowed disabled:opacity-60 whitespace-nowrap shrink-0"
             >
               {submittingComment ? (
                 <>
@@ -295,18 +295,18 @@ export default function PublicReviewFlow({ data }: PublicReviewFlowProps) {
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-        className="w-full max-w-lg rounded-2xl border border-zinc-800 bg-[#111114] p-8 text-center sm:p-10"
+        className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm sm:p-10 dark:border-zinc-800 dark:bg-[#111114] dark:shadow-none"
       >
-        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl border border-zinc-700 bg-zinc-900 text-amber-400">
+        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl border border-amber-500/25 bg-amber-500/10 text-amber-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-amber-400">
           <HeartHandshake className="h-6 w-6" aria-hidden="true" />
         </div>
-        <p className="mt-5 text-xs font-medium text-zinc-400">
+        <p className="mt-5 text-xs font-medium text-slate-500 dark:text-zinc-300">
           {data.business_name}
         </p>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight text-zinc-50">
+        <h1 className="mt-2 text-2xl font-semibold tracking-tight text-slate-900 dark:text-zinc-50">
           Gracias por ayudarnos a mejorar
         </h1>
-        <p className="mt-3 text-sm leading-relaxed text-zinc-400">
+        <p className="mt-3 text-sm leading-relaxed text-slate-600 dark:text-zinc-300">
           Agradecemos sinceramente tu tiempo y tu honestidad. Nuestro equipo
           revisará tu valoración de manera interna para ofrecerte un mejor
           servicio en tu próxima visita.
@@ -320,15 +320,17 @@ export default function PublicReviewFlow({ data }: PublicReviewFlowProps) {
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-      className="w-full max-w-lg rounded-2xl border border-zinc-800 bg-[#111114] p-8 text-center sm:p-10"
+      className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm sm:p-10 dark:border-zinc-800 dark:bg-[#111114] dark:shadow-none"
     >
-      <p className="text-sm font-medium text-amber-400">{data.business_name}</p>
+      <p className="text-sm font-medium text-amber-600 dark:text-amber-400">
+        {data.business_name}
+      </p>
 
-      <h1 className="mt-3 text-balance text-2xl font-semibold tracking-tight text-zinc-50 sm:text-3xl">
+      <h1 className="mt-3 text-balance text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl dark:text-zinc-50">
         Hola, {data.customer_name}. ¿Cómo fue tu experiencia?
       </h1>
 
-      <p className="mt-3 text-sm leading-relaxed text-zinc-400">
+      <p className="mt-3 text-sm leading-relaxed text-slate-600 dark:text-zinc-300">
         Toca una estrella para calificar la atención recibida. Solo te tomará un
         segundo.
       </p>
@@ -336,10 +338,10 @@ export default function PublicReviewFlow({ data }: PublicReviewFlowProps) {
       {error && (
         <div
           role="alert"
-          className="mt-5 flex items-start gap-2.5 rounded-lg border border-red-500/30 bg-red-500/10 px-3.5 py-3 text-left text-sm text-red-200"
+          className="mt-5 flex items-start gap-2.5 rounded-lg border border-red-500/30 bg-red-500/10 px-3.5 py-3 text-left text-sm text-red-700 dark:text-red-200"
         >
           <AlertCircle
-            className="mt-0.5 h-4 w-4 shrink-0 text-red-400"
+            className="mt-0.5 h-4 w-4 shrink-0 text-red-600 dark:text-red-400"
             aria-hidden="true"
           />
           <span>{error}</span>
@@ -368,13 +370,13 @@ export default function PublicReviewFlow({ data }: PublicReviewFlowProps) {
               onFocus={() => setHoveredRating(star)}
               onBlur={() => setHoveredRating(0)}
               onClick={() => handleSelectRating(star)}
-              className="group flex h-12 w-12 items-center justify-center rounded-xl border border-zinc-800/80 bg-zinc-950 transition-transform duration-150 hover:scale-105 hover:border-amber-500/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/60 disabled:cursor-not-allowed disabled:opacity-60 sm:h-14 sm:w-14"
+              className="group flex h-12 w-12 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 transition-transform duration-150 hover:scale-105 hover:border-amber-500/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/60 disabled:cursor-not-allowed disabled:opacity-60 sm:h-14 sm:w-14 dark:border-zinc-800/80 dark:bg-zinc-950 dark:hover:border-amber-500/50"
             >
               <Star
                 className={`h-6 w-6 transition-colors sm:h-7 sm:w-7 ${
                   isActive
-                    ? 'fill-amber-400 text-amber-400'
-                    : 'text-zinc-600 group-hover:text-zinc-400'
+                    ? 'fill-amber-500 text-amber-500 dark:fill-amber-400 dark:text-amber-400'
+                    : 'text-slate-300 group-hover:text-slate-400 dark:text-zinc-600 dark:group-hover:text-zinc-400'
                 }`}
                 aria-hidden="true"
               />
@@ -385,12 +387,15 @@ export default function PublicReviewFlow({ data }: PublicReviewFlowProps) {
 
       <div className="mt-5 min-h-[24px]">
         {submittingRating ? (
-          <p className="inline-flex items-center gap-2 text-xs text-zinc-400">
-            <Loader2 className="h-3.5 w-3.5 animate-spin text-amber-400" aria-hidden="true" />
+          <p className="inline-flex items-center gap-2 text-xs text-slate-500 dark:text-zinc-300">
+            <Loader2
+              className="h-3.5 w-3.5 animate-spin text-amber-500 dark:text-amber-400"
+              aria-hidden="true"
+            />
             <span>Guardando tu calificación...</span>
           </p>
         ) : (
-          <p className="text-xs font-medium text-zinc-400">
+          <p className="text-xs font-medium text-slate-500 dark:text-zinc-300">
             {activeStarPreview
               ? RATING_LABELS[activeStarPreview]
               : 'Selecciona de 1 a 5 estrellas'}

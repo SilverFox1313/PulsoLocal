@@ -11,8 +11,6 @@ interface PrivateFeedbackListProps {
 
 type RatingFilter = 'negative' | 'all';
 
-
-
 export default function PrivateFeedbackList({ items }: PrivateFeedbackListProps) {
   const [ratingFilter, setRatingFilter] = useState<RatingFilter>('negative');
   const [searchQuery, setSearchQuery] = useState('');
@@ -40,13 +38,13 @@ export default function PrivateFeedbackList({ items }: PrivateFeedbackListProps)
   }, [items, ratingFilter, searchQuery]);
 
   return (
-    <section className="rounded-xl border border-zinc-800 bg-[#111114]">
-      <div className="flex flex-col gap-4 border-b border-zinc-800/80 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
+    <section className="rounded-xl border border-slate-200 bg-white shadow-xs transition-colors duration-300 ease-in-out dark:border-zinc-800 dark:bg-[#111114] dark:shadow-none">
+      <div className="flex flex-col gap-4 border-b border-slate-200 px-6 py-5 sm:flex-row sm:items-center sm:justify-between dark:border-zinc-800/80">
         <div>
-          <h2 className="text-lg font-semibold tracking-tight text-zinc-50">
+          <h2 className="text-lg font-semibold tracking-tight text-slate-900 dark:text-zinc-50">
             Opiniones privadas
           </h2>
-          <p className="mt-0.5 text-sm text-zinc-400 tabular-nums">
+          <p className="mt-0.5 text-sm text-slate-600 tabular-nums dark:text-zinc-300">
             {negativeCount}{' '}
             {negativeCount === 1
               ? 'calificación privada de 1 a 3 estrellas'
@@ -57,7 +55,7 @@ export default function PrivateFeedbackList({ items }: PrivateFeedbackListProps)
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <div className="relative">
             <Search
-              className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500"
+              className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 dark:text-zinc-400"
               aria-hidden="true"
             />
             <input
@@ -66,22 +64,22 @@ export default function PrivateFeedbackList({ items }: PrivateFeedbackListProps)
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Buscar cliente o comentario..."
               aria-label="Buscar opiniones privadas"
-              className="h-9 w-full rounded-lg border border-zinc-800 bg-zinc-950 pl-9 pr-3 text-sm text-zinc-100 placeholder:text-zinc-500 transition-colors focus:border-amber-500/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30 sm:w-56"
+              className="h-9 w-full rounded-lg border border-slate-300 bg-white pl-9 pr-3 text-sm text-slate-900 placeholder:text-slate-400 transition-colors focus:border-amber-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30 sm:w-56 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-400 dark:focus:border-amber-500/60"
             />
           </div>
 
           <div
             role="group"
             aria-label="Filtrar calificaciones"
-            className="inline-flex items-center gap-1 rounded-lg border border-zinc-800 bg-zinc-950 p-1"
+            className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-100 p-1 dark:border-zinc-800 dark:bg-zinc-950"
           >
             <button
               type="button"
               onClick={() => setRatingFilter('negative')}
               className={`rounded-md px-3 py-1 text-xs font-medium transition-colors whitespace-nowrap shrink-0 ${
                 ratingFilter === 'negative'
-                  ? 'bg-zinc-800 text-zinc-50'
-                  : 'text-zinc-400 hover:text-zinc-200'
+                  ? 'bg-white text-slate-900 shadow-xs dark:bg-zinc-800 dark:text-zinc-50 dark:shadow-none'
+                  : 'text-slate-600 hover:text-slate-900 dark:text-zinc-300 dark:hover:text-zinc-100'
               }`}
             >
               Solo 1–3 estrellas
@@ -91,8 +89,8 @@ export default function PrivateFeedbackList({ items }: PrivateFeedbackListProps)
               onClick={() => setRatingFilter('all')}
               className={`rounded-md px-3 py-1 text-xs font-medium transition-colors whitespace-nowrap shrink-0 ${
                 ratingFilter === 'all'
-                  ? 'bg-zinc-800 text-zinc-50'
-                  : 'text-zinc-400 hover:text-zinc-200'
+                  ? 'bg-white text-slate-900 shadow-xs dark:bg-zinc-800 dark:text-zinc-50 dark:shadow-none'
+                  : 'text-slate-600 hover:text-slate-900 dark:text-zinc-300 dark:hover:text-zinc-100'
               }`}
             >
               Todas (1–5)
@@ -103,17 +101,17 @@ export default function PrivateFeedbackList({ items }: PrivateFeedbackListProps)
 
       {filteredItems.length === 0 ? (
         <div className="flex flex-col items-center justify-center px-6 py-14 text-center">
-          <div className="flex h-11 w-11 items-center justify-center rounded-lg border border-zinc-800 bg-zinc-950 text-zinc-500">
+          <div className="flex h-11 w-11 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-400">
             <MessageSquareOff className="h-5 w-5" aria-hidden="true" />
           </div>
-          <p className="mt-4 text-sm font-medium text-zinc-200">
+          <p className="mt-4 text-sm font-medium text-slate-800 dark:text-zinc-200">
             {items.length === 0
               ? 'Todavía no hay opiniones registradas'
               : ratingFilter === 'negative' && searchQuery === ''
               ? 'Sin quejas o calificaciones de 1 a 3 estrellas'
               : 'No hay opiniones que coincidan con tu búsqueda'}
           </p>
-          <p className="mt-1 max-w-sm text-xs text-zinc-500">
+          <p className="mt-1 max-w-sm text-xs text-slate-500 dark:text-zinc-400">
             {items.length === 0
               ? 'Cuando tus clientes respondan su enlace de calificación, las opiniones de 1 a 3 estrellas aparecerán aquí de forma privada.'
               : ratingFilter === 'negative' && searchQuery === ''
@@ -122,24 +120,27 @@ export default function PrivateFeedbackList({ items }: PrivateFeedbackListProps)
           </p>
         </div>
       ) : (
-        <ul className="divide-y divide-zinc-800/70">
+        <ul className="divide-y divide-slate-200 dark:divide-zinc-800/70">
           {filteredItems.map((item) => (
-            <li key={item.id} className="px-6 py-5 transition-colors hover:bg-zinc-900/35">
+            <li
+              key={item.id}
+              className="px-6 py-5 transition-colors hover:bg-slate-50 dark:hover:bg-zinc-900/35"
+            >
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex flex-wrap items-center gap-2 text-xs text-zinc-400">
-                  <span className="text-sm font-semibold text-zinc-100">
+                <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500 dark:text-zinc-300">
+                  <span className="text-sm font-semibold text-slate-900 dark:text-zinc-100">
                     {item.customer_name}
                   </span>
                   {item.customer_phone && (
                     <>
                       <span aria-hidden="true">·</span>
-                      <span className="font-mono tabular-nums text-zinc-400">
+                      <span className="font-mono tabular-nums text-slate-600 dark:text-zinc-300">
                         {item.customer_phone}
                       </span>
                     </>
                   )}
                   <span aria-hidden="true">·</span>
-                  <span className="font-mono tabular-nums text-zinc-500">
+                  <span className="font-mono tabular-nums text-slate-500 dark:text-zinc-400">
                     <FormattedDate dateString={item.created_at} />
                   </span>
                 </div>
@@ -155,21 +156,21 @@ export default function PrivateFeedbackList({ items }: PrivateFeedbackListProps)
                         className={`h-3.5 w-3.5 ${
                           star <= item.rating
                             ? item.rating <= 3
-                              ? 'fill-amber-400 text-amber-400'
-                              : 'fill-emerald-400 text-emerald-400'
-                            : 'text-zinc-700'
+                              ? 'fill-amber-500 text-amber-500 dark:fill-amber-400 dark:text-amber-400'
+                              : 'fill-emerald-500 text-emerald-500 dark:fill-emerald-400 dark:text-emerald-400'
+                            : 'text-slate-300 dark:text-zinc-700'
                         }`}
                         aria-hidden="true"
                       />
                     ))}
                   </div>
-                  <span className="font-mono text-xs font-medium tabular-nums text-zinc-300">
+                  <span className="font-mono text-xs font-medium tabular-nums text-slate-700 dark:text-zinc-300">
                     {item.rating}/5
                   </span>
-                  <span aria-hidden="true" className="text-zinc-700">
+                  <span aria-hidden="true" className="text-slate-300 dark:text-zinc-700">
                     ·
                   </span>
-                  <span className="text-xs text-zinc-400">
+                  <span className="text-xs text-slate-500 dark:text-zinc-300">
                     {item.redirected_to_google
                       ? 'Enviado a Google'
                       : 'Contenido privado'}
@@ -179,7 +180,9 @@ export default function PrivateFeedbackList({ items }: PrivateFeedbackListProps)
 
               <p
                 className={`mt-3 text-sm leading-relaxed ${
-                  item.comment ? 'text-zinc-200' : 'italic text-zinc-500'
+                  item.comment
+                    ? 'text-slate-700 dark:text-zinc-200'
+                    : 'italic text-slate-400 dark:text-zinc-400'
                 }`}
               >
                 {item.comment || 'El cliente no dejó comentarios adicionales.'}

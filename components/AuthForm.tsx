@@ -195,26 +195,28 @@ export default function AuthForm({
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-        className="w-full max-w-md rounded-xl border border-zinc-800 bg-[#111114] p-8"
+        className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-8 shadow-sm transition-colors duration-300 ease-in-out dark:border-white/10 dark:bg-[#111114] dark:shadow-2xl"
       >
-        <div className="mb-5 flex h-10 w-10 items-center justify-center rounded-lg border border-emerald-500/25 bg-emerald-500/10 text-emerald-400">
+        <div className="mb-5 flex h-10 w-10 items-center justify-center rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
           <CheckCircle2 className="h-5 w-5" aria-hidden="true" />
         </div>
 
-        <h1 className="text-xl font-semibold tracking-tight text-zinc-50">
+        <h1 className="text-xl font-semibold tracking-tight text-slate-900 dark:text-zinc-50">
           Revisa tu correo electrónico
         </h1>
-        <p className="mt-2 text-sm leading-relaxed text-zinc-400">
+        <p className="mt-2 text-sm leading-relaxed text-slate-600 dark:text-zinc-300">
           Enviamos un enlace de confirmación a{' '}
-          <span className="font-medium text-zinc-200">{verificationSentTo}</span>.
-          Una vez confirmado, tu espacio de negocio estará listo automáticamente.
+          <span className="font-medium text-slate-900 dark:text-zinc-200">
+            {verificationSentTo}
+          </span>
+          . Una vez confirmado, tu espacio de negocio estará listo automáticamente.
         </p>
 
-        <div className="mt-6 border-t border-zinc-800/80 pt-5">
+        <div className="mt-6 border-t border-slate-200 pt-5 dark:border-zinc-800/80">
           <ActionLink
             href="/login"
             loadingText="Cargando..."
-            className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-amber-500 px-4 text-sm font-semibold text-zinc-950 transition-colors hover:bg-amber-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/60"
+            className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 px-4 text-sm font-semibold text-slate-950 shadow-lg shadow-amber-500/25 transition-all hover:from-amber-400 hover:to-orange-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/60"
           >
             Ir a iniciar sesión
             <ArrowRight className="h-4 w-4" aria-hidden="true" />
@@ -229,13 +231,13 @@ export default function AuthForm({
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-      className="w-full max-w-md rounded-xl border border-zinc-800 bg-[#111114] p-7 sm:p-8"
+      className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-7 shadow-sm transition-colors duration-300 ease-in-out sm:p-8 dark:border-white/10 dark:bg-[#111114] dark:shadow-2xl"
     >
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-zinc-50">
+        <h1 className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-zinc-50">
           {isSignup ? 'Crea tu cuenta' : 'Inicia sesión'}
         </h1>
-        <p className="mt-1.5 text-sm text-zinc-400">
+        <p className="mt-1.5 text-sm text-slate-600 dark:text-zinc-300">
           {isSignup
             ? 'Configura tu negocio y comienza a automatizar tus reseñas.'
             : 'Accede al panel de control de tu reputación local.'}
@@ -245,14 +247,14 @@ export default function AuthForm({
       {!isSupabaseConfigured && (
         <div
           role="status"
-          className="mt-5 flex items-start gap-2.5 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3.5 py-3 text-xs leading-relaxed text-amber-200"
+          className="mt-5 flex items-start gap-2.5 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3.5 py-3 text-xs leading-relaxed text-amber-800 dark:text-amber-200"
         >
-          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" aria-hidden="true" />
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden="true" />
           <div>
-            <p className="font-medium text-amber-100">
+            <p className="font-medium text-amber-900 dark:text-amber-100">
               Variables de Supabase pendientes
             </p>
-            <p className="mt-0.5 text-amber-200/80">
+            <p className="mt-0.5 text-amber-800/80 dark:text-amber-200/80">
               Agrega <code className="font-mono text-[11px]">NEXT_PUBLIC_SUPABASE_URL</code> y{' '}
               <code className="font-mono text-[11px]">NEXT_PUBLIC_SUPABASE_ANON_KEY</code> en tu archivo{' '}
               <code className="font-mono text-[11px]">.env.local</code>.
@@ -264,9 +266,9 @@ export default function AuthForm({
       {error && (
         <div
           role="alert"
-          className="mt-5 flex items-start gap-2.5 rounded-lg border border-red-500/30 bg-red-500/10 px-3.5 py-3 text-sm text-red-200"
+          className="mt-5 flex items-start gap-2.5 rounded-lg border border-red-500/30 bg-red-500/10 px-3.5 py-3 text-sm text-red-700 dark:text-red-200"
         >
-          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-400" aria-hidden="true" />
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-600 dark:text-red-400" aria-hidden="true" />
           <span>{error}</span>
         </div>
       )}
@@ -277,7 +279,7 @@ export default function AuthForm({
             <div>
               <label
                 htmlFor="businessName"
-                className="mb-1.5 block text-sm font-medium text-zinc-300"
+                className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-zinc-300"
               >
                 Nombre del negocio
               </label>
@@ -291,7 +293,7 @@ export default function AuthForm({
                 value={businessName}
                 onChange={(e) => setBusinessName(e.target.value)}
                 placeholder="Ej. Clínica Dental Norte"
-                className="h-11 w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3.5 text-sm text-zinc-100 placeholder:text-zinc-500 transition-colors focus:border-amber-500/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30 disabled:cursor-not-allowed disabled:opacity-60"
+                className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3.5 text-sm text-slate-900 placeholder:text-slate-400 transition-colors focus:border-amber-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-400 dark:focus:border-amber-500/60"
               />
             </div>
           )}
@@ -299,7 +301,7 @@ export default function AuthForm({
           <div>
             <label
               htmlFor="email"
-              className="mb-1.5 block text-sm font-medium text-zinc-300"
+              className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-zinc-300"
             >
               Correo electrónico
             </label>
@@ -313,14 +315,14 @@ export default function AuthForm({
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="tu@negocio.com"
-              className="h-11 w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3.5 text-sm text-zinc-100 placeholder:text-zinc-500 transition-colors focus:border-amber-500/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30 disabled:cursor-not-allowed disabled:opacity-60"
+              className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3.5 text-sm text-slate-900 placeholder:text-slate-400 transition-colors focus:border-amber-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-400 dark:focus:border-amber-500/60"
             />
           </div>
 
           <div>
             <label
               htmlFor="password"
-              className="mb-1.5 block text-sm font-medium text-zinc-300"
+              className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-zinc-300"
             >
               Contraseña
             </label>
@@ -335,7 +337,7 @@ export default function AuthForm({
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder={isSignup ? 'Mínimo 6 caracteres' : '••••••••'}
-                className="h-11 w-full rounded-lg border border-zinc-800 bg-zinc-950 pl-3.5 pr-11 text-sm text-zinc-100 placeholder:text-zinc-500 transition-colors focus:border-amber-500/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30 disabled:cursor-not-allowed disabled:opacity-60"
+                className="h-11 w-full rounded-lg border border-slate-300 bg-white pl-3.5 pr-11 text-sm text-slate-900 placeholder:text-slate-400 transition-colors focus:border-amber-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-400 dark:focus:border-amber-500/60"
               />
               <button
                 type="button"
@@ -344,7 +346,7 @@ export default function AuthForm({
                 aria-label={
                   showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'
                 }
-                className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-zinc-400 transition-colors hover:text-zinc-200 focus-visible:outline-none focus-visible:text-amber-400 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"
+                className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-slate-500 transition-colors hover:text-slate-800 focus-visible:outline-none focus-visible:text-amber-600 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 dark:text-zinc-400 dark:hover:text-zinc-200 dark:focus-visible:text-amber-400"
               >
                 {showPassword ? (
                   <EyeOff className="h-4 w-4" aria-hidden="true" />
@@ -359,7 +361,7 @@ export default function AuthForm({
             <div>
               <label
                 htmlFor="confirmPassword"
-                className="mb-1.5 block text-sm font-medium text-zinc-300"
+                className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-zinc-300"
               >
                 Confirmar contraseña
               </label>
@@ -373,7 +375,7 @@ export default function AuthForm({
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="Repite tu contraseña"
-                className="h-11 w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3.5 text-sm text-zinc-100 placeholder:text-zinc-500 transition-colors focus:border-amber-500/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30 disabled:cursor-not-allowed disabled:opacity-60"
+                className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3.5 text-sm text-slate-900 placeholder:text-slate-400 transition-colors focus:border-amber-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-400 dark:focus:border-amber-500/60"
               />
             </div>
           )}
@@ -382,10 +384,10 @@ export default function AuthForm({
             type="submit"
             disabled={isSubmitting}
             aria-busy={isSubmitting}
-            className={`mt-2 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-amber-500 px-4 py-2.5 text-sm font-semibold text-zinc-950 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#111114] disabled:opacity-50 disabled:cursor-not-allowed ${
+            className={`mt-2 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 px-4 py-2.5 text-sm font-semibold text-slate-950 shadow-lg shadow-amber-500/25 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/60 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#111114] disabled:opacity-50 disabled:cursor-not-allowed ${
               isSubmitting
                 ? 'pointer-events-none cursor-not-allowed opacity-50'
-                : 'hover:bg-amber-400 active:scale-[0.99]'
+                : 'hover:from-amber-400 hover:to-orange-500 active:scale-[0.99]'
             }`}
           >
             {isSubmitting ? (
@@ -402,14 +404,14 @@ export default function AuthForm({
         </fieldset>
       </form>
 
-      <div className="mt-6 border-t border-zinc-800/80 pt-5 text-center text-sm text-zinc-400">
+      <div className="mt-6 border-t border-slate-200 pt-5 text-center text-sm text-slate-600 dark:border-zinc-800/80 dark:text-zinc-300">
         {isSignup ? (
           <>
             ¿Ya tienes una cuenta?{' '}
             <ActionLink
               href="/login"
               loadingText="Cargando..."
-              className={`font-medium text-amber-400 transition-colors hover:text-amber-300 ${
+              className={`font-medium text-amber-600 transition-colors hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300 ${
                 isSubmitting ? 'pointer-events-none opacity-50' : ''
               }`}
             >
@@ -422,7 +424,7 @@ export default function AuthForm({
             <ActionLink
               href="/signup"
               loadingText="Cargando..."
-              className={`font-medium text-amber-400 transition-colors hover:text-amber-300 ${
+              className={`font-medium text-amber-600 transition-colors hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300 ${
                 isSubmitting ? 'pointer-events-none opacity-50' : ''
               }`}
             >

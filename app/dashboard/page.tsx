@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import DashboardWorkspace from '@/components/DashboardWorkspace';
 import SignOutButton from '@/components/SignOutButton';
+import ThemeToggle from '@/components/ThemeToggle';
 import { createClient } from '@/lib/supabase/server';
 import type {
   Business,
@@ -117,17 +118,21 @@ export default async function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#09090B] text-zinc-100">
-      <header className="border-b border-zinc-800/80">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-8 px-6 py-4">
+    <div className="min-h-screen bg-slate-50 text-slate-900 transition-colors duration-300 ease-in-out dark:bg-black dark:text-zinc-100">
+      <header className="border-b border-slate-200/80 bg-white/80 backdrop-blur-md transition-colors duration-300 ease-in-out dark:border-zinc-900 dark:bg-black/80">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-4">
           <Link
             href="/dashboard"
-            className="text-lg font-bold tracking-tight text-zinc-50 whitespace-nowrap shrink-0"
+            className="flex items-center gap-2.5 text-lg font-bold tracking-tight text-slate-900 whitespace-nowrap shrink-0 dark:text-zinc-50"
           >
-            PulsoLocal
+            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 text-xs font-extrabold text-slate-950 shadow-md shadow-amber-500/20">
+              PL
+            </span>
+            <span>PulsoLocal</span>
           </Link>
 
-          <div className="flex items-center shrink-0">
+          <div className="flex items-center gap-3 shrink-0">
+            <ThemeToggle />
             <SignOutButton />
           </div>
         </div>
