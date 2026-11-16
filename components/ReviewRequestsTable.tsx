@@ -26,22 +26,22 @@ const STATUS_META: Record<
   { label: string; textClass: string; Icon: typeof Clock }
 > = {
   pending: {
-    label: 'Pendiente (pending)',
+    label: 'Pendiente',
     textClass: 'text-amber-400',
     Icon: Clock,
   },
   sent: {
-    label: 'Enviada (sent)',
+    label: 'Enviada',
     textClass: 'text-emerald-400',
     Icon: Send,
   },
   clicked: {
-    label: 'Clic (clicked)',
+    label: 'Clic registrado',
     textClass: 'text-sky-400',
     Icon: MousePointerClick,
   },
   completed: {
-    label: 'Completada (completed)',
+    label: 'Completada',
     textClass: 'text-emerald-300',
     Icon: CheckCircle2,
   },

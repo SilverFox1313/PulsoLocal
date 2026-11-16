@@ -199,3 +199,42 @@ export async function createReviewRequestAction(
   revalidatePath('/dashboard');
   return { request: inserted as ReviewRequest };
 }
+
+export async function updateSubscriptionStatusAction(
+  nextStatus: 'active' | 'trialing'
+): Promise<{ business?: Business; error?: string }> {
+  const supabase = await createClient();
+
+  if (!supabase) {
+    return { error: 'La conexión con Supabase no está configurada.' };
+  }
+
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    return { error: 'Tu sesión expiró. Vuelve a iniciar sesión.' };
+  }
+
+  const { data, error } = await supabase
+    .from('businesses')
+    .update({ subscription_status: nextStatus })
+    .eq('user_id', user.id)
+    .select(
+      'id, user_id, business_name, google_review_url, message_template, delay_minutes, subscription_status, created_at'
+    )
+    .single();
+
+  if (error || !data) {
+    return {
+      error:
+        error?.message ||
+        'No se pudo actualizar el estado de la suscripción.',
+    };
+  }
+
+  revalidatePath('/dashboard');
+  return { business: data as Business };
+}

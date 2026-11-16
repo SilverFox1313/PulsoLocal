@@ -1,0 +1,374 @@
+'use client';
+
+import { useState } from 'react';
+import {
+  AlertCircle,
+  CheckCircle2,
+  Clock,
+  CreditCard,
+  ExternalLink,
+  Loader2,
+  RotateCcw,
+  ShieldCheck,
+} from 'lucide-react';
+import { updateSubscriptionStatusAction } from '@/app/dashboard/actions';
+import type { Business, SubscriptionStatus } from '@/types/database';
+
+interface SubscriptionPanelProps {
+  business: Business;
+  userEmail: string;
+  totalRequestsCount: number;
+  onUpdated: (updated: Business) => void;
+}
+
+const TRIAL_DAYS = 14;
+const MS_PER_DAY = 86_400_000;
+
+function getRemainingTrialDays(createdAtIso: string): number {
+  const createdMs = new Date(createdAtIso).getTime();
+  if (Number.isNaN(createdMs)) return TRIAL_DAYS;
+  const elapsedDays = Math.floor(Math.max(0, Date.now() - createdMs) / MS_PER_DAY);
+  return Math.max(0, TRIAL_DAYS - elapsedDays);
+}
+
+function getStatusSummary(
+  status: SubscriptionStatus,
+  remainingDays: number
+): { label: string; detail: string; isActive: boolean } {
+  switch (status) {
+    case 'active':
+      return {
+        label: 'Plan Pro Activo',
+        detail:
+          'Todas las funciones de automatización, envío y desvío inteligente están habilitadas sin límite de solicitudes.',
+        isActive: true,
+      };
+    case 'trialing':
+      return {
+        label: `Plan Trial — ${remainingDays} ${
+          remainingDays === 1 ? 'día restante' : 'días restantes'
+        }`,
+        detail:
+          remainingDays > 0
+            ? 'Estás utilizando el periodo de prueba gratuito de 14 días. Activa el Plan Pro en cualquier momento para mantener el servicio sin interrupciones.'
+            : 'Tu periodo de prueba de 14 días ha finalizado. Activa el Plan Pro para continuar enviando solicitudes automáticas.',
+        isActive: false,
+      };
+    case 'past_due':
+      return {
+        label: 'Pago pendiente',
+        detail:
+          'Detectamos un inconveniente con tu último cobro. Actualiza tu método de pago para reactivar el Plan Pro.',
+        isActive: false,
+      };
+    case 'canceled':
+    case 'inactive':
+    default:
+      return {
+        label: 'Plan Inactivo',
+        detail:
+          'Tu suscripción no se encuentra activa en este momento. Activa el Plan Pro para reanudar los envíos automáticos.',
+        isActive: false,
+      };
+  }
+}
+
+export default function SubscriptionPanel({
+  business,
+  userEmail,
+  totalRequestsCount,
+  onUpdated,
+}: SubscriptionPanelProps) {
+  const [loadingAction, setLoadingAction] = useState<'activate' | 'reset' | null>(
+    null
+  );
+  const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  const remainingDays = getRemainingTrialDays(business.created_at);
+  const summary = getStatusSummary(business.subscription_status, remainingDays);
+
+  const rawStripeLink = process.env.NEXT_PUBLIC_STRIPE_PAYMENT_LINK?.trim() ?? '';
+  const hasExternalPaymentLink =
+    rawStripeLink.startsWith('https://') || rawStripeLink.startsWith('http://');
+
+  const stripeCheckoutUrl = hasExternalPaymentLink
+    ? `${rawStripeLink}${
+        rawStripeLink.includes('?') ? '&' : '?'
+      }prefilled_email=${encodeURIComponent(userEmail)}`
+    : null;
+
+  async function handleSimulatedActivation() {
+    setError(null);
+    setSuccessMessage(null);
+    setLoadingAction('activate');
+
+    const result = await updateSubscriptionStatusAction('active');
+    setLoadingAction(null);
+
+    if (result.error) {
+      setError(result.error);
+      return;
+    }
+
+    if (result.business) {
+      onUpdated(result.business);
+      setSuccessMessage(
+        'Plan Pro activado correctamente en modo demostración.'
+      );
+    }
+  }
+
+  async function handleResetToTrial() {
+    setError(null);
+    setSuccessMessage(null);
+    setLoadingAction('reset');
+
+    const result = await updateSubscriptionStatusAction('trialing');
+    setLoadingAction(null);
+
+    if (result.error) {
+      setError(result.error);
+      return;
+    }
+
+    if (result.business) {
+      onUpdated(result.business);
+      setSuccessMessage('Estado restablecido a Plan Trial para pruebas.');
+    }
+  }
+
+  return (
+    <div className="space-y-8">
+      <section className="rounded-xl border border-zinc-800 bg-[#111114] p-6 sm:p-8">
+        <div className="flex flex-col gap-6 border-b border-zinc-800/80 pb-6 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <p className="text-xs font-medium text-zinc-400">
+              Estado actual de tu suscripción
+            </p>
+            <h2 className="mt-1.5 flex items-center gap-2.5 text-xl font-semibold tracking-tight text-zinc-50 sm:text-2xl tabular-nums">
+              {summary.isActive ? (
+                <CheckCircle2
+                  className="h-5 w-5 shrink-0 text-emerald-400"
+                  aria-hidden="true"
+                />
+              ) : (
+                <Clock
+                  className="h-5 w-5 shrink-0 text-amber-400"
+                  aria-hidden="true"
+                />
+              )}
+              <span>{summary.label}</span>
+            </h2>
+            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-zinc-400">
+              {summary.detail}
+            </p>
+          </div>
+
+          {business.subscription_status === 'active' && (
+            <button
+              type="button"
+              disabled={loadingAction !== null}
+              onClick={handleResetToTrial}
+              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-zinc-800 bg-zinc-950 px-3 text-xs font-medium text-zinc-300 transition-colors hover:border-zinc-700 hover:text-zinc-100 disabled:opacity-60 whitespace-nowrap shrink-0"
+            >
+              {loadingAction === 'reset' ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+              ) : (
+                <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />
+              )}
+              <span>Volver a Plan Trial (prueba)</span>
+            </button>
+          )}
+        </div>
+
+        <div className="mt-6 grid gap-6 sm:grid-cols-3">
+          <div>
+            <p className="text-xs text-zinc-500">Negocio</p>
+            <p className="mt-1 text-sm font-medium text-zinc-100">
+              {business.business_name}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs text-zinc-500">Solicitudes registradas</p>
+            <p className="mt-1 font-mono text-sm font-medium tabular-nums text-zinc-100">
+              {totalRequestsCount}{' '}
+              {business.subscription_status === 'active'
+                ? '/ Ilimitadas'
+                : '/ 25 incluidas en Trial'}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs text-zinc-500">Titular de facturación</p>
+            <p className="mt-1 truncate text-sm font-medium text-zinc-100">
+              {userEmail}
+            </p>
+          </div>
+        </div>
+
+        {error && (
+          <div
+            role="alert"
+            className="mt-6 flex items-start gap-2.5 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200"
+          >
+            <AlertCircle
+              className="mt-0.5 h-4 w-4 shrink-0 text-red-400"
+              aria-hidden="true"
+            />
+            <span>{error}</span>
+          </div>
+        )}
+
+        {successMessage && (
+          <div
+            role="status"
+            className="mt-6 flex items-start gap-2.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200"
+          >
+            <CheckCircle2
+              className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400"
+              aria-hidden="true"
+            />
+            <span>{successMessage}</span>
+          </div>
+        )}
+      </section>
+
+      <section className="grid gap-6 lg:grid-cols-2">
+        <div className="flex flex-col justify-between rounded-xl border border-zinc-800 bg-[#111114] p-6 sm:p-8">
+          <div>
+            <div className="flex items-baseline justify-between gap-4 border-b border-zinc-800/80 pb-5">
+              <div>
+                <h3 className="text-lg font-semibold text-zinc-50">
+                  Plan Trial
+                </h3>
+                <p className="mt-1 text-xs text-zinc-400">
+                  Para negocios que prueban el flujo completo
+                </p>
+              </div>
+              <p className="font-mono text-2xl font-bold tabular-nums text-zinc-100">
+                $0 <span className="text-xs font-normal text-zinc-500">/ 14 días</span>
+              </p>
+            </div>
+
+            <dl className="mt-6 space-y-3 text-sm">
+              <div className="flex items-center justify-between border-b border-zinc-800/50 pb-2.5">
+                <dt className="text-zinc-400">Solicitudes de reseña</dt>
+                <dd className="font-mono text-xs tabular-nums text-zinc-200">
+                  Hasta 25 envíos
+                </dd>
+              </div>
+              <div className="flex items-center justify-between border-b border-zinc-800/50 pb-2.5">
+                <dt className="text-zinc-400">Filtro de 1–3 estrellas</dt>
+                <dd className="text-xs font-medium text-zinc-200">Incluido</dd>
+              </div>
+              <div className="flex items-center justify-between border-b border-zinc-800/50 pb-2.5">
+                <dt className="text-zinc-400">Redirección a Google Maps</dt>
+                <dd className="text-xs font-medium text-zinc-200">Incluida</dd>
+              </div>
+              <div className="flex items-center justify-between">
+                <dt className="text-zinc-400">Canal privado de quejas</dt>
+                <dd className="text-xs font-medium text-zinc-200">Incluido</dd>
+              </div>
+            </dl>
+          </div>
+
+          <p className="mt-8 text-xs text-zinc-500">
+            {business.subscription_status === 'trialing'
+              ? 'Este es tu plan actual.'
+              : 'Periodo inicial de evaluación.'}
+          </p>
+        </div>
+
+        <div className="flex flex-col justify-between rounded-xl border border-amber-500/35 bg-[#111114] p-6 sm:p-8">
+          <div>
+            <div className="flex items-baseline justify-between gap-4 border-b border-zinc-800/80 pb-5">
+              <div>
+                <h3 className="text-lg font-semibold text-zinc-50">
+                  Plan Pro
+                </h3>
+                <p className="mt-1 text-xs text-amber-400">
+                  Para negocios locales en crecimiento continuo
+                </p>
+              </div>
+              <p className="font-mono text-2xl font-bold tabular-nums text-zinc-50">
+                $29 <span className="text-xs font-normal text-zinc-400">USD / mes</span>
+              </p>
+            </div>
+
+            <dl className="mt-6 space-y-3 text-sm">
+              <div className="flex items-center justify-between border-b border-zinc-800/50 pb-2.5">
+                <dt className="text-zinc-400">Solicitudes de reseña</dt>
+                <dd className="text-xs font-semibold text-zinc-100">
+                  Ilimitadas
+                </dd>
+              </div>
+              <div className="flex items-center justify-between border-b border-zinc-800/50 pb-2.5">
+                <dt className="text-zinc-400">Automatización Cron y SMS</dt>
+                <dd className="text-xs font-medium text-zinc-200">
+                  Twilio / Programación
+                </dd>
+              </div>
+              <div className="flex items-center justify-between border-b border-zinc-800/50 pb-2.5">
+                <dt className="text-zinc-400">Desvío inteligente 4–5 estrellas</dt>
+                <dd className="text-xs font-medium text-zinc-200">Incluido</dd>
+              </div>
+              <div className="flex items-center justify-between">
+                <dt className="text-zinc-400">Soporte prioritario</dt>
+                <dd className="text-xs font-medium text-zinc-200">
+                  Respuesta &lt; 24 h
+                </dd>
+              </div>
+            </dl>
+          </div>
+
+          <div className="mt-8 space-y-3">
+            {business.subscription_status === 'active' ? (
+              <div className="flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 text-sm font-semibold text-emerald-300">
+                <ShieldCheck className="h-4 w-4" aria-hidden="true" />
+                <span>Plan Pro activo</span>
+              </div>
+            ) : stripeCheckoutUrl ? (
+              <a
+                href={stripeCheckoutUrl}
+                rel="noopener noreferrer"
+                className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-amber-500 px-5 text-sm font-semibold text-zinc-950 transition-colors hover:bg-amber-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/60"
+              >
+                <CreditCard className="h-4 w-4" aria-hidden="true" />
+                <span>Suscribirse / Activar Plan Pro</span>
+                <ExternalLink className="h-4 w-4" aria-hidden="true" />
+              </a>
+            ) : (
+              <button
+                type="button"
+                disabled={loadingAction !== null}
+                onClick={handleSimulatedActivation}
+                className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-amber-500 px-5 text-sm font-semibold text-zinc-950 transition-colors hover:bg-amber-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/60 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {loadingAction === 'activate' ? (
+                  <>
+                    <Loader2
+                      className="h-4 w-4 animate-spin"
+                      aria-hidden="true"
+                    />
+                    <span>Activando Plan Pro...</span>
+                  </>
+                ) : (
+                  <>
+                    <CreditCard className="h-4 w-4" aria-hidden="true" />
+                    <span>Suscribirse / Activar Plan Pro</span>
+                  </>
+                )}
+              </button>
+            )}
+
+            <p className="text-center text-xs text-zinc-500">
+              {stripeCheckoutUrl
+                ? 'Pago seguro procesado a través de Stripe Checkout.'
+                : 'Modo de activación instantánea para pruebas (configura NEXT_PUBLIC_STRIPE_PAYMENT_LINK para enlazar tu checkout real de Stripe).'}
+            </p>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}

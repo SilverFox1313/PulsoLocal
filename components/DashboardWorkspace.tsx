@@ -7,6 +7,7 @@ import {
   Check,
   CheckCircle2,
   Copy,
+  CreditCard,
   Loader2,
   MessageSquareWarning,
   Send,
@@ -17,6 +18,7 @@ import BusinessSettingsForm from '@/components/BusinessSettingsForm';
 import PrivateFeedbackList from '@/components/PrivateFeedbackList';
 import ReviewRequestForm from '@/components/ReviewRequestForm';
 import ReviewRequestsTable from '@/components/ReviewRequestsTable';
+import SubscriptionPanel from '@/components/SubscriptionPanel';
 import type {
   Business,
   PrivateFeedbackItem,
@@ -48,7 +50,25 @@ interface DispatchSummary {
   items: ProcessedReminderItem[];
 }
 
-type DashboardTab = 'requests' | 'feedback' | 'settings';
+type DashboardTab = 'requests' | 'feedback' | 'settings' | 'subscription';
+
+function getHeaderPlanLabel(business: Business): string {
+  if (business.subscription_status === 'active') {
+    return 'Plan Pro Activo';
+  }
+  if (business.subscription_status === 'trialing') {
+    const createdMs = new Date(business.created_at).getTime();
+    const elapsedDays = Number.isNaN(createdMs)
+      ? 0
+      : Math.floor(Math.max(0, Date.now() - createdMs) / 86_400_000);
+    const remaining = Math.max(0, 14 - elapsedDays);
+    return `Plan Trial (${remaining} d restantes)`;
+  }
+  if (business.subscription_status === 'past_due') {
+    return 'Pago pendiente';
+  }
+  return 'Plan inactivo';
+}
 
 export default function DashboardWorkspace({
   userEmail,
@@ -171,6 +191,10 @@ export default function DashboardWorkspace({
                   ? 'Enlace de Google configurado'
                   : 'Falta configurar enlace de Google'}
               </span>
+              <span aria-hidden="true">·</span>
+              <span className="tabular-nums text-zinc-300">
+                {getHeaderPlanLabel(business)}
+              </span>
             </div>
           )}
         </div>
@@ -226,6 +250,21 @@ export default function DashboardWorkspace({
           >
             <Settings className="h-4 w-4" aria-hidden="true" />
             <span>Configuración</span>
+          </button>
+
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'subscription'}
+            onClick={() => setActiveTab('subscription')}
+            className={`inline-flex h-9 items-center gap-2 rounded-md px-3.5 text-sm font-medium transition-colors whitespace-nowrap shrink-0 ${
+              activeTab === 'subscription'
+                ? 'bg-amber-500 text-zinc-950'
+                : 'text-zinc-400 hover:text-zinc-100'
+            }`}
+          >
+            <CreditCard className="h-4 w-4" aria-hidden="true" />
+            <span>Suscripción</span>
           </button>
         </div>
       </section>
@@ -464,9 +503,16 @@ export default function DashboardWorkspace({
         </div>
       ) : activeTab === 'feedback' ? (
         <PrivateFeedbackList items={initialFeedback} />
-      ) : (
+      ) : activeTab === 'settings' ? (
         <BusinessSettingsForm
           business={business}
+          onUpdated={handleBusinessUpdated}
+        />
+      ) : (
+        <SubscriptionPanel
+          business={business}
+          userEmail={userEmail}
+          totalRequestsCount={requests.length}
           onUpdated={handleBusinessUpdated}
         />
       )}
