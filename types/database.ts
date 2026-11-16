@@ -41,3 +41,24 @@ export interface Feedback {
   redirected_to_google: boolean;
   created_at: string;
 }
+
+export interface PublicReviewRequestData {
+  request_id: string;
+  customer_name: string;
+  status: ReviewRequestStatus;
+  business_id: string;
+  business_name: string;
+  google_review_url: string | null;
+  already_submitted: boolean;
+}
+
+export interface PrivateFeedbackItem {
+  id: string;
+  request_id: string;
+  rating: number;
+  comment: string | null;
+  redirected_to_google: boolean;
+  created_at: string;
+  customer_name: string;
+  customer_phone: string;
+}
