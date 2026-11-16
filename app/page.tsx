@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { ArrowRight, Star, ShieldCheck, MessageSquareText } from 'lucide-react';
+import ActionLink from '@/components/ActionLink';
 import { createClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
@@ -33,27 +34,30 @@ export default async function HomePage() {
             >
               Cómo funciona
             </a>
-            <Link
+            <ActionLink
               href="/login"
+              loadingText="Abriendo..."
               className="transition-colors hover:text-zinc-100 whitespace-nowrap shrink-0"
             >
               Iniciar sesión
-            </Link>
-            <Link
+            </ActionLink>
+            <ActionLink
               href="/signup"
+              loadingText="Abriendo..."
               className="transition-colors hover:text-zinc-100 whitespace-nowrap shrink-0"
             >
               Registro
-            </Link>
+            </ActionLink>
           </nav>
 
           <div className="flex items-center shrink-0">
-            <Link
+            <ActionLink
               href={isAuthenticated ? '/dashboard' : '/signup'}
+              loadingText="Cargando..."
               className="inline-flex h-10 items-center justify-center rounded-lg bg-amber-500 px-4 text-sm font-semibold text-zinc-950 transition-colors hover:bg-amber-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/60 whitespace-nowrap shrink-0"
             >
               {isAuthenticated ? 'Ir al panel' : 'Crear cuenta'}
-            </Link>
+            </ActionLink>
           </div>
         </div>
       </header>
@@ -74,23 +78,25 @@ export default async function HomePage() {
             </p>
 
             <div className="mt-9 flex flex-wrap items-center gap-4">
-              <Link
+              <ActionLink
                 href={isAuthenticated ? '/dashboard' : '/signup'}
+                loadingText="Cargando..."
                 className="inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-amber-500 px-6 text-sm font-semibold text-zinc-950 transition-colors hover:bg-amber-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/60 whitespace-nowrap shrink-0"
               >
                 <span>
                   {isAuthenticated ? 'Abrir mi panel' : 'Comenzar ahora'}
                 </span>
                 <ArrowRight className="h-4 w-4" aria-hidden="true" />
-              </Link>
+              </ActionLink>
 
               {!isAuthenticated && (
-                <Link
+                <ActionLink
                   href="/login"
+                  loadingText="Cargando..."
                   className="inline-flex h-12 items-center justify-center rounded-lg border border-zinc-800 bg-[#111114] px-6 text-sm font-medium text-zinc-200 transition-colors hover:border-zinc-700 hover:bg-zinc-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/60 whitespace-nowrap shrink-0"
                 >
                   Ya tengo cuenta
-                </Link>
+                </ActionLink>
               )}
             </div>
           </div>
@@ -157,12 +163,12 @@ export default async function HomePage() {
         <div className="mx-auto flex max-w-6xl flex-col gap-4 px-6 py-8 text-xs text-zinc-500 sm:flex-row sm:items-center sm:justify-between">
           <span>PulsoLocal · Automatizador de Reseñas y Reputación Local</span>
           <div className="flex items-center gap-6">
-            <Link href="/login" className="hover:text-zinc-300">
+            <ActionLink href="/login" loadingText="Abriendo..." className="hover:text-zinc-300">
               Acceso
-            </Link>
-            <Link href="/signup" className="hover:text-zinc-300">
+            </ActionLink>
+            <ActionLink href="/signup" loadingText="Abriendo..." className="hover:text-zinc-300">
               Registro
-            </Link>
+            </ActionLink>
           </div>
         </div>
       </footer>

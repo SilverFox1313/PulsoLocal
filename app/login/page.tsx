@@ -1,5 +1,5 @@
-import Link from 'next/link';
 import { redirect } from 'next/navigation';
+import ActionLink from '@/components/ActionLink';
 import AuthForm from '@/components/AuthForm';
 import { getSupabaseEnv } from '@/lib/supabase/config';
 import { createClient } from '@/lib/supabase/server';
@@ -34,25 +34,29 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   return (
     <div className="flex min-h-screen flex-col bg-[#09090B]">
       <header className="flex items-center justify-between gap-8 border-b border-zinc-800/80 px-6 py-4 lg:px-10">
-        <Link
+        <ActionLink
           href="/"
+          showSpinner={false}
+          loadingText="PulsoLocal"
           className="text-lg font-bold tracking-tight text-zinc-50 whitespace-nowrap shrink-0"
         >
           PulsoLocal
-        </Link>
+        </ActionLink>
         <nav className="flex items-center gap-6 text-sm text-zinc-400">
-          <Link
+          <ActionLink
             href="/"
+            loadingText="Cargando..."
             className="transition-colors hover:text-zinc-100 whitespace-nowrap shrink-0"
           >
             Inicio
-          </Link>
-          <Link
+          </ActionLink>
+          <ActionLink
             href="/signup"
+            loadingText="Cargando..."
             className="transition-colors hover:text-zinc-100 whitespace-nowrap shrink-0"
           >
             Crear cuenta
-          </Link>
+          </ActionLink>
         </nav>
       </header>
 

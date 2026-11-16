@@ -1,7 +1,6 @@
 'use client';
 
-import { useState, type FormEvent } from 'react';
-import Link from 'next/link';
+import { useRef, useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   AlertCircle,
@@ -12,6 +11,8 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import { motion } from 'motion/react';
+import ActionLink from '@/components/ActionLink';
+import { emitNavDone, emitNavStart } from '@/components/NavigationProgress';
 import { createClient } from '@/lib/supabase/client';
 
 interface AuthFormProps {
@@ -66,14 +67,23 @@ export default function AuthForm({
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
-  const [loading, setLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const isSubmittingRef = useRef(false);
   const [error, setError] = useState<string | null>(initialError);
   const [verificationSentTo, setVerificationSentTo] = useState<string | null>(
     null
   );
 
+  function unlockSubmission() {
+    isSubmittingRef.current = false;
+    setIsSubmitting(false);
+    emitNavDone();
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (isSubmittingRef.current || isSubmitting) return;
+
     setError(null);
 
     if (!isSupabaseConfigured) {
@@ -106,7 +116,9 @@ export default function AuthForm({
       return;
     }
 
-    setLoading(true);
+    isSubmittingRef.current = true;
+    setIsSubmitting(true);
+    emitNavStart();
 
     try {
       if (isSignup) {
@@ -124,7 +136,7 @@ export default function AuthForm({
 
         if (signUpError) {
           setError(mapSupabaseError(signUpError.message));
-          setLoading(false);
+          unlockSubmission();
           return;
         }
 
@@ -134,8 +146,8 @@ export default function AuthForm({
           return;
         }
 
+        emitNavDone();
         setVerificationSentTo(trimmedEmail);
-        setLoading(false);
         return;
       }
 
@@ -161,7 +173,7 @@ export default function AuthForm({
             payload.error || 'Correo electrónico o contraseña incorrectos.'
           )
         );
-        setLoading(false);
+        unlockSubmission();
         return;
       }
 
@@ -173,7 +185,7 @@ export default function AuthForm({
           ? err.message
           : 'Ocurrió un error inesperado. Inténtalo nuevamente.';
       setError(mapSupabaseError(message));
-      setLoading(false);
+      unlockSubmission();
     }
   }
 
@@ -199,13 +211,14 @@ export default function AuthForm({
         </p>
 
         <div className="mt-6 border-t border-zinc-800/80 pt-5">
-          <Link
+          <ActionLink
             href="/login"
+            loadingText="Cargando..."
             className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-amber-500 px-4 text-sm font-semibold text-zinc-950 transition-colors hover:bg-amber-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/60"
           >
             Ir a iniciar sesión
             <ArrowRight className="h-4 w-4" aria-hidden="true" />
-          </Link>
+          </ActionLink>
         </div>
       </motion.div>
     );
@@ -259,146 +272,162 @@ export default function AuthForm({
       )}
 
       <form onSubmit={handleSubmit} className="mt-6 space-y-4" noValidate>
-        {isSignup && (
-          <div>
-            <label
-              htmlFor="businessName"
-              className="mb-1.5 block text-sm font-medium text-zinc-300"
-            >
-              Nombre del negocio
-            </label>
-            <input
-              id="businessName"
-              name="businessName"
-              type="text"
-              autoComplete="organization"
-              required
-              disabled={loading}
-              value={businessName}
-              onChange={(e) => setBusinessName(e.target.value)}
-              placeholder="Ej. Clínica Dental Norte"
-              className="h-11 w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3.5 text-sm text-zinc-100 placeholder:text-zinc-500 transition-colors focus:border-amber-500/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30 disabled:cursor-not-allowed disabled:opacity-60"
-            />
-          </div>
-        )}
-
-        <div>
-          <label
-            htmlFor="email"
-            className="mb-1.5 block text-sm font-medium text-zinc-300"
-          >
-            Correo electrónico
-          </label>
-          <input
-            id="email"
-            name="email"
-            type="email"
-            autoComplete="email"
-            required
-            disabled={loading}
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="tu@negocio.com"
-            className="h-11 w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3.5 text-sm text-zinc-100 placeholder:text-zinc-500 transition-colors focus:border-amber-500/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30 disabled:cursor-not-allowed disabled:opacity-60"
-          />
-        </div>
-
-        <div>
-          <label
-            htmlFor="password"
-            className="mb-1.5 block text-sm font-medium text-zinc-300"
-          >
-            Contraseña
-          </label>
-          <div className="relative">
-            <input
-              id="password"
-              name="password"
-              type={showPassword ? 'text' : 'password'}
-              autoComplete={isSignup ? 'new-password' : 'current-password'}
-              required
-              disabled={loading}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder={isSignup ? 'Mínimo 6 caracteres' : '••••••••'}
-              className="h-11 w-full rounded-lg border border-zinc-800 bg-zinc-950 pl-3.5 pr-11 text-sm text-zinc-100 placeholder:text-zinc-500 transition-colors focus:border-amber-500/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30 disabled:cursor-not-allowed disabled:opacity-60"
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword((prev) => !prev)}
-              aria-label={
-                showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'
-              }
-              className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-zinc-400 transition-colors hover:text-zinc-200 focus-visible:outline-none focus-visible:text-amber-400"
-            >
-              {showPassword ? (
-                <EyeOff className="h-4 w-4" aria-hidden="true" />
-              ) : (
-                <Eye className="h-4 w-4" aria-hidden="true" />
-              )}
-            </button>
-          </div>
-        </div>
-
-        {isSignup && (
-          <div>
-            <label
-              htmlFor="confirmPassword"
-              className="mb-1.5 block text-sm font-medium text-zinc-300"
-            >
-              Confirmar contraseña
-            </label>
-            <input
-              id="confirmPassword"
-              name="confirmPassword"
-              type={showPassword ? 'text' : 'password'}
-              autoComplete="new-password"
-              required
-              disabled={loading}
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              placeholder="Repite tu contraseña"
-              className="h-11 w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3.5 text-sm text-zinc-100 placeholder:text-zinc-500 transition-colors focus:border-amber-500/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30 disabled:cursor-not-allowed disabled:opacity-60"
-            />
-          </div>
-        )}
-
-        <button
-          type="submit"
-          disabled={loading}
-          className="mt-2 inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-amber-500 px-4 text-sm font-semibold text-zinc-950 transition-colors hover:bg-amber-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#111114] disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {loading ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-              <span>{isSignup ? 'Creando cuenta...' : 'Iniciando sesión...'}</span>
-            </>
-          ) : (
-            <span>{isSignup ? 'Crear cuenta' : 'Iniciar sesión'}</span>
+        <fieldset disabled={isSubmitting} className="space-y-4">
+          {isSignup && (
+            <div>
+              <label
+                htmlFor="businessName"
+                className="mb-1.5 block text-sm font-medium text-zinc-300"
+              >
+                Nombre del negocio
+              </label>
+              <input
+                id="businessName"
+                name="businessName"
+                type="text"
+                autoComplete="organization"
+                required
+                disabled={isSubmitting}
+                value={businessName}
+                onChange={(e) => setBusinessName(e.target.value)}
+                placeholder="Ej. Clínica Dental Norte"
+                className="h-11 w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3.5 text-sm text-zinc-100 placeholder:text-zinc-500 transition-colors focus:border-amber-500/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30 disabled:cursor-not-allowed disabled:opacity-60"
+              />
+            </div>
           )}
-        </button>
+
+          <div>
+            <label
+              htmlFor="email"
+              className="mb-1.5 block text-sm font-medium text-zinc-300"
+            >
+              Correo electrónico
+            </label>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              autoComplete="email"
+              required
+              disabled={isSubmitting}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="tu@negocio.com"
+              className="h-11 w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3.5 text-sm text-zinc-100 placeholder:text-zinc-500 transition-colors focus:border-amber-500/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30 disabled:cursor-not-allowed disabled:opacity-60"
+            />
+          </div>
+
+          <div>
+            <label
+              htmlFor="password"
+              className="mb-1.5 block text-sm font-medium text-zinc-300"
+            >
+              Contraseña
+            </label>
+            <div className="relative">
+              <input
+                id="password"
+                name="password"
+                type={showPassword ? 'text' : 'password'}
+                autoComplete={isSignup ? 'new-password' : 'current-password'}
+                required
+                disabled={isSubmitting}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder={isSignup ? 'Mínimo 6 caracteres' : '••••••••'}
+                className="h-11 w-full rounded-lg border border-zinc-800 bg-zinc-950 pl-3.5 pr-11 text-sm text-zinc-100 placeholder:text-zinc-500 transition-colors focus:border-amber-500/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30 disabled:cursor-not-allowed disabled:opacity-60"
+              />
+              <button
+                type="button"
+                disabled={isSubmitting}
+                onClick={() => setShowPassword((prev) => !prev)}
+                aria-label={
+                  showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'
+                }
+                className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-zinc-400 transition-colors hover:text-zinc-200 focus-visible:outline-none focus-visible:text-amber-400 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {showPassword ? (
+                  <EyeOff className="h-4 w-4" aria-hidden="true" />
+                ) : (
+                  <Eye className="h-4 w-4" aria-hidden="true" />
+                )}
+              </button>
+            </div>
+          </div>
+
+          {isSignup && (
+            <div>
+              <label
+                htmlFor="confirmPassword"
+                className="mb-1.5 block text-sm font-medium text-zinc-300"
+              >
+                Confirmar contraseña
+              </label>
+              <input
+                id="confirmPassword"
+                name="confirmPassword"
+                type={showPassword ? 'text' : 'password'}
+                autoComplete="new-password"
+                required
+                disabled={isSubmitting}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Repite tu contraseña"
+                className="h-11 w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3.5 text-sm text-zinc-100 placeholder:text-zinc-500 transition-colors focus:border-amber-500/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30 disabled:cursor-not-allowed disabled:opacity-60"
+              />
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            aria-busy={isSubmitting}
+            className={`mt-2 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-amber-500 px-4 py-2.5 text-sm font-semibold text-zinc-950 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#111114] disabled:opacity-50 disabled:cursor-not-allowed ${
+              isSubmitting
+                ? 'pointer-events-none cursor-not-allowed opacity-50'
+                : 'hover:bg-amber-400 active:scale-[0.99]'
+            }`}
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden="true" />
+                <span>
+                  {isSignup ? 'Creando cuenta...' : 'Iniciando sesión...'}
+                </span>
+              </>
+            ) : (
+              <span>{isSignup ? 'Crear cuenta' : 'Iniciar sesión'}</span>
+            )}
+          </button>
+        </fieldset>
       </form>
 
       <div className="mt-6 border-t border-zinc-800/80 pt-5 text-center text-sm text-zinc-400">
         {isSignup ? (
           <>
             ¿Ya tienes una cuenta?{' '}
-            <Link
+            <ActionLink
               href="/login"
-              className="font-medium text-amber-400 transition-colors hover:text-amber-300"
+              loadingText="Cargando..."
+              className={`font-medium text-amber-400 transition-colors hover:text-amber-300 ${
+                isSubmitting ? 'pointer-events-none opacity-50' : ''
+              }`}
             >
               Inicia sesión
-            </Link>
+            </ActionLink>
           </>
         ) : (
           <>
             ¿Aún no tienes cuenta?{' '}
-            <Link
+            <ActionLink
               href="/signup"
-              className="font-medium text-amber-400 transition-colors hover:text-amber-300"
+              loadingText="Cargando..."
+              className={`font-medium text-amber-400 transition-colors hover:text-amber-300 ${
+                isSubmitting ? 'pointer-events-none opacity-50' : ''
+              }`}
             >
               Regístrate gratis
-            </Link>
+            </ActionLink>
           </>
         )}
       </div>

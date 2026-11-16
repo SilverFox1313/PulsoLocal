@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
+import { Suspense } from 'react';
 import { Plus_Jakarta_Sans, JetBrains_Mono } from 'next/font/google';
+import NavigationProgress from '@/components/NavigationProgress';
 import './globals.css';
 
 const plusJakarta = Plus_Jakarta_Sans({
@@ -48,6 +50,9 @@ export default function RootLayout({
         className="min-h-screen bg-[#09090B] font-sans text-zinc-100 antialiased selection:bg-amber-500/20 selection:text-amber-200"
         suppressHydrationWarning
       >
+        <Suspense fallback={null}>
+          <NavigationProgress />
+        </Suspense>
         {children}
       </body>
     </html>
