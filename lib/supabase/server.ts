@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { getSupabaseEnv } from './config';
+import { adaptCookieOptions, isHttpsRequest } from './cookie-options';
 
 export async function createClient() {
   const { url, anonKey, isConfigured } = getSupabaseEnv();
@@ -9,7 +10,8 @@ export async function createClient() {
     return null;
   }
 
-  const cookieStore = await cookies();
+  const [cookieStore, headerList] = await Promise.all([cookies(), headers()]);
+  const isHttps = isHttpsRequest(headerList);
 
   return createServerClient(url, anonKey, {
     cookies: {
@@ -19,7 +21,7 @@ export async function createClient() {
       setAll(cookiesToSet) {
         try {
           cookiesToSet.forEach(({ name, value, options }) =>
-            cookieStore.set(name, value, options)
+            cookieStore.set(name, value, adaptCookieOptions(options, isHttps))
           );
         } catch {
           // El método setAll fue llamado desde un Server Component.

@@ -23,6 +23,13 @@ interface AuthFormProps {
 function mapSupabaseError(message: string): string {
   const normalized = message.toLowerCase();
 
+  if (
+    normalized.includes('invalid path specified in request url') ||
+    normalized.includes('url') ||
+    normalized.includes('apikey')
+  ) {
+    return 'Error de configuración de Supabase. Asegúrate de configurar NEXT_PUBLIC_SUPABASE_URL y NEXT_PUBLIC_SUPABASE_ANON_KEY con valores válidos en .env.local.';
+  }
   if (normalized.includes('invalid login credentials')) {
     return 'Correo electrónico o contraseña incorrectos.';
   }
@@ -102,9 +109,8 @@ export default function AuthForm({
     setLoading(true);
 
     try {
-      const supabase = createClient();
-
       if (isSignup) {
+        const supabase = createClient();
         const { data, error: signUpError } = await supabase.auth.signUp({
           email: trimmedEmail,
           password,
@@ -123,8 +129,8 @@ export default function AuthForm({
         }
 
         if (data.session) {
-          router.push('/dashboard');
           router.refresh();
+          window.location.assign('/dashboard');
           return;
         }
 
@@ -133,19 +139,34 @@ export default function AuthForm({
         return;
       }
 
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: trimmedEmail,
-        password,
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: trimmedEmail,
+          password,
+        }),
       });
 
-      if (signInError) {
-        setError(mapSupabaseError(signInError.message));
+      const payload = (await response.json().catch(() => ({}))) as {
+        ok?: boolean;
+        error?: string;
+      };
+
+      if (!response.ok || !payload.ok) {
+        setError(
+          mapSupabaseError(
+            payload.error || 'Correo electrónico o contraseña incorrectos.'
+          )
+        );
         setLoading(false);
         return;
       }
 
-      router.push('/dashboard');
       router.refresh();
+      window.location.assign('/dashboard');
     } catch (err) {
       const message =
         err instanceof Error

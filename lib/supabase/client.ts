@@ -6,9 +6,23 @@ export function createClient() {
 
   if (!isConfigured) {
     throw new Error(
-      'Faltan las variables de entorno NEXT_PUBLIC_SUPABASE_URL y NEXT_PUBLIC_SUPABASE_ANON_KEY.'
+      'Faltan o son inválidas las variables de entorno NEXT_PUBLIC_SUPABASE_URL y NEXT_PUBLIC_SUPABASE_ANON_KEY. Configúralas en tu archivo .env.local.'
     );
   }
 
-  return createBrowserClient(url, anonKey);
+  const isHttps =
+    typeof window !== 'undefined' && window.location.protocol === 'https:';
+
+  return createBrowserClient(url, anonKey, {
+    cookieOptions: isHttps
+      ? {
+          path: '/',
+          sameSite: 'none',
+          secure: true,
+        }
+      : {
+          path: '/',
+          sameSite: 'lax',
+        },
+  });
 }
