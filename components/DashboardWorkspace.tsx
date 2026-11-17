@@ -61,7 +61,7 @@ function getHeaderPlanLabel(business: Business): string {
     const elapsedDays = Number.isNaN(createdMs)
       ? 0
       : Math.floor(Math.max(0, Date.now() - createdMs) / 86_400_000);
-    const remaining = Math.max(0, 14 - elapsedDays);
+    const remaining = Math.max(0, 7 - elapsedDays);
     return `Plan Trial (${remaining} d restantes)`;
   }
   if (business.subscription_status === 'past_due') {

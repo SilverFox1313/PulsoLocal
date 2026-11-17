@@ -279,17 +279,21 @@ export default function BusinessSettingsForm({
           <button
             type="submit"
             disabled={saving}
-            className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 px-5 text-sm font-semibold text-zinc-900 shadow-md shadow-amber-500/20 transition-all hover:from-amber-400 hover:to-orange-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/60 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-zinc-900 dark:text-white disabled:cursor-not-allowed disabled:opacity-60 whitespace-nowrap shrink-0"
+            className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-orange-500 bg-transparent px-5 text-sm font-semibold shadow-xs transition-all hover:bg-orange-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/60 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-zinc-900 disabled:cursor-not-allowed disabled:opacity-50 whitespace-nowrap shrink-0"
           >
             {saving ? (
               <>
-                <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-                <span>Guardando...</span>
+                <Loader2 className="h-4 w-4 shrink-0 animate-spin text-orange-500 dark:text-orange-400" aria-hidden="true" />
+                <span className="bg-gradient-to-r from-orange-500 to-amber-500 bg-clip-text text-transparent font-semibold dark:from-orange-400 dark:to-amber-400">
+                  Guardando...
+                </span>
               </>
             ) : (
               <>
-                <Save className="h-4 w-4" aria-hidden="true" />
-                <span>Guardar cambios</span>
+                <Save className="h-4 w-4 shrink-0 text-orange-500 dark:text-orange-400" aria-hidden="true" />
+                <span className="bg-gradient-to-r from-orange-500 to-amber-500 bg-clip-text text-transparent font-semibold dark:from-orange-400 dark:to-amber-400">
+                  Guardar cambios
+                </span>
               </>
             )}
           </button>
