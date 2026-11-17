@@ -219,7 +219,7 @@ export default function DashboardWorkspace({
               onClick={() => setActiveTab('requests')}
               className={`inline-flex h-9 items-center justify-center gap-2 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors whitespace-nowrap shrink-0 sm:px-3.5 sm:text-sm ${
                 activeTab === 'requests'
-                  ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-semibold shadow-xs'
+                  ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white font-semibold shadow-xs'
                   : 'text-slate-600 hover:text-slate-900 dark:text-zinc-300 dark:hover:text-white'
               }`}
             >
@@ -234,7 +234,7 @@ export default function DashboardWorkspace({
               onClick={() => setActiveTab('feedback')}
               className={`inline-flex h-9 items-center justify-center gap-2 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors whitespace-nowrap shrink-0 sm:px-3.5 sm:text-sm ${
                 activeTab === 'feedback'
-                  ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-semibold shadow-xs'
+                  ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white font-semibold shadow-xs'
                   : 'text-slate-600 hover:text-slate-900 dark:text-zinc-300 dark:hover:text-white'
               }`}
             >
@@ -252,7 +252,7 @@ export default function DashboardWorkspace({
               onClick={() => setActiveTab('settings')}
               className={`inline-flex h-9 items-center justify-center gap-2 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors whitespace-nowrap shrink-0 sm:px-3.5 sm:text-sm ${
                 activeTab === 'settings'
-                  ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-semibold shadow-xs'
+                  ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white font-semibold shadow-xs'
                   : 'text-slate-600 hover:text-slate-900 dark:text-zinc-300 dark:hover:text-white'
               }`}
             >
@@ -267,7 +267,7 @@ export default function DashboardWorkspace({
               onClick={() => setActiveTab('subscription')}
               className={`inline-flex h-9 items-center justify-center gap-2 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors whitespace-nowrap shrink-0 sm:px-3.5 sm:text-sm ${
                 activeTab === 'subscription'
-                  ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-semibold shadow-xs'
+                  ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white font-semibold shadow-xs'
                   : 'text-slate-600 hover:text-slate-900 dark:text-zinc-300 dark:hover:text-white'
               }`}
             >

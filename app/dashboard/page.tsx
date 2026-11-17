@@ -10,6 +10,8 @@ import type {
   ReviewRequest,
 } from '@/types/database';
 
+import DashboardHeader from '@/components/DashboardHeader';
+
 export const dynamic = 'force-dynamic';
 
 export default async function DashboardPage() {
@@ -119,24 +121,7 @@ export default async function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 transition-colors duration-300 ease-in-out dark:bg-black dark:text-zinc-100">
-      <header className="border-b border-slate-200/80 bg-white/80 backdrop-blur-md transition-colors duration-300 ease-in-out dark:border-zinc-900 dark:bg-black/80">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-4">
-          <Link
-            href="/dashboard"
-            className="flex items-center gap-2.5 text-lg font-bold tracking-tight text-slate-900 whitespace-nowrap shrink-0 dark:text-zinc-50"
-          >
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 text-xs font-extrabold text-slate-950 shadow-md shadow-amber-500/20">
-              PL
-            </span>
-            <span>PulsoLocal</span>
-          </Link>
-
-          <div className="flex items-center gap-3 shrink-0">
-            <ThemeToggle />
-            <SignOutButton />
-          </div>
-        </div>
-      </header>
+      <DashboardHeader />
 
       <main className="mx-auto max-w-6xl px-6 py-10">
         <DashboardWorkspace

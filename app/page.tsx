@@ -4,6 +4,8 @@ import ActionLink from '@/components/ActionLink';
 import ThemeToggle from '@/components/ThemeToggle';
 import { createClient } from '@/lib/supabase/server';
 
+import HomeHeader from '@/components/HomeHeader';
+
 export const dynamic = 'force-dynamic';
 
 export default async function HomePage() {
@@ -19,41 +21,7 @@ export default async function HomePage() {
 
   return (
     <div className="flex min-h-screen flex-col bg-slate-50 text-slate-900 transition-colors duration-300 ease-in-out dark:bg-black dark:text-zinc-100">
-      <header className="border-b border-slate-200/80 bg-white/80 backdrop-blur-md transition-colors duration-300 ease-in-out dark:border-zinc-900 dark:bg-black/80">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-4">
-          <Link
-            href="/"
-            className="flex items-center gap-2.5 text-lg font-bold tracking-tight text-slate-900 whitespace-nowrap shrink-0 dark:text-white"
-          >
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 text-xs font-extrabold text-slate-950 shadow-md shadow-amber-500/20">
-              PL
-            </span>
-            <span>PulsoLocal</span>
-          </Link>
-
-          <div className="flex items-center gap-2.5 sm:gap-3 shrink-0">
-            <ThemeToggle />
-
-            {!isAuthenticated && (
-              <ActionLink
-                href="/login"
-                loadingText="Iniciando..."
-                className="inline-flex h-9 items-center justify-center rounded-lg border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 shadow-xs transition-all hover:border-slate-300 hover:bg-slate-100 hover:text-slate-900 dark:border-white/15 dark:bg-white/5 dark:text-white dark:shadow-none dark:backdrop-blur-sm dark:hover:border-white/30 dark:hover:bg-white/10 whitespace-nowrap shrink-0"
-              >
-                Iniciar sesión
-              </ActionLink>
-            )}
-
-            <ActionLink
-              href={isAuthenticated ? '/dashboard' : '/signup'}
-              loadingText="Cargando..."
-              className="inline-flex h-9 items-center justify-center rounded-lg bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 px-4 text-sm font-semibold text-slate-950 shadow-lg shadow-amber-500/25 transition-all hover:from-amber-400 hover:to-orange-500 whitespace-nowrap shrink-0"
-            >
-              {isAuthenticated ? 'Ir al panel' : 'Crear cuenta'}
-            </ActionLink>
-          </div>
-        </div>
-      </header>
+      <HomeHeader isAuthenticated={isAuthenticated} />
 
       <main className="flex-1">
         <section className="mx-auto max-w-6xl px-6 pt-16 pb-20 lg:pt-24 lg:pb-28">
@@ -76,7 +44,7 @@ export default async function HomePage() {
               <ActionLink
                 href={isAuthenticated ? '/dashboard' : '/signup'}
                 loadingText="Preparando..."
-                className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 px-7 text-sm font-semibold text-slate-950 shadow-lg shadow-amber-500/25 transition-all hover:from-amber-400 hover:to-orange-500 whitespace-nowrap shrink-0"
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 px-7 text-sm font-semibold text-white shadow-lg shadow-amber-500/25 transition-all hover:from-amber-400 hover:to-orange-500 whitespace-nowrap shrink-0"
               >
                 <span>
                   {isAuthenticated ? 'Abrir mi panel' : 'Comenzar ahora'}
@@ -88,7 +56,7 @@ export default async function HomePage() {
                 <ActionLink
                   href="/login"
                   loadingText="Abriendo..."
-                  className="inline-flex h-12 items-center justify-center rounded-xl border border-slate-200 bg-white px-7 text-sm font-medium text-slate-800 shadow-xs transition-all hover:border-slate-300 hover:bg-slate-100 dark:border-white/15 dark:bg-white/5 dark:text-white dark:shadow-none dark:backdrop-blur-sm dark:hover:border-white/30 dark:hover:bg-white/10 whitespace-nowrap shrink-0"
+                  className="inline-flex h-12 items-center justify-center rounded-xl border border-slate-200 bg-white px-7 text-sm font-medium text-slate-800 shadow-xs transition-all hover:border-slate-300 hover:bg-slate-100 dark:border-zinc-600 dark:bg-zinc-800/80 dark:text-zinc-100 dark:shadow-none dark:backdrop-blur-sm dark:hover:border-zinc-500 dark:hover:bg-zinc-700 whitespace-nowrap shrink-0"
                 >
                   Ya tengo cuenta
                 </ActionLink>
@@ -114,7 +82,7 @@ export default async function HomePage() {
             </div>
 
             <div className="mt-12 grid gap-8 md:grid-cols-3">
-              <div className="rounded-2xl border border-slate-200 bg-white p-7 shadow-sm transition-colors duration-300 ease-in-out hover:border-amber-500/40 dark:border-white/10 dark:bg-white/[0.03] dark:shadow-2xl dark:backdrop-blur-md dark:hover:border-amber-500/30">
+              <div className="rounded-2xl border border-slate-200 bg-white p-7 shadow-sm transition-colors duration-300 ease-in-out hover:border-amber-500/40 dark:border-zinc-700/80 dark:bg-zinc-900/90 dark:shadow-2xl dark:backdrop-blur-md dark:hover:border-amber-500/50">
                 <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl border border-amber-500/30 bg-gradient-to-br from-amber-500/15 to-orange-500/10 text-amber-600 shadow-xs dark:text-amber-400">
                   <MessageSquareText className="h-5 w-5" aria-hidden="true" />
                 </div>
@@ -127,7 +95,7 @@ export default async function HomePage() {
                 </p>
               </div>
 
-              <div className="rounded-2xl border border-slate-200 bg-white p-7 shadow-sm transition-colors duration-300 ease-in-out hover:border-amber-500/40 dark:border-white/10 dark:bg-white/[0.03] dark:shadow-2xl dark:backdrop-blur-md dark:hover:border-amber-500/30">
+              <div className="rounded-2xl border border-slate-200 bg-white p-7 shadow-sm transition-colors duration-300 ease-in-out hover:border-amber-500/40 dark:border-zinc-700/80 dark:bg-zinc-900/90 dark:shadow-2xl dark:backdrop-blur-md dark:hover:border-amber-500/50">
                 <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl border border-amber-500/30 bg-gradient-to-br from-amber-500/15 to-orange-500/10 text-amber-600 shadow-xs dark:text-amber-400">
                   <ShieldCheck className="h-5 w-5" aria-hidden="true" />
                 </div>
@@ -141,7 +109,7 @@ export default async function HomePage() {
                 </p>
               </div>
 
-              <div className="rounded-2xl border border-slate-200 bg-white p-7 shadow-sm transition-colors duration-300 ease-in-out hover:border-amber-500/40 dark:border-white/10 dark:bg-white/[0.03] dark:shadow-2xl dark:backdrop-blur-md dark:hover:border-amber-500/30">
+              <div className="rounded-2xl border border-slate-200 bg-white p-7 shadow-sm transition-colors duration-300 ease-in-out hover:border-amber-500/40 dark:border-zinc-700/80 dark:bg-zinc-900/90 dark:shadow-2xl dark:backdrop-blur-md dark:hover:border-amber-500/50">
                 <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl border border-amber-500/30 bg-gradient-to-br from-amber-500/15 to-orange-500/10 text-amber-600 shadow-xs dark:text-amber-400">
                   <Star className="h-5 w-5" aria-hidden="true" />
                 </div>
