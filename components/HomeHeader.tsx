@@ -24,10 +24,11 @@ export default function HomeHeader({
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-4">
         <Link
           href="/"
-          className="flex items-center gap-2.5 text-lg font-bold tracking-tight text-slate-900 whitespace-nowrap shrink-0 dark:text-white"
+          className="flex items-center gap-1.5 text-lg font-bold tracking-tight text-slate-900 whitespace-nowrap shrink-0 dark:text-white"
         >
-          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 text-xs font-extrabold text-white shadow-md shadow-amber-500/20">
-            PL
+          <span className="relative inline-flex items-center justify-center text-xl">
+            <span className="absolute top-0.5 right-[7px] h-3 w-3 rounded-full bg-red-500 opacity-90 animate-ping pointer-events-none" />
+            📍
           </span>
           <span>PulsoLocal</span>
         </Link>
@@ -48,7 +49,7 @@ export default function HomeHeader({
               <ActionLink
                 href={variant === 'login' ? '/signup' : '/login'}
                 loadingText="Cargando..."
-                className="inline-flex h-9 items-center justify-center rounded-lg bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 px-4 text-sm font-semibold text-white shadow-lg shadow-amber-500/25 transition-all hover:from-amber-400 hover:to-orange-500 whitespace-nowrap shrink-0"
+                className="inline-flex h-9 items-center justify-center rounded-lg bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 px-4 text-sm font-semibold text-zinc-900 shadow-lg shadow-amber-500/25 transition-all hover:from-amber-400 hover:to-orange-500 dark:text-white whitespace-nowrap shrink-0"
               >
                 {variant === 'login' ? 'Crear cuenta' : 'Iniciar sesión'}
               </ActionLink>
@@ -68,7 +69,7 @@ export default function HomeHeader({
               <ActionLink
                 href={isAuthenticated ? '/dashboard' : '/signup'}
                 loadingText="Cargando..."
-                className="inline-flex h-9 items-center justify-center rounded-lg bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 px-4 text-sm font-semibold text-white shadow-lg shadow-amber-500/25 transition-all hover:from-amber-400 hover:to-orange-500 whitespace-nowrap shrink-0"
+                className="inline-flex h-9 items-center justify-center rounded-lg bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 px-4 text-sm font-semibold text-zinc-900 shadow-lg shadow-amber-500/25 transition-all hover:from-amber-400 hover:to-orange-500 dark:text-white whitespace-nowrap shrink-0"
               >
                 {isAuthenticated ? 'Ir al panel' : 'Crear cuenta'}
               </ActionLink>
@@ -117,7 +118,7 @@ export default function HomeHeader({
                 <ActionLink
                   href={variant === 'login' ? '/signup' : '/login'}
                   loadingText="Cargando..."
-                  className="inline-flex h-11 w-full items-center justify-center rounded-lg bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 px-4 text-sm font-semibold text-white shadow-md transition-all hover:from-amber-400 hover:to-orange-500"
+                  className="inline-flex h-11 w-full items-center justify-center rounded-lg bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 px-4 text-sm font-semibold text-zinc-900 shadow-md transition-all hover:from-amber-400 hover:to-orange-500 dark:text-white"
                 >
                   {variant === 'login' ? 'Crear cuenta' : 'Iniciar sesión'}
                 </ActionLink>
@@ -137,7 +138,7 @@ export default function HomeHeader({
                 <ActionLink
                   href={isAuthenticated ? '/dashboard' : '/signup'}
                   loadingText="Cargando..."
-                  className="inline-flex h-11 w-full items-center justify-center rounded-lg bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 px-4 text-sm font-semibold text-white shadow-md transition-all hover:from-amber-400 hover:to-orange-500"
+                  className="inline-flex h-11 w-full items-center justify-center rounded-lg bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 px-4 text-sm font-semibold text-zinc-900 shadow-md transition-all hover:from-amber-400 hover:to-orange-500 dark:text-white"
                 >
                   {isAuthenticated ? 'Ir al panel' : 'Crear cuenta'}
                 </ActionLink>

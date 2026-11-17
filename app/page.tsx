@@ -41,7 +41,7 @@ export default async function HomePage() {
               <ActionLink
                 href={isAuthenticated ? '/dashboard' : '/signup'}
                 loadingText="Preparando..."
-                className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 px-7 text-sm font-semibold text-white shadow-lg shadow-amber-500/25 transition-all hover:from-amber-400 hover:to-orange-500 whitespace-nowrap shrink-0"
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 px-7 text-sm font-semibold text-zinc-900 shadow-lg shadow-amber-500/25 transition-all hover:from-amber-400 hover:to-orange-500 dark:text-white whitespace-nowrap shrink-0"
               >
                 <span>
                   {isAuthenticated ? 'Abrir mi panel' : 'Comenzar ahora'}

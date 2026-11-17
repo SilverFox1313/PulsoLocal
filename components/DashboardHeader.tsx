@@ -14,10 +14,11 @@ export default function DashboardHeader() {
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-4">
         <Link
           href="/dashboard"
-          className="flex items-center gap-2.5 text-lg font-bold tracking-tight text-slate-900 whitespace-nowrap shrink-0 dark:text-zinc-50"
+          className="flex items-center gap-1.5 text-lg font-bold tracking-tight text-slate-900 whitespace-nowrap shrink-0 dark:text-zinc-50"
         >
-          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 text-xs font-extrabold text-white shadow-md shadow-amber-500/20">
-            PL
+          <span className="relative inline-flex items-center justify-center text-xl">
+            <span className="absolute top-0.5 right-[7px] h-3 w-3 rounded-full bg-red-500 opacity-90 animate-ping pointer-events-none" />
+            📍
           </span>
           <span>PulsoLocal</span>
         </Link>

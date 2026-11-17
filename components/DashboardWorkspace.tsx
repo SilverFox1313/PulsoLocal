@@ -221,7 +221,7 @@ export default function DashboardWorkspace({
               onClick={() => setActiveTab('requests')}
               className={`inline-flex h-9 items-center justify-center gap-2 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors whitespace-nowrap shrink-0 sm:px-3.5 sm:text-sm ${
                 activeTab === 'requests'
-                  ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white font-semibold shadow-xs'
+                  ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-zinc-900 font-semibold shadow-xs dark:text-white'
                   : 'text-slate-600 hover:text-slate-900 dark:text-zinc-300 dark:hover:text-white'
               }`}
             >
@@ -236,7 +236,7 @@ export default function DashboardWorkspace({
               onClick={() => setActiveTab('feedback')}
               className={`inline-flex h-9 items-center justify-center gap-2 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors whitespace-nowrap shrink-0 sm:px-3.5 sm:text-sm ${
                 activeTab === 'feedback'
-                  ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white font-semibold shadow-xs'
+                  ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-zinc-900 font-semibold shadow-xs dark:text-white'
                   : 'text-slate-600 hover:text-slate-900 dark:text-zinc-300 dark:hover:text-white'
               }`}
             >
@@ -254,7 +254,7 @@ export default function DashboardWorkspace({
               onClick={() => setActiveTab('settings')}
               className={`inline-flex h-9 items-center justify-center gap-2 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors whitespace-nowrap shrink-0 sm:px-3.5 sm:text-sm ${
                 activeTab === 'settings'
-                  ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white font-semibold shadow-xs'
+                  ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-zinc-900 font-semibold shadow-xs dark:text-white'
                   : 'text-slate-600 hover:text-slate-900 dark:text-zinc-300 dark:hover:text-white'
               }`}
             >
@@ -269,7 +269,7 @@ export default function DashboardWorkspace({
               onClick={() => setActiveTab('subscription')}
               className={`inline-flex h-9 items-center justify-center gap-2 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors whitespace-nowrap shrink-0 sm:px-3.5 sm:text-sm ${
                 activeTab === 'subscription'
-                  ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white font-semibold shadow-xs'
+                  ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-zinc-900 font-semibold shadow-xs dark:text-white'
                   : 'text-slate-600 hover:text-slate-900 dark:text-zinc-300 dark:hover:text-white'
               }`}
             >
@@ -343,7 +343,7 @@ export default function DashboardWorkspace({
                 type="button"
                 disabled={dispatching}
                 onClick={() => runSendReminders(false)}
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 px-5 text-sm font-semibold text-white shadow-md shadow-amber-500/20 transition-all hover:from-amber-400 hover:to-orange-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/60 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-zinc-900 disabled:cursor-not-allowed disabled:opacity-60 whitespace-nowrap shrink-0"
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 px-5 text-sm font-semibold text-zinc-900 shadow-md shadow-amber-500/20 transition-all hover:from-amber-400 hover:to-orange-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/60 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-zinc-900 dark:text-white disabled:cursor-not-allowed disabled:opacity-60 whitespace-nowrap shrink-0"
               >
                 {dispatching ? (
                   <>
