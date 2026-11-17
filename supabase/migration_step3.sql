@@ -48,7 +48,7 @@ begin
 end;
 $$;
 
--- 2. Registrar calificación (1-5 estrellas) y aplicar lógica de desvío
+-- 2. Registrar calificación (1-5 estrellas) y retornar enlace oficial de Google
 create or replace function public.submit_public_feedback(
   p_request_id uuid,
   p_rating smallint,

@@ -67,9 +67,9 @@ export default async function HomePage() {
             </h1>
 
             <p className="mt-6 max-w-2xl text-base leading-relaxed text-slate-600 sm:text-lg dark:text-zinc-300">
-              Programa solicitudes automáticas tras cada atención, filtra
-              experiencias negativas hacia un canal privado de mejora y dirige a
-              tus clientes satisfechos directo a tu perfil oficial de Google.
+              Captura feedback privado a tiempo para atender a tus clientes al
+              instante y potencia tus reseñas positivas en Google de forma
+              transparente.
             </p>
 
             <div className="mt-10 flex flex-wrap items-center gap-4">
@@ -104,11 +104,12 @@ export default async function HomePage() {
           <div className="mx-auto max-w-6xl px-6">
             <div className="max-w-2xl">
               <h2 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl dark:text-white">
-                Arquitectura del flujo de reputación
+                Cómo funciona tu flujo de satisfacción
               </h2>
               <p className="mt-3 text-base leading-relaxed text-slate-600 dark:text-zinc-300">
-                Cada registro queda protegido por políticas de seguridad a nivel de
-                fila (RLS) en PostgreSQL para aislar los datos de cada negocio.
+                Gestiona la satisfacción de tus clientes en un solo lugar y haz
+                crecer tu reputación local de forma transparente, con datos
+                aislados mediante seguridad a nivel de fila (RLS).
               </p>
             </div>
 
@@ -131,11 +132,12 @@ export default async function HomePage() {
                   <ShieldCheck className="h-5 w-5" aria-hidden="true" />
                 </div>
                 <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
-                  02. Filtro de experiencia
+                  02. Atención proactiva
                 </h3>
                 <p className="mt-3 text-sm leading-relaxed text-slate-600 dark:text-zinc-300">
-                  Si la calificación es menor a 4 estrellas, capturamos el
-                  comentario de forma privada para que tu equipo lo resuelva.
+                  Escucha primero a tus clientes insatisfechos para resolver su
+                  problema al instante de manera interna, manteniéndoles siempre
+                  visible el acceso a Google.
                 </p>
               </div>
 
@@ -147,8 +149,9 @@ export default async function HomePage() {
                   03. Impulso en Google
                 </h3>
                 <p className="mt-3 text-sm leading-relaxed text-slate-600 dark:text-zinc-300">
-                  Los clientes con calificación de 4 o 5 estrellas pasan con un
-                  clic a publicar su reseña en tu enlace oficial de Google.
+                  Facilita que tus clientes felices te recomienden con un clic y
+                  permite que todo cliente acceda libremente a publicar su
+                  reseña en tu perfil oficial de Google.
                 </p>
               </div>
             </div>

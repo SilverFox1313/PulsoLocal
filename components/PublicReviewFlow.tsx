@@ -151,6 +151,23 @@ export default function PublicReviewFlow({ data }: PublicReviewFlowProps) {
           Muchas gracias por tomarte el tiempo de compartir tu experiencia con
           nosotros.
         </p>
+
+        {googleReviewUrl && (
+          <div className="mt-7 border-t border-slate-200 pt-6 dark:border-zinc-800/80">
+            <p className="text-sm leading-relaxed text-slate-600 dark:text-zinc-300">
+              Si además deseas dejar una reseña pública en Google, puedes
+              hacerlo aquí:
+            </p>
+            <a
+              href={googleReviewUrl}
+              rel="noopener noreferrer"
+              className="mt-4 inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 px-5 text-sm font-semibold text-slate-950 shadow-md shadow-amber-500/20 transition-all hover:from-amber-400 hover:to-orange-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/60"
+            >
+              <span>Publicar reseña en Google Maps</span>
+              <ExternalLink className="h-4 w-4" aria-hidden="true" />
+            </a>
+          </div>
+        )}
       </motion.div>
     );
   }
@@ -218,11 +235,11 @@ export default function PublicReviewFlow({ data }: PublicReviewFlowProps) {
           {data.business_name} · {selectedRating} de 5 estrellas
         </p>
         <h1 className="mt-2 text-balance text-2xl font-semibold tracking-tight text-slate-900 dark:text-zinc-50">
-          Lamentamos no haber cumplido tus expectativas
+          Lamentamos que tu experiencia no haya sido ideal
         </h1>
         <p className="mt-2 text-sm leading-relaxed text-slate-600 dark:text-zinc-300">
-          Tu calificación quedó registrada de forma privada. Si lo deseas,
-          cuéntanos qué ocurrió para que podamos solucionarlo.
+          Cuéntanos qué pasó para mejorar y atender tu caso de inmediato. Tu
+          comentario llegará directamente a nuestro equipo.
         </p>
 
         {error && (
@@ -304,13 +321,29 @@ export default function PublicReviewFlow({ data }: PublicReviewFlowProps) {
           {data.business_name}
         </p>
         <h1 className="mt-2 text-2xl font-semibold tracking-tight text-slate-900 dark:text-zinc-50">
-          Gracias por ayudarnos a mejorar
+          Gracias por compartir tu opinión con nosotros
         </h1>
         <p className="mt-3 text-sm leading-relaxed text-slate-600 dark:text-zinc-300">
-          Agradecemos sinceramente tu tiempo y tu honestidad. Nuestro equipo
-          revisará tu valoración de manera interna para ofrecerte un mejor
-          servicio en tu próxima visita.
+          Tu valoración nos ayuda mucho a mejorar. Nuestro equipo revisará tu
+          caso de manera interna para ofrecerte un mejor servicio.
         </p>
+
+        {googleReviewUrl && (
+          <div className="mt-7 border-t border-slate-200 pt-6 dark:border-zinc-800/80">
+            <p className="text-sm leading-relaxed text-slate-600 dark:text-zinc-300">
+              Si además deseas dejar una reseña pública en Google, puedes
+              hacerlo aquí:
+            </p>
+            <a
+              href={googleReviewUrl}
+              rel="noopener noreferrer"
+              className="mt-4 inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 px-5 text-sm font-semibold text-slate-950 shadow-md shadow-amber-500/20 transition-all hover:from-amber-400 hover:to-orange-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/60"
+            >
+              <span>Publicar reseña en Google Maps</span>
+              <ExternalLink className="h-4 w-4" aria-hidden="true" />
+            </a>
+          </div>
+        )}
       </motion.div>
     );
   }

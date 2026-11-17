@@ -40,7 +40,7 @@ function getStatusSummary(
       return {
         label: 'Plan Pro Activo',
         detail:
-          'Todas las funciones de automatización, envío y desvío inteligente están habilitadas sin límite de solicitudes.',
+          'Todas las funciones de automatización, envío y gestión transparente de reseñas están habilitadas sin límite de solicitudes.',
         isActive: true,
       };
     case 'trialing':
@@ -268,23 +268,23 @@ export default function SubscriptionPanel({
               </div>
               <div className="flex items-center justify-between border-b border-slate-200/80 pb-2.5 dark:border-zinc-800/50">
                 <dt className="text-slate-600 dark:text-zinc-300">
-                  Filtro de 1–3 estrellas
-                </dt>
-                <dd className="text-xs font-medium text-slate-800 dark:text-zinc-200">
-                  Incluido
-                </dd>
-              </div>
-              <div className="flex items-center justify-between border-b border-slate-200/80 pb-2.5 dark:border-zinc-800/50">
-                <dt className="text-slate-600 dark:text-zinc-300">
-                  Redirección a Google Maps
+                  Encuesta de satisfacción (1–5)
                 </dt>
                 <dd className="text-xs font-medium text-slate-800 dark:text-zinc-200">
                   Incluida
                 </dd>
               </div>
+              <div className="flex items-center justify-between border-b border-slate-200/80 pb-2.5 dark:border-zinc-800/50">
+                <dt className="text-slate-600 dark:text-zinc-300">
+                  Acceso directo a Google Maps
+                </dt>
+                <dd className="text-xs font-medium text-slate-800 dark:text-zinc-200">
+                  Incluido
+                </dd>
+              </div>
               <div className="flex items-center justify-between">
                 <dt className="text-slate-600 dark:text-zinc-300">
-                  Canal privado de quejas
+                  Canal interno de mejora
                 </dt>
                 <dd className="text-xs font-medium text-slate-800 dark:text-zinc-200">
                   Incluido
@@ -338,7 +338,7 @@ export default function SubscriptionPanel({
               </div>
               <div className="flex items-center justify-between border-b border-slate-200/80 pb-2.5 dark:border-zinc-800/50">
                 <dt className="text-slate-600 dark:text-zinc-300">
-                  Desvío inteligente 4–5 estrellas
+                  Flujo transparente a Google Maps
                 </dt>
                 <dd className="text-xs font-medium text-slate-800 dark:text-zinc-200">
                   Incluido

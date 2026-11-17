@@ -108,12 +108,12 @@ export default function PrivateFeedbackList({ items }: PrivateFeedbackListProps)
             {items.length === 0
               ? 'Todavía no hay opiniones registradas'
               : ratingFilter === 'negative' && searchQuery === ''
-              ? 'Sin quejas o calificaciones de 1 a 3 estrellas'
+              ? 'Sin calificaciones de 1 a 3 estrellas'
               : 'No hay opiniones que coincidan con tu búsqueda'}
           </p>
           <p className="mt-1 max-w-sm text-xs text-slate-500 dark:text-zinc-400">
             {items.length === 0
-              ? 'Cuando tus clientes respondan su enlace de calificación, las opiniones de 1 a 3 estrellas aparecerán aquí de forma privada.'
+              ? 'Cuando tus clientes respondan su enlace de calificación, las opiniones internas de 1 a 3 estrellas aparecerán aquí para que puedas atenderlas a tiempo.'
               : ratingFilter === 'negative' && searchQuery === ''
               ? 'Todas tus respuestas hasta ahora han sido positivas (4 o 5 estrellas).'
               : 'Prueba con otro término de búsqueda o cambia el filtro.'}
@@ -172,8 +172,8 @@ export default function PrivateFeedbackList({ items }: PrivateFeedbackListProps)
                   </span>
                   <span className="text-xs text-slate-500 dark:text-zinc-300">
                     {item.redirected_to_google
-                      ? 'Enviado a Google'
-                      : 'Contenido privado'}
+                      ? 'Flujo directo a Google'
+                      : 'Atención interna + enlace Google'}
                   </span>
                 </div>
               </div>
