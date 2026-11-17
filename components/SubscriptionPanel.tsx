@@ -140,8 +140,8 @@ export default function SubscriptionPanel({
 
   return (
     <div className="space-y-8">
-      <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-xs transition-colors duration-300 ease-in-out sm:p-8 dark:border-zinc-700/80 dark:bg-zinc-900/90 dark:shadow-none">
-        <div className="flex flex-col gap-6 border-b border-slate-200 pb-6 sm:flex-row sm:items-start sm:justify-between dark:border-zinc-700/80">
+      <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-xs transition-colors duration-300 ease-in-out sm:p-8 dark:border-zinc-700 dark:bg-zinc-900 dark:shadow-lg dark:shadow-black/30">
+        <div className="flex flex-col gap-6 border-b border-slate-200 pb-6 sm:flex-row sm:items-start sm:justify-between dark:border-zinc-700">
           <div>
             <p className="text-xs font-medium text-slate-500 dark:text-zinc-300">
               Estado actual de tu suscripción
@@ -238,9 +238,9 @@ export default function SubscriptionPanel({
       </section>
 
       <section className="grid gap-6 lg:grid-cols-2">
-        <div className="flex flex-col justify-between rounded-xl border border-slate-200 bg-white p-6 shadow-xs transition-colors duration-300 ease-in-out sm:p-8 dark:border-zinc-700/80 dark:bg-zinc-900/90 dark:shadow-none">
+        <div className="flex flex-col justify-between rounded-xl border border-slate-200 bg-white p-6 shadow-xs transition-colors duration-300 ease-in-out sm:p-8 dark:border-zinc-700 dark:bg-zinc-900 dark:shadow-lg dark:shadow-black/30">
           <div>
-            <div className="flex items-baseline justify-between gap-4 border-b border-slate-200 pb-5 dark:border-zinc-700/80">
+            <div className="flex items-baseline justify-between gap-4 border-b border-slate-200 pb-5 dark:border-zinc-700">
               <div>
                 <h3 className="text-lg font-semibold text-slate-900 dark:text-zinc-50">
                   Plan Trial
@@ -300,9 +300,9 @@ export default function SubscriptionPanel({
           </p>
         </div>
 
-        <div className="flex flex-col justify-between rounded-xl border border-amber-500/40 bg-white p-6 shadow-xs transition-colors duration-300 ease-in-out sm:p-8 dark:border-amber-500/50 dark:bg-zinc-900/90 dark:shadow-none">
+        <div className="flex flex-col justify-between rounded-xl border border-amber-500/40 bg-white p-6 shadow-xs transition-colors duration-300 ease-in-out sm:p-8 dark:border-amber-500/60 dark:bg-zinc-900 dark:shadow-lg dark:shadow-black/30">
           <div>
-            <div className="flex items-baseline justify-between gap-4 border-b border-slate-200 pb-5 dark:border-zinc-700/80">
+            <div className="flex items-baseline justify-between gap-4 border-b border-slate-200 pb-5 dark:border-zinc-700">
               <div>
                 <h3 className="text-lg font-semibold text-slate-900 dark:text-zinc-50">
                   Plan Pro

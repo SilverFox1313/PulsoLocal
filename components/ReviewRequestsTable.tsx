@@ -88,8 +88,8 @@ export default function ReviewRequestsTable({
   }, [requests, searchQuery, statusFilter]);
 
   return (
-    <section className="rounded-xl border border-slate-200 bg-white shadow-xs transition-colors duration-300 ease-in-out dark:border-zinc-700/80 dark:bg-zinc-900/90 dark:shadow-none">
-      <div className="flex flex-col gap-4 border-b border-slate-200 px-6 py-5 sm:flex-row sm:items-center sm:justify-between dark:border-zinc-700/80">
+    <section className="rounded-xl border border-slate-200 bg-white shadow-xs transition-colors duration-300 ease-in-out dark:border-zinc-700 dark:bg-zinc-900 dark:shadow-lg dark:shadow-black/30">
+      <div className="flex flex-col gap-4 border-b border-slate-200 px-6 py-5 sm:flex-row sm:items-center sm:justify-between dark:border-zinc-700">
         <div>
           <h2 className="text-lg font-semibold tracking-tight text-slate-900 dark:text-zinc-50">
             Historial de solicitudes

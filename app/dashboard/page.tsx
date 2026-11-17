@@ -1,16 +1,12 @@
-import Link from 'next/link';
 import { redirect } from 'next/navigation';
+import DashboardHeader from '@/components/DashboardHeader';
 import DashboardWorkspace from '@/components/DashboardWorkspace';
-import SignOutButton from '@/components/SignOutButton';
-import ThemeToggle from '@/components/ThemeToggle';
 import { createClient } from '@/lib/supabase/server';
 import type {
   Business,
   PrivateFeedbackItem,
   ReviewRequest,
 } from '@/types/database';
-
-import DashboardHeader from '@/components/DashboardHeader';
 
 export const dynamic = 'force-dynamic';
 

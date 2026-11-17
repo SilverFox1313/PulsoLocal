@@ -65,8 +65,8 @@ export default function ReviewRequestForm({
   }
 
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-xs transition-colors duration-300 ease-in-out sm:p-8 dark:border-zinc-700/80 dark:bg-zinc-900/90 dark:shadow-none">
-      <div className="flex flex-col gap-1 border-b border-slate-200 pb-5 sm:flex-row sm:items-baseline sm:justify-between dark:border-zinc-700/80">
+    <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-xs transition-colors duration-300 ease-in-out sm:p-8 dark:border-zinc-700 dark:bg-zinc-900 dark:shadow-lg dark:shadow-black/30">
+      <div className="flex flex-col gap-1 border-b border-slate-200 pb-5 sm:flex-row sm:items-baseline sm:justify-between dark:border-zinc-700">
         <div>
           <h2 className="text-lg font-semibold tracking-tight text-slate-900 dark:text-zinc-50">
             Añadir cliente para reseña

@@ -102,8 +102,8 @@ export default function BusinessSettingsForm({
   }
 
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-xs transition-colors duration-300 ease-in-out sm:p-8 dark:border-zinc-700/80 dark:bg-zinc-900/90 dark:shadow-none">
-      <div className="border-b border-slate-200 pb-5 dark:border-zinc-700/80">
+    <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-xs transition-colors duration-300 ease-in-out sm:p-8 dark:border-zinc-700 dark:bg-zinc-900 dark:shadow-lg dark:shadow-black/30">
+      <div className="border-b border-slate-200 pb-5 dark:border-zinc-700">
         <h2 className="text-lg font-semibold tracking-tight text-slate-900 dark:text-zinc-50">
           Configuración del negocio
         </h2>
@@ -265,17 +265,17 @@ export default function BusinessSettingsForm({
             className="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-3 text-sm leading-relaxed text-slate-900 placeholder:text-slate-400 transition-colors focus:border-amber-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-700 dark:bg-zinc-800/90 dark:text-zinc-100 dark:placeholder:text-zinc-400 dark:focus:border-amber-500/60"
           />
 
-          <div className="mt-4 border-t border-slate-200 pt-3.5 dark:border-zinc-700/80">
+          <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-zinc-700 dark:bg-zinc-800/80">
             <p className="text-xs font-medium text-slate-500 dark:text-zinc-400">
               Vista previa con datos de ejemplo
             </p>
-            <p className="mt-1.5 text-sm leading-relaxed text-slate-700 dark:text-zinc-300">
+            <p className="mt-1.5 text-sm leading-relaxed text-slate-700 dark:text-zinc-200">
               {renderPreview() || 'Escribe un mensaje para previsualizarlo.'}
             </p>
           </div>
         </div>
 
-        <div className="flex items-center justify-end border-t border-slate-200 pt-5 dark:border-zinc-700/80">
+        <div className="flex items-center justify-end border-t border-slate-200 pt-5 dark:border-zinc-700">
           <button
             type="submit"
             disabled={saving}
