@@ -195,7 +195,7 @@ export default function AuthForm({
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-        className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-8 shadow-sm transition-colors duration-300 ease-in-out dark:border-white/10 dark:bg-[#111114] dark:shadow-2xl"
+        className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-8 shadow-sm transition-colors duration-300 ease-in-out dark:border-zinc-700/80 dark:bg-zinc-900/90 dark:shadow-2xl"
       >
         <div className="mb-5 flex h-10 w-10 items-center justify-center rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
           <CheckCircle2 className="h-5 w-5" aria-hidden="true" />
@@ -212,7 +212,7 @@ export default function AuthForm({
           . Una vez confirmado, tu espacio de negocio estará listo automáticamente.
         </p>
 
-        <div className="mt-6 border-t border-slate-200 pt-5 dark:border-zinc-800/80">
+        <div className="mt-6 border-t border-slate-200 pt-5 dark:border-zinc-700/80">
           <ActionLink
             href="/login"
             loadingText="Cargando..."
@@ -231,7 +231,7 @@ export default function AuthForm({
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-      className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-7 shadow-sm transition-colors duration-300 ease-in-out sm:p-8 dark:border-white/10 dark:bg-[#111114] dark:shadow-2xl"
+      className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-7 shadow-sm transition-colors duration-300 ease-in-out sm:p-8 dark:border-zinc-700/80 dark:bg-zinc-900/90 dark:shadow-2xl"
     >
       <div>
         <h1 className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-zinc-50">
@@ -293,7 +293,7 @@ export default function AuthForm({
                 value={businessName}
                 onChange={(e) => setBusinessName(e.target.value)}
                 placeholder="Ej. Clínica Dental Norte"
-                className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3.5 text-sm text-slate-900 placeholder:text-slate-400 transition-colors focus:border-amber-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-400 dark:focus:border-amber-500/60"
+                className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3.5 text-sm text-slate-900 placeholder:text-slate-400 transition-colors focus:border-amber-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-700 dark:bg-zinc-800/90 dark:text-zinc-100 dark:placeholder:text-zinc-400 dark:focus:border-amber-500/60"
               />
             </div>
           )}
@@ -315,7 +315,7 @@ export default function AuthForm({
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="tu@negocio.com"
-              className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3.5 text-sm text-slate-900 placeholder:text-slate-400 transition-colors focus:border-amber-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-400 dark:focus:border-amber-500/60"
+              className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3.5 text-sm text-slate-900 placeholder:text-slate-400 transition-colors focus:border-amber-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-700 dark:bg-zinc-800/90 dark:text-zinc-100 dark:placeholder:text-zinc-400 dark:focus:border-amber-500/60"
             />
           </div>
 
@@ -337,7 +337,7 @@ export default function AuthForm({
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder={isSignup ? 'Mínimo 6 caracteres' : '••••••••'}
-                className="h-11 w-full rounded-lg border border-slate-300 bg-white pl-3.5 pr-11 text-sm text-slate-900 placeholder:text-slate-400 transition-colors focus:border-amber-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-400 dark:focus:border-amber-500/60"
+                className="h-11 w-full rounded-lg border border-slate-300 bg-white pl-3.5 pr-11 text-sm text-slate-900 placeholder:text-slate-400 transition-colors focus:border-amber-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-700 dark:bg-zinc-800/90 dark:text-zinc-100 dark:placeholder:text-zinc-400 dark:focus:border-amber-500/60"
               />
               <button
                 type="button"
@@ -375,7 +375,7 @@ export default function AuthForm({
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="Repite tu contraseña"
-                className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3.5 text-sm text-slate-900 placeholder:text-slate-400 transition-colors focus:border-amber-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-400 dark:focus:border-amber-500/60"
+                className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3.5 text-sm text-slate-900 placeholder:text-slate-400 transition-colors focus:border-amber-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-700 dark:bg-zinc-800/90 dark:text-zinc-100 dark:placeholder:text-zinc-400 dark:focus:border-amber-500/60"
               />
             </div>
           )}
@@ -384,7 +384,7 @@ export default function AuthForm({
             type="submit"
             disabled={isSubmitting}
             aria-busy={isSubmitting}
-            className={`mt-2 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-amber-500/25 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/60 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#111114] disabled:opacity-50 disabled:cursor-not-allowed ${
+            className={`mt-2 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-amber-500/25 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/60 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-zinc-900 disabled:opacity-50 disabled:cursor-not-allowed ${
               isSubmitting
                 ? 'pointer-events-none cursor-not-allowed opacity-50'
                 : 'hover:from-amber-400 hover:to-orange-500 active:scale-[0.99]'
@@ -404,7 +404,7 @@ export default function AuthForm({
         </fieldset>
       </form>
 
-      <div className="mt-6 border-t border-slate-200 pt-5 text-center text-sm text-slate-600 dark:border-zinc-800/80 dark:text-zinc-300">
+      <div className="mt-6 border-t border-slate-200 pt-5 text-center text-sm text-slate-600 dark:border-zinc-700/80 dark:text-zinc-300">
         {isSignup ? (
           <>
             ¿Ya tienes una cuenta?{' '}

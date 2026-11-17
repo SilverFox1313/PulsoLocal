@@ -88,8 +88,8 @@ export default function ReviewRequestsTable({
   }, [requests, searchQuery, statusFilter]);
 
   return (
-    <section className="rounded-xl border border-slate-200 bg-white shadow-xs transition-colors duration-300 ease-in-out dark:border-zinc-800 dark:bg-[#111114] dark:shadow-none">
-      <div className="flex flex-col gap-4 border-b border-slate-200 px-6 py-5 sm:flex-row sm:items-center sm:justify-between dark:border-zinc-800/80">
+    <section className="rounded-xl border border-slate-200 bg-white shadow-xs transition-colors duration-300 ease-in-out dark:border-zinc-700/80 dark:bg-zinc-900/90 dark:shadow-none">
+      <div className="flex flex-col gap-4 border-b border-slate-200 px-6 py-5 sm:flex-row sm:items-center sm:justify-between dark:border-zinc-700/80">
         <div>
           <h2 className="text-lg font-semibold tracking-tight text-slate-900 dark:text-zinc-50">
             Historial de solicitudes
@@ -114,21 +114,21 @@ export default function ReviewRequestsTable({
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Buscar cliente o teléfono..."
               aria-label="Buscar solicitudes por cliente o teléfono"
-              className="h-9 w-full rounded-lg border border-slate-300 bg-white pl-9 pr-3 text-sm text-slate-900 placeholder:text-slate-400 transition-colors focus:border-amber-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30 sm:w-56 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-400 dark:focus:border-amber-500/60"
+              className="h-9 w-full rounded-lg border border-slate-300 bg-white pl-9 pr-3 text-sm text-slate-900 placeholder:text-slate-400 transition-colors focus:border-amber-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30 sm:w-56 dark:border-zinc-700 dark:bg-zinc-800/90 dark:text-zinc-100 dark:placeholder:text-zinc-400 dark:focus:border-amber-500/60"
             />
           </div>
 
           <div
             role="group"
             aria-label="Filtrar por estado"
-            className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-100 p-1 dark:border-zinc-800 dark:bg-zinc-950"
+            className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-100 p-1 dark:border-zinc-700 dark:bg-zinc-800/90"
           >
             <button
               type="button"
               onClick={() => setStatusFilter('all')}
               className={`rounded-md px-3 py-1 text-xs font-medium transition-colors whitespace-nowrap shrink-0 ${
                 statusFilter === 'all'
-                  ? 'bg-white text-slate-900 shadow-xs dark:bg-zinc-800 dark:text-zinc-50 dark:shadow-none'
+                  ? 'bg-white text-slate-900 shadow-xs dark:bg-zinc-700 dark:text-white dark:shadow-none'
                   : 'text-slate-600 hover:text-slate-900 dark:text-zinc-300 dark:hover:text-zinc-100'
               }`}
             >
@@ -139,7 +139,7 @@ export default function ReviewRequestsTable({
               onClick={() => setStatusFilter('pending')}
               className={`rounded-md px-3 py-1 text-xs font-medium transition-colors whitespace-nowrap shrink-0 ${
                 statusFilter === 'pending'
-                  ? 'bg-white text-slate-900 shadow-xs dark:bg-zinc-800 dark:text-zinc-50 dark:shadow-none'
+                  ? 'bg-white text-slate-900 shadow-xs dark:bg-zinc-700 dark:text-white dark:shadow-none'
                   : 'text-slate-600 hover:text-slate-900 dark:text-zinc-300 dark:hover:text-zinc-100'
               }`}
             >
@@ -150,7 +150,7 @@ export default function ReviewRequestsTable({
               onClick={() => setStatusFilter('sent')}
               className={`rounded-md px-3 py-1 text-xs font-medium transition-colors whitespace-nowrap shrink-0 ${
                 statusFilter === 'sent'
-                  ? 'bg-white text-slate-900 shadow-xs dark:bg-zinc-800 dark:text-zinc-50 dark:shadow-none'
+                  ? 'bg-white text-slate-900 shadow-xs dark:bg-zinc-700 dark:text-white dark:shadow-none'
                   : 'text-slate-600 hover:text-slate-900 dark:text-zinc-300 dark:hover:text-zinc-100'
               }`}
             >
@@ -162,7 +162,7 @@ export default function ReviewRequestsTable({
 
       {filteredRequests.length === 0 ? (
         <div className="flex flex-col items-center justify-center px-6 py-14 text-center">
-          <div className="flex h-11 w-11 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-400">
+          <div className="flex h-11 w-11 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-400 dark:border-zinc-700 dark:bg-zinc-800/90 dark:text-zinc-300">
             <Inbox className="h-5 w-5" aria-hidden="true" />
           </div>
           <p className="mt-4 text-sm font-medium text-slate-800 dark:text-zinc-200">
@@ -180,7 +180,7 @@ export default function ReviewRequestsTable({
         <div className="overflow-x-auto">
           <table className="w-full border-collapse text-left text-sm">
             <thead>
-              <tr className="border-b border-slate-200 text-xs font-medium text-slate-500 dark:border-zinc-800/80 dark:text-zinc-300">
+              <tr className="border-b border-slate-200 text-xs font-medium text-slate-500 dark:border-zinc-700/80 dark:text-zinc-300">
                 <th scope="col" className="px-6 py-3">
                   Cliente
                 </th>
@@ -198,7 +198,7 @@ export default function ReviewRequestsTable({
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-200 dark:divide-zinc-800/60">
+            <tbody className="divide-y divide-slate-200 dark:divide-zinc-700/70">
               {filteredRequests.map((item) => {
                 const statusInfo =
                   STATUS_META[item.status] ?? STATUS_META.pending;
@@ -208,7 +208,7 @@ export default function ReviewRequestsTable({
                 return (
                   <tr
                     key={item.id}
-                    className="transition-colors hover:bg-slate-50 dark:hover:bg-zinc-900/50"
+                    className="transition-colors hover:bg-slate-50 dark:hover:bg-zinc-800/60"
                   >
                     <td className="px-6 py-3.5 font-medium text-slate-900 dark:text-zinc-100">
                       {item.customer_name}
@@ -235,7 +235,7 @@ export default function ReviewRequestsTable({
                         <button
                           type="button"
                           onClick={() => handleCopyLink(item.id)}
-                          className="inline-flex h-8 items-center gap-1.5 rounded-md border border-slate-200 bg-slate-50 px-2.5 text-xs font-medium text-slate-700 transition-colors hover:border-slate-300 hover:text-slate-900 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:border-zinc-700 dark:hover:text-zinc-100 whitespace-nowrap shrink-0"
+                          className="inline-flex h-8 items-center gap-1.5 rounded-md border border-slate-200 bg-slate-50 px-2.5 text-xs font-medium text-slate-700 transition-colors hover:border-slate-300 hover:text-slate-900 dark:border-zinc-600 dark:bg-zinc-800/90 dark:text-zinc-200 dark:hover:border-zinc-500 dark:hover:bg-zinc-700 dark:hover:text-white whitespace-nowrap shrink-0"
                         >
                           {isCopied ? (
                             <>
@@ -259,7 +259,7 @@ export default function ReviewRequestsTable({
                           target="_blank"
                           rel="noopener noreferrer"
                           aria-label={`Abrir enlace de reseña para ${item.customer_name}`}
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 bg-slate-50 text-slate-500 transition-colors hover:border-slate-300 hover:text-amber-600 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:border-zinc-700 dark:hover:text-amber-300"
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 bg-slate-50 text-slate-500 transition-colors hover:border-slate-300 hover:text-amber-600 dark:border-zinc-600 dark:bg-zinc-800/90 dark:text-zinc-200 dark:hover:border-zinc-500 dark:hover:bg-zinc-700 dark:hover:text-amber-300"
                         >
                           <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
                         </Link>

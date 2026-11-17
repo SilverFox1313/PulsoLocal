@@ -5,7 +5,11 @@ import { Loader2, LogOut } from 'lucide-react';
 import { signOutAction } from '@/app/dashboard/actions';
 import { emitNavDone, emitNavStart } from '@/components/NavigationProgress';
 
-export default function SignOutButton() {
+interface SignOutButtonProps {
+  fullWidth?: boolean;
+}
+
+export default function SignOutButton({ fullWidth = false }: SignOutButtonProps) {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
@@ -23,24 +27,34 @@ export default function SignOutButton() {
   }
 
   return (
-    <div className="flex flex-col items-end gap-1.5">
+    <div
+      className={`flex flex-col gap-1.5 ${
+        fullWidth ? 'w-full items-stretch' : 'items-end'
+      }`}
+    >
       <button
         type="button"
         onClick={handleSignOut}
         disabled={isPending}
         aria-busy={isPending}
-        className={`inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3.5 text-sm font-medium text-slate-700 shadow-xs transition-colors hover:border-slate-300 hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/60 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100 dark:shadow-none dark:hover:border-zinc-700 dark:hover:bg-zinc-800 whitespace-nowrap shrink-0 ${
-          isPending ? 'pointer-events-none opacity-60' : ''
-        }`}
+        className={`inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3.5 text-sm font-medium text-slate-700 shadow-xs transition-colors hover:border-slate-300 hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/60 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-600 dark:bg-zinc-800/90 dark:text-zinc-100 dark:shadow-none dark:hover:border-zinc-500 dark:hover:bg-zinc-700 whitespace-nowrap shrink-0 ${
+          fullWidth ? 'h-11 w-full' : 'h-9'
+        } ${isPending ? 'pointer-events-none opacity-60' : ''}`}
       >
         {isPending ? (
           <>
-            <Loader2 className="h-4 w-4 animate-spin text-slate-400 dark:text-zinc-400" aria-hidden="true" />
+            <Loader2
+              className="h-4 w-4 animate-spin text-slate-400 dark:text-zinc-300"
+              aria-hidden="true"
+            />
             <span>Cerrando sesión...</span>
           </>
         ) : (
           <>
-            <LogOut className="h-4 w-4 text-slate-500 dark:text-zinc-400" aria-hidden="true" />
+            <LogOut
+              className="h-4 w-4 text-slate-500 dark:text-zinc-300"
+              aria-hidden="true"
+            />
             <span>Cerrar sesión</span>
           </>
         )}

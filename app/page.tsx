@@ -1,10 +1,7 @@
-import Link from 'next/link';
 import { ArrowRight, Star, ShieldCheck, MessageSquareText } from 'lucide-react';
 import ActionLink from '@/components/ActionLink';
-import ThemeToggle from '@/components/ThemeToggle';
-import { createClient } from '@/lib/supabase/server';
-
 import HomeHeader from '@/components/HomeHeader';
+import { createClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,7 +18,7 @@ export default async function HomePage() {
 
   return (
     <div className="flex min-h-screen flex-col bg-slate-50 text-slate-900 transition-colors duration-300 ease-in-out dark:bg-black dark:text-zinc-100">
-      <HomeHeader isAuthenticated={isAuthenticated} />
+      <HomeHeader isAuthenticated={isAuthenticated} variant="home" />
 
       <main className="flex-1">
         <section className="mx-auto max-w-6xl px-6 pt-16 pb-20 lg:pt-24 lg:pb-28">
@@ -56,7 +53,7 @@ export default async function HomePage() {
                 <ActionLink
                   href="/login"
                   loadingText="Abriendo..."
-                  className="inline-flex h-12 items-center justify-center rounded-xl border border-slate-200 bg-white px-7 text-sm font-medium text-slate-800 shadow-xs transition-all hover:border-slate-300 hover:bg-slate-100 dark:border-zinc-600 dark:bg-zinc-800/80 dark:text-zinc-100 dark:shadow-none dark:backdrop-blur-sm dark:hover:border-zinc-500 dark:hover:bg-zinc-700 whitespace-nowrap shrink-0"
+                  className="inline-flex h-12 items-center justify-center rounded-xl border border-slate-200 bg-white px-7 text-sm font-medium text-slate-800 shadow-xs transition-all hover:border-slate-300 hover:bg-slate-100 dark:border-zinc-600 dark:bg-zinc-800/90 dark:text-zinc-100 dark:shadow-none dark:hover:border-zinc-500 dark:hover:bg-zinc-700 whitespace-nowrap shrink-0"
                 >
                   Ya tengo cuenta
                 </ActionLink>
@@ -67,7 +64,7 @@ export default async function HomePage() {
 
         <section
           id="como-funciona"
-          className="border-t border-slate-200/80 bg-white/60 py-20 transition-colors duration-300 ease-in-out dark:border-zinc-900 dark:bg-zinc-950/60"
+          className="border-t border-slate-200/80 bg-white/60 py-20 transition-colors duration-300 ease-in-out dark:border-zinc-700/80 dark:bg-zinc-950/80"
         >
           <div className="mx-auto max-w-6xl px-6">
             <div className="max-w-2xl">
@@ -82,7 +79,7 @@ export default async function HomePage() {
             </div>
 
             <div className="mt-12 grid gap-8 md:grid-cols-3">
-              <div className="rounded-2xl border border-slate-200 bg-white p-7 shadow-sm transition-colors duration-300 ease-in-out hover:border-amber-500/40 dark:border-zinc-700/80 dark:bg-zinc-900/90 dark:shadow-2xl dark:backdrop-blur-md dark:hover:border-amber-500/50">
+              <div className="rounded-2xl border border-slate-200 bg-white p-7 shadow-sm transition-colors duration-300 ease-in-out hover:border-amber-500/40 dark:border-zinc-700/80 dark:bg-zinc-900/90 dark:shadow-xl dark:backdrop-blur-md dark:hover:border-amber-500/50">
                 <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl border border-amber-500/30 bg-gradient-to-br from-amber-500/15 to-orange-500/10 text-amber-600 shadow-xs dark:text-amber-400">
                   <MessageSquareText className="h-5 w-5" aria-hidden="true" />
                 </div>
@@ -95,7 +92,7 @@ export default async function HomePage() {
                 </p>
               </div>
 
-              <div className="rounded-2xl border border-slate-200 bg-white p-7 shadow-sm transition-colors duration-300 ease-in-out hover:border-amber-500/40 dark:border-zinc-700/80 dark:bg-zinc-900/90 dark:shadow-2xl dark:backdrop-blur-md dark:hover:border-amber-500/50">
+              <div className="rounded-2xl border border-slate-200 bg-white p-7 shadow-sm transition-colors duration-300 ease-in-out hover:border-amber-500/40 dark:border-zinc-700/80 dark:bg-zinc-900/90 dark:shadow-xl dark:backdrop-blur-md dark:hover:border-amber-500/50">
                 <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl border border-amber-500/30 bg-gradient-to-br from-amber-500/15 to-orange-500/10 text-amber-600 shadow-xs dark:text-amber-400">
                   <ShieldCheck className="h-5 w-5" aria-hidden="true" />
                 </div>
@@ -109,7 +106,7 @@ export default async function HomePage() {
                 </p>
               </div>
 
-              <div className="rounded-2xl border border-slate-200 bg-white p-7 shadow-sm transition-colors duration-300 ease-in-out hover:border-amber-500/40 dark:border-zinc-700/80 dark:bg-zinc-900/90 dark:shadow-2xl dark:backdrop-blur-md dark:hover:border-amber-500/50">
+              <div className="rounded-2xl border border-slate-200 bg-white p-7 shadow-sm transition-colors duration-300 ease-in-out hover:border-amber-500/40 dark:border-zinc-700/80 dark:bg-zinc-900/90 dark:shadow-xl dark:backdrop-blur-md dark:hover:border-amber-500/50">
                 <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl border border-amber-500/30 bg-gradient-to-br from-amber-500/15 to-orange-500/10 text-amber-600 shadow-xs dark:text-amber-400">
                   <Star className="h-5 w-5" aria-hidden="true" />
                 </div>
@@ -127,7 +124,7 @@ export default async function HomePage() {
         </section>
       </main>
 
-      <footer className="border-t border-slate-200/80 bg-white/70 transition-colors duration-300 ease-in-out dark:border-zinc-900 dark:bg-black">
+      <footer className="border-t border-slate-200/80 bg-white/70 transition-colors duration-300 ease-in-out dark:border-zinc-700/80 dark:bg-zinc-950/90">
         <div className="mx-auto flex max-w-6xl flex-col gap-4 px-6 py-8 text-xs text-slate-500 dark:text-zinc-400 sm:flex-row sm:items-center sm:justify-between">
           <span>PulsoLocal · Automatizador de Reseñas y Reputación Local</span>
           <div className="flex items-center gap-6">

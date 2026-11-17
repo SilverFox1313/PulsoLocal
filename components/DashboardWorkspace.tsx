@@ -170,7 +170,7 @@ export default function DashboardWorkspace({
 
   return (
     <div className="space-y-8">
-      <section className="border-b border-slate-200 pb-8 dark:border-zinc-800/80">
+      <section className="border-b border-slate-200 pb-8 dark:border-zinc-700/80">
         <div>
           <h1 className="text-4xl font-extrabold tracking-tight text-zinc-900 sm:text-5xl dark:text-white">
             <span>Bienvenido</span>
@@ -210,7 +210,7 @@ export default function DashboardWorkspace({
           <div
             role="tablist"
             aria-label="Secciones del panel"
-            className="grid w-full grid-cols-2 gap-1 rounded-lg border border-slate-200 bg-white p-1 shadow-xs transition-colors duration-300 ease-in-out md:inline-flex md:w-auto md:flex-nowrap md:items-center md:gap-1 shrink-0 dark:border-zinc-800 dark:bg-[#111114] dark:shadow-none"
+            className="grid w-full grid-cols-2 gap-1 rounded-lg border border-slate-200 bg-white p-1 shadow-xs transition-colors duration-300 ease-in-out md:inline-flex md:w-auto md:flex-nowrap md:items-center md:gap-1 shrink-0 dark:border-zinc-700 dark:bg-zinc-900/90 dark:shadow-none"
           >
             <button
               type="button"
@@ -300,7 +300,7 @@ export default function DashboardWorkspace({
           <button
             type="button"
             onClick={() => setActiveTab('settings')}
-            className="inline-flex h-9 items-center justify-center rounded-lg border border-amber-500/40 bg-white px-3.5 text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-50 dark:bg-zinc-950/60 dark:text-amber-300 dark:hover:bg-zinc-950 whitespace-nowrap shrink-0"
+            className="inline-flex h-9 items-center justify-center rounded-lg border border-amber-500/40 bg-white px-3.5 text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-50 dark:bg-zinc-800/90 dark:text-amber-300 dark:hover:bg-zinc-700 whitespace-nowrap shrink-0"
           >
             Configurar enlace
           </button>
@@ -308,7 +308,7 @@ export default function DashboardWorkspace({
       )}
 
       {!business ? (
-        <section className="rounded-xl border border-slate-200 bg-white p-8 text-sm text-slate-600 shadow-xs dark:border-zinc-800 dark:bg-[#111114] dark:text-zinc-300 dark:shadow-none">
+        <section className="rounded-xl border border-slate-200 bg-white p-8 text-sm text-slate-600 shadow-xs dark:border-zinc-700/80 dark:bg-zinc-900/90 dark:text-zinc-300 dark:shadow-none">
           No se encontró el perfil del negocio en Supabase. Verifica que hayas
           ejecutado el script SQL de creación de tablas y políticas RLS en tu
           proyecto.
@@ -320,7 +320,7 @@ export default function DashboardWorkspace({
             onCreated={handleRequestCreated}
           />
 
-          <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-xs transition-colors duration-300 ease-in-out dark:border-zinc-800 dark:bg-[#111114] dark:shadow-none">
+          <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-xs transition-colors duration-300 ease-in-out dark:border-zinc-700/80 dark:bg-zinc-900/90 dark:shadow-none">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h2 className="text-base font-semibold tracking-tight text-slate-900 dark:text-zinc-50">
@@ -374,7 +374,7 @@ export default function DashboardWorkspace({
             )}
 
             {dispatchSummary && (
-              <div className="mt-5 border-t border-slate-200 pt-5 dark:border-zinc-800/80">
+              <div className="mt-5 border-t border-slate-200 pt-5 dark:border-zinc-700/80">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex items-start gap-2.5 text-sm">
                     <CheckCircle2
@@ -413,7 +413,7 @@ export default function DashboardWorkspace({
                         type="button"
                         disabled={dispatching}
                         onClick={() => runSendReminders(true)}
-                        className="inline-flex h-9 items-center justify-center rounded-lg border border-slate-300 bg-slate-100 px-3.5 text-xs font-medium text-slate-800 transition-colors hover:border-slate-400 hover:bg-slate-200 disabled:opacity-60 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:border-zinc-600 dark:hover:bg-zinc-800 whitespace-nowrap shrink-0"
+                        className="inline-flex h-9 items-center justify-center rounded-lg border border-slate-300 bg-slate-100 px-3.5 text-xs font-medium text-slate-800 transition-colors hover:border-slate-400 hover:bg-slate-200 disabled:opacity-60 dark:border-zinc-600 dark:bg-zinc-800/90 dark:text-zinc-100 dark:hover:border-zinc-500 dark:hover:bg-zinc-700 whitespace-nowrap shrink-0"
                       >
                         Forzar envío ahora (prueba)
                       </button>
@@ -421,7 +421,7 @@ export default function DashboardWorkspace({
                 </div>
 
                 {dispatchSummary.items.length > 0 && (
-                  <ul className="mt-4 divide-y divide-slate-200 border-t border-slate-200 dark:divide-zinc-800/70 dark:border-zinc-800/70">
+                  <ul className="mt-4 divide-y divide-slate-200 border-t border-slate-200 dark:divide-zinc-700/70 dark:border-zinc-700/80">
                     {dispatchSummary.items.map((item) => {
                       const linkKey = `link-${item.id}`;
                       const msgKey = `msg-${item.id}`;
@@ -448,7 +448,7 @@ export default function DashboardWorkspace({
                               onClick={() =>
                                 handleCopyText(linkKey, item.reviewLink)
                               }
-                              className="inline-flex h-8 items-center gap-1.5 rounded-md border border-slate-200 bg-slate-50 px-2.5 text-xs font-medium text-slate-700 transition-colors hover:border-slate-300 hover:text-slate-900 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:border-zinc-700 dark:hover:text-zinc-100 whitespace-nowrap shrink-0"
+                              className="inline-flex h-8 items-center gap-1.5 rounded-md border border-slate-200 bg-slate-50 px-2.5 text-xs font-medium text-slate-700 transition-colors hover:border-slate-300 hover:text-slate-900 dark:border-zinc-600 dark:bg-zinc-800/90 dark:text-zinc-200 dark:hover:border-zinc-500 dark:hover:bg-zinc-700 dark:hover:text-white whitespace-nowrap shrink-0"
                             >
                               {copiedKey === linkKey ? (
                                 <>
@@ -476,7 +476,7 @@ export default function DashboardWorkspace({
                               onClick={() =>
                                 handleCopyText(msgKey, item.messagePreview)
                               }
-                              className="inline-flex h-8 items-center gap-1.5 rounded-md border border-slate-200 bg-slate-50 px-2.5 text-xs font-medium text-slate-700 transition-colors hover:border-slate-300 hover:text-slate-900 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:border-zinc-700 dark:hover:text-zinc-100 whitespace-nowrap shrink-0"
+                              className="inline-flex h-8 items-center gap-1.5 rounded-md border border-slate-200 bg-slate-50 px-2.5 text-xs font-medium text-slate-700 transition-colors hover:border-slate-300 hover:text-slate-900 dark:border-zinc-600 dark:bg-zinc-800/90 dark:text-zinc-200 dark:hover:border-zinc-500 dark:hover:bg-zinc-700 dark:hover:text-white whitespace-nowrap shrink-0"
                             >
                               {copiedKey === msgKey ? (
                                 <>
