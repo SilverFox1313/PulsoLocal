@@ -235,10 +235,10 @@ export default function SubscriptionPanel({
               </div>
               <div className="flex items-center justify-between border-b border-slate-200/80 pb-2.5 dark:border-zinc-700/70">
                 <dt className="text-slate-600 dark:text-zinc-300">
-                  Automatización Cron y SMS
+                  Automatización Cron y WhatsApp
                 </dt>
                 <dd className="text-xs font-medium text-slate-800 dark:text-zinc-200">
-                  Twilio / Programación
+                  WhatsApp Cloud API
                 </dd>
               </div>
               <div className="flex items-center justify-between border-b border-slate-200/80 pb-2.5 dark:border-zinc-700/70">

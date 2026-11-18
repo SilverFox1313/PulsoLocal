@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import DashboardHeader from '@/components/DashboardHeader';
 import DashboardWorkspace from '@/components/DashboardWorkspace';
+import { getWhatsAppEnvStatus } from '@/lib/messaging/send-reminder';
 import { createClient } from '@/lib/supabase/server';
 import type {
   Business,
@@ -115,6 +116,8 @@ export default async function DashboardPage() {
     }
   }
 
+  const whatsAppEnvStatus = getWhatsAppEnvStatus();
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 transition-colors duration-300 ease-in-out dark:bg-black dark:text-zinc-100">
       <DashboardHeader />
@@ -126,6 +129,7 @@ export default async function DashboardPage() {
           initialRequests={requests}
           initialFeedback={feedbackItems}
           loadError={loadError}
+          whatsAppEnvStatus={whatsAppEnvStatus}
         />
       </main>
     </div>

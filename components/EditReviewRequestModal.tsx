@@ -1,0 +1,340 @@
+'use client';
+
+import { useEffect, useState, type FormEvent } from 'react';
+import {
+  AlertCircle,
+  CalendarClock,
+  Loader2,
+  Save,
+  Send,
+  X,
+} from 'lucide-react';
+import { updateReviewRequestAction } from '@/app/dashboard/actions';
+import type { ReviewRequest } from '@/types/database';
+
+interface EditReviewRequestModalProps {
+  request: ReviewRequest;
+  onClose: () => void;
+  onSaved: (updated: ReviewRequest) => void;
+}
+
+function toLocalDateTimeInputValue(dateInput: Date | string): string {
+  const date = dateInput instanceof Date ? dateInput : new Date(dateInput);
+  if (Number.isNaN(date.getTime())) {
+    return '';
+  }
+  const pad = (value: number) => String(value).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(
+    date.getDate()
+  )}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+export default function EditReviewRequestModal({
+  request,
+  onClose,
+  onSaved,
+}: EditReviewRequestModalProps) {
+  const [customerName, setCustomerName] = useState(request.customer_name);
+  const [customerPhone, setCustomerPhone] = useState(request.customer_phone);
+  const [scheduledLocal, setScheduledLocal] = useState(() =>
+    toLocalDateTimeInputValue(request.scheduled_for)
+  );
+  const [savingMode, setSavingMode] = useState<'save' | 'sendNow' | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const isSaving = savingMode !== null;
+
+  const localTimezone =
+    typeof Intl !== 'undefined'
+      ? Intl.DateTimeFormat().resolvedOptions().timeZone
+      : 'Local';
+
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape' && !isSaving) {
+        onClose();
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isSaving, onClose]);
+
+  function validateCustomerFields(): {
+    name: string;
+    phone: string;
+  } | null {
+    const trimmedName = customerName.trim();
+    const trimmedPhone = customerPhone.trim();
+
+    if (trimmedName.length < 2 || trimmedName.length > 100) {
+      setError('El nombre del cliente debe tener entre 2 y 100 caracteres.');
+      return null;
+    }
+
+    const digits = trimmedPhone.replace(/\D/g, '');
+    if (digits.length < 7 || digits.length > 15) {
+      setError(
+        'Ingresa un teléfono válido con código de país (ej. +18097155343).'
+      );
+      return null;
+    }
+
+    return { name: trimmedName, phone: trimmedPhone };
+  }
+
+  async function submitUpdate(sendNow: boolean) {
+    setError(null);
+    const validFields = validateCustomerFields();
+    if (!validFields) {
+      return;
+    }
+
+    let scheduledForIso: string | undefined;
+    if (!sendNow) {
+      const parsedLocal = new Date(scheduledLocal);
+      if (!scheduledLocal || Number.isNaN(parsedLocal.getTime())) {
+        setError('Selecciona una fecha y hora programada válida.');
+        return;
+      }
+      scheduledForIso = parsedLocal.toISOString();
+    }
+
+    setSavingMode(sendNow ? 'sendNow' : 'save');
+
+    const result = await updateReviewRequestAction({
+      requestId: request.id,
+      customerName: validFields.name,
+      customerPhone: validFields.phone,
+      scheduledForIso,
+      sendNow,
+    });
+
+    setSavingMode(null);
+
+    if (result.error) {
+      setError(result.error);
+      return;
+    }
+
+    if (result.request) {
+      onSaved(result.request);
+      onClose();
+    }
+  }
+
+  function handleFormSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    void submitUpdate(false);
+  }
+
+  function handleFillNow() {
+    setError(null);
+    setScheduledLocal(toLocalDateTimeInputValue(new Date()));
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-xs"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="edit-request-modal-title"
+      onClick={() => {
+        if (!isSaving) {
+          onClose();
+        }
+      }}
+    >
+      <div
+        className="w-full max-w-lg rounded-xl border border-slate-200 bg-white shadow-xl transition-colors dark:border-zinc-700 dark:bg-zinc-900 dark:shadow-2xl dark:shadow-black/60"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-6 py-4 dark:border-zinc-700">
+          <div>
+            <h3
+              id="edit-request-modal-title"
+              className="text-base font-semibold tracking-tight text-slate-900 dark:text-zinc-50"
+            >
+              Editar solicitud pendiente
+            </h3>
+            <p className="mt-0.5 text-xs text-slate-500 dark:text-zinc-400">
+              Ajusta los datos del cliente o reprograma el envío por WhatsApp.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            disabled={isSaving}
+            onClick={onClose}
+            aria-label="Cerrar ventana de edición"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 bg-slate-50 text-slate-500 transition-colors hover:border-slate-300 hover:text-slate-900 disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600 dark:hover:text-white"
+          >
+            <X className="h-4 w-4" aria-hidden="true" />
+          </button>
+        </div>
+
+        <form onSubmit={handleFormSubmit} className="space-y-4 px-6 py-5" noValidate>
+          {error && (
+            <div
+              role="alert"
+              className="flex items-start gap-2.5 rounded-lg border border-red-500/30 bg-red-500/10 px-3.5 py-2.5 text-sm text-red-700 dark:text-red-200"
+            >
+              <AlertCircle
+                className="mt-0.5 h-4 w-4 shrink-0 text-red-600 dark:text-red-400"
+                aria-hidden="true"
+              />
+              <span>{error}</span>
+            </div>
+          )}
+
+          <div>
+            <label
+              htmlFor="edit-customer-name"
+              className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-zinc-300"
+            >
+              Nombre del cliente
+            </label>
+            <input
+              id="edit-customer-name"
+              type="text"
+              required
+              disabled={isSaving}
+              value={customerName}
+              onChange={(e) => {
+                setError(null);
+                setCustomerName(e.target.value);
+              }}
+              placeholder="Ej. Carlos Mendoza"
+              className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3.5 text-sm text-slate-900 placeholder:text-slate-400 transition-colors focus:border-amber-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-700 dark:bg-zinc-800/90 dark:text-zinc-100 dark:placeholder:text-zinc-400 dark:focus:border-amber-500/60"
+            />
+          </div>
+
+          <div>
+            <label
+              htmlFor="edit-customer-phone"
+              className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-zinc-300"
+            >
+              Teléfono (WhatsApp)
+            </label>
+            <input
+              id="edit-customer-phone"
+              type="tel"
+              required
+              disabled={isSaving}
+              value={customerPhone}
+              onChange={(e) => {
+                setError(null);
+                setCustomerPhone(e.target.value);
+              }}
+              placeholder="+18097155343"
+              className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3.5 font-mono text-sm tabular-nums text-slate-900 placeholder:font-sans placeholder:text-slate-400 transition-colors focus:border-amber-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-700 dark:bg-zinc-800/90 dark:text-zinc-100 dark:placeholder:text-zinc-400 dark:focus:border-amber-500/60"
+            />
+            <p className="mt-1 text-xs text-slate-500 dark:text-zinc-400">
+              Incluye el código de país (ej. +18097155343 o +525512345678).
+            </p>
+          </div>
+
+          <div>
+            <div className="mb-1.5 flex items-center justify-between gap-2">
+              <label
+                htmlFor="edit-scheduled-for"
+                className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-700 dark:text-zinc-300"
+              >
+                <CalendarClock
+                  className="h-4 w-4 text-slate-500 dark:text-zinc-400"
+                  aria-hidden="true"
+                />
+                <span>Fecha y hora programada</span>
+              </label>
+
+              <button
+                type="button"
+                disabled={isSaving}
+                onClick={handleFillNow}
+                className="rounded-md px-2 py-0.5 text-xs font-medium text-orange-600 transition-colors hover:bg-orange-500/10 hover:text-orange-700 disabled:opacity-50 dark:text-orange-400 dark:hover:text-orange-300"
+              >
+                Usar hora actual
+              </button>
+            </div>
+
+            <input
+              id="edit-scheduled-for"
+              type="datetime-local"
+              required
+              disabled={isSaving}
+              value={scheduledLocal}
+              onChange={(e) => {
+                setError(null);
+                setScheduledLocal(e.target.value);
+              }}
+              className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3.5 font-mono text-sm text-slate-900 transition-colors focus:border-amber-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-700 dark:bg-zinc-800/90 dark:text-zinc-100 dark:focus:border-amber-500/60"
+            />
+            <p className="mt-1 text-xs text-slate-500 dark:text-zinc-400">
+              Zona horaria local ({localTimezone}); se guarda sincronizada en UTC.
+            </p>
+          </div>
+
+          <div className="flex flex-col-reverse gap-2.5 border-t border-slate-200 pt-4 sm:flex-row sm:items-center sm:justify-between dark:border-zinc-700">
+            <button
+              type="button"
+              disabled={isSaving}
+              onClick={() => void submitUpdate(true)}
+              className="inline-flex h-10 items-center justify-center gap-1.5 rounded-lg border border-slate-300 bg-slate-100 px-3.5 text-xs font-semibold text-slate-800 transition-colors hover:border-slate-400 hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:border-zinc-500 dark:hover:bg-zinc-700 whitespace-nowrap shrink-0"
+            >
+              {savingMode === 'sendNow' ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+                  <span>Programando...</span>
+                </>
+              ) : (
+                <>
+                  <Send className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" aria-hidden="true" />
+                  <span>Enviar ahora</span>
+                </>
+              )}
+            </button>
+
+            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center">
+              <button
+                type="button"
+                disabled={isSaving}
+                onClick={onClose}
+                className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-700 dark:bg-zinc-800/70 dark:text-zinc-200 dark:hover:bg-zinc-800 whitespace-nowrap shrink-0"
+              >
+                Cancelar
+              </button>
+
+              <button
+                type="submit"
+                disabled={isSaving}
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-orange-500 bg-transparent px-4 text-sm font-semibold shadow-xs transition-all hover:bg-orange-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/60 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-zinc-900 disabled:cursor-not-allowed disabled:opacity-50 whitespace-nowrap shrink-0"
+              >
+                {savingMode === 'save' ? (
+                  <>
+                    <Loader2
+                      className="h-4 w-4 shrink-0 animate-spin text-orange-500 dark:text-orange-400"
+                      aria-hidden="true"
+                    />
+                    <span className="bg-gradient-to-r from-orange-500 to-amber-500 bg-clip-text text-transparent font-semibold dark:from-orange-400 dark:to-amber-400">
+                      Guardando...
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <Save
+                      className="h-4 w-4 shrink-0 text-orange-500 dark:text-orange-400"
+                      aria-hidden="true"
+                    />
+                    <span className="bg-gradient-to-r from-orange-500 to-amber-500 bg-clip-text text-transparent font-semibold dark:from-orange-400 dark:to-amber-400">
+                      Guardar cambios
+                    </span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}

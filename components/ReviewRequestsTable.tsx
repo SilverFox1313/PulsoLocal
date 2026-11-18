@@ -10,14 +10,17 @@ import {
   ExternalLink,
   Inbox,
   MousePointerClick,
+  Pencil,
   Search,
   Send,
 } from 'lucide-react';
+import EditReviewRequestModal from '@/components/EditReviewRequestModal';
 import FormattedDate from '@/components/FormattedDate';
 import type { ReviewRequest, ReviewRequestStatus } from '@/types/database';
 
 interface ReviewRequestsTableProps {
   requests: ReviewRequest[];
+  onRequestUpdated?: (updated: ReviewRequest) => void;
 }
 
 type FilterStatus = 'all' | 'pending' | 'sent';
@@ -50,10 +53,14 @@ const STATUS_META: Record<
 
 export default function ReviewRequestsTable({
   requests,
+  onRequestUpdated,
 }: ReviewRequestsTableProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<FilterStatus>('all');
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [editingRequest, setEditingRequest] = useState<ReviewRequest | null>(
+    null
+  );
 
   async function handleCopyLink(requestId: string) {
     try {
@@ -194,7 +201,7 @@ export default function ReviewRequestsTable({
                   Fecha programada
                 </th>
                 <th scope="col" className="px-6 py-3 text-right">
-                  Enlace público
+                  Acciones
                 </th>
               </tr>
             </thead>
@@ -232,6 +239,17 @@ export default function ReviewRequestsTable({
                     </td>
                     <td className="px-6 py-3.5 text-right">
                       <div className="inline-flex items-center justify-end gap-2">
+                        {item.status === 'pending' && (
+                          <button
+                            type="button"
+                            onClick={() => setEditingRequest(item)}
+                            aria-label={`Editar solicitud de ${item.customer_name}`}
+                            className="inline-flex h-8 items-center gap-1.5 rounded-md border border-slate-200 bg-slate-50 px-2.5 text-xs font-medium text-slate-700 transition-colors hover:border-orange-400 hover:bg-orange-500/10 hover:text-orange-600 dark:border-zinc-600 dark:bg-zinc-800/90 dark:text-zinc-200 dark:hover:border-orange-500/70 dark:hover:bg-orange-500/15 dark:hover:text-orange-300 whitespace-nowrap shrink-0"
+                          >
+                            <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
+                            <span>Editar</span>
+                          </button>
+                        )}
                         <button
                           type="button"
                           onClick={() => handleCopyLink(item.id)}
@@ -271,6 +289,17 @@ export default function ReviewRequestsTable({
             </tbody>
           </table>
         </div>
+      )}
+
+      {editingRequest && (
+        <EditReviewRequestModal
+          key={editingRequest.id}
+          request={editingRequest}
+          onClose={() => setEditingRequest(null)}
+          onSaved={(updated) => {
+            onRequestUpdated?.(updated);
+          }}
+        />
       )}
     </section>
   );

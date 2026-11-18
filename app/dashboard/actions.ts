@@ -171,8 +171,11 @@ export async function createReviewRequestAction(
     };
   }
 
-  const delayMs = Math.max(0, Number(business.delay_minutes ?? 60)) * 60_000;
-  const scheduledFor = new Date(Date.now() + delayMs).toISOString();
+  const delayMinutes = Math.max(0, Number(business.delay_minutes ?? 60));
+  const scheduledFor =
+    delayMinutes === 0
+      ? new Date(Date.now() - 1000).toISOString()
+      : new Date(Date.now() + delayMinutes * 60_000).toISOString();
 
   const { data: inserted, error: insertError } = await supabase
     .from('review_requests')
@@ -198,6 +201,115 @@ export async function createReviewRequestAction(
 
   revalidatePath('/dashboard');
   return { request: inserted as ReviewRequest };
+}
+
+export interface UpdateReviewRequestInput {
+  requestId: string;
+  customerName: string;
+  customerPhone: string;
+  scheduledForIso?: string;
+  sendNow?: boolean;
+}
+
+const UUID_REGEX =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export async function updateReviewRequestAction(
+  input: UpdateReviewRequestInput
+): Promise<{ request?: ReviewRequest; error?: string }> {
+  const supabase = await createClient();
+
+  if (!supabase) {
+    return { error: 'La conexión con Supabase no está configurada.' };
+  }
+
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    return { error: 'Tu sesión expiró. Vuelve a iniciar sesión.' };
+  }
+
+  const requestId = input.requestId.trim();
+  if (!UUID_REGEX.test(requestId)) {
+    return { error: 'Identificador de solicitud inválido.' };
+  }
+
+  const customerName = input.customerName.trim();
+  const customerPhone = input.customerPhone.trim();
+
+  if (customerName.length < 2 || customerName.length > 100) {
+    return {
+      error: 'El nombre del cliente debe tener entre 2 y 100 caracteres.',
+    };
+  }
+
+  const digitsOnly = customerPhone.replace(/\D/g, '');
+  if (digitsOnly.length < 7 || digitsOnly.length > 15) {
+    return {
+      error:
+        'Ingresa un número de teléfono válido (entre 7 y 15 dígitos, con código de país si aplica).',
+    };
+  }
+
+  let nextScheduledFor: string;
+  if (input.sendNow) {
+    nextScheduledFor = new Date(Date.now() - 1000).toISOString();
+  } else {
+    const rawDate = input.scheduledForIso?.trim() ?? '';
+    const parsedDate = new Date(rawDate);
+    if (!rawDate || Number.isNaN(parsedDate.getTime())) {
+      return { error: 'Selecciona una fecha y hora programada válida.' };
+    }
+    nextScheduledFor = parsedDate.toISOString();
+  }
+
+  const { data: business, error: businessError } = await supabase
+    .from('businesses')
+    .select('id')
+    .eq('user_id', user.id)
+    .single();
+
+  if (businessError || !business) {
+    return {
+      error: 'No se encontró el perfil de tu negocio.',
+    };
+  }
+
+  const { data: updated, error: updateError } = await supabase
+    .from('review_requests')
+    .update({
+      customer_name: customerName,
+      customer_phone: customerPhone,
+      scheduled_for: nextScheduledFor,
+    })
+    .eq('id', requestId)
+    .eq('business_id', business.id)
+    .eq('status', 'pending')
+    .select(
+      'id, business_id, customer_name, customer_phone, status, scheduled_for, created_at'
+    )
+    .maybeSingle();
+
+  if (updateError) {
+    return {
+      error:
+        updateError.message ||
+        'No se pudo actualizar la solicitud de reseña.',
+    };
+  }
+
+  if (!updated) {
+    return {
+      error:
+        'No se encontró la solicitud o ya fue procesada (solo se pueden editar solicitudes pendientes).',
+    };
+  }
+
+  revalidatePath('/dashboard');
+  return { request: updated as ReviewRequest };
 }
 
 export async function updateSubscriptionStatusAction(

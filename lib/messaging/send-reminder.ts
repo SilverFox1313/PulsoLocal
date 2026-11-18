@@ -41,88 +41,191 @@ export function buildReminderMessage(
   return message;
 }
 
-export function isTwilioConfigured(): boolean {
-  return Boolean(
-    process.env.TWILIO_ACCOUNT_SID?.trim() &&
-      process.env.TWILIO_AUTH_TOKEN?.trim() &&
-      process.env.TWILIO_FROM_NUMBER?.trim()
-  );
+function cleanEnvValue(value: string | undefined): string {
+  if (!value) {
+    return '';
+  }
+  return value.trim().replace(/^['"]+|['"]+$/g, '').trim();
+}
+
+/**
+ * Normaliza un número telefónico al formato numérico limpio requerido por
+ * la Meta WhatsApp Cloud API (solo dígitos con código de país, sin `+` ni `whatsapp:`).
+ */
+export function normalizeWhatsAppRecipient(raw: string): string | null {
+  const cleaned = cleanEnvValue(raw)
+    .replace(/^(whatsapp\s*:\s*)+/i, '')
+    .trim();
+
+  const digits = cleaned.replace(/\D/g, '');
+  if (digits.length < 7 || digits.length > 15) {
+    return null;
+  }
+
+  return digits;
+}
+
+export interface WhatsAppEnvStatus {
+  hasPhoneNumberId: boolean;
+  hasAccessToken: boolean;
+  isConfigured: boolean;
+}
+
+export function getWhatsAppEnvStatus(): WhatsAppEnvStatus {
+  const phoneNumberId = cleanEnvValue(process.env.WHATSAPP_PHONE_NUMBER_ID);
+  const accessToken = cleanEnvValue(process.env.WHATSAPP_ACCESS_TOKEN);
+
+  return {
+    hasPhoneNumberId: Boolean(phoneNumberId),
+    hasAccessToken: Boolean(accessToken),
+    isConfigured: Boolean(phoneNumberId && accessToken),
+  };
+}
+
+export function isWhatsAppCloudConfigured(): boolean {
+  return getWhatsAppEnvStatus().isConfigured;
 }
 
 export interface DeliveryResult {
   ok: boolean;
-  mode: 'twilio' | 'simulated';
+  mode: 'whatsapp_cloud' | 'simulated';
   externalId?: string;
   error?: string;
 }
 
-export async function sendSmsOrSimulate(
+interface MetaGraphErrorPayload {
+  message?: string;
+  type?: string;
+  code?: number;
+  error_subcode?: number;
+  error_data?: {
+    details?: string;
+  };
+}
+
+function formatMetaErrorMessage(
+  err: MetaGraphErrorPayload | undefined,
+  httpStatus: number
+): string {
+  const code = err?.code;
+  const rawMessage =
+    err?.message || `WhatsApp Cloud API respondió con estado HTTP ${httpStatus}.`;
+  const details = err?.error_data?.details;
+
+  if (code === 190) {
+    return `[Meta 190] El token de acceso (WHATSAPP_ACCESS_TOKEN) expiró o es inválido. Genera uno nuevo en Meta Developers.`;
+  }
+
+  if (code === 131030) {
+    return `[Meta 131030] El número destino no está autorizado en la lista de pruebas de tu app de Meta Developers. Agrégalo en "Para" (Manage phone number list) e inténtalo de nuevo.`;
+  }
+
+  if (code === 131047) {
+    return `[Meta 131047] Han pasado más de 24 horas desde el último mensaje del cliente. Envía primero un mensaje desde ese WhatsApp al número de pruebas para abrir la ventana de 24 h.`;
+  }
+
+  if (code === 131026) {
+    return `[Meta 131026] No se pudo entregar el mensaje: verifica que el número destino tenga WhatsApp activo y código de país correcto.`;
+  }
+
+  const base = code ? `[Meta ${code}] ${rawMessage}` : rawMessage;
+  return details ? `${base} (${details})` : base;
+}
+
+export async function sendWhatsAppOrSimulate(
   toPhone: string,
   body: string
 ): Promise<DeliveryResult> {
-  const accountSid = process.env.TWILIO_ACCOUNT_SID?.trim();
-  const authToken = process.env.TWILIO_AUTH_TOKEN?.trim();
-  const fromNumber = process.env.TWILIO_FROM_NUMBER?.trim();
+  const phoneNumberId = cleanEnvValue(process.env.WHATSAPP_PHONE_NUMBER_ID);
+  const accessToken = cleanEnvValue(process.env.WHATSAPP_ACCESS_TOKEN);
 
-  if (!accountSid || !authToken || !fromNumber) {
+  if (!phoneNumberId && !accessToken) {
     return {
       ok: true,
       mode: 'simulated',
     };
   }
 
+  if (!phoneNumberId || !accessToken) {
+    return {
+      ok: false,
+      mode: 'whatsapp_cloud',
+      error: !phoneNumberId
+        ? 'Falta configurar WHATSAPP_PHONE_NUMBER_ID en las variables de entorno.'
+        : 'Falta configurar WHATSAPP_ACCESS_TOKEN en las variables de entorno.',
+    };
+  }
+
+  const cleanRecipient = normalizeWhatsAppRecipient(toPhone);
+  if (!cleanRecipient) {
+    return {
+      ok: false,
+      mode: 'whatsapp_cloud',
+      error:
+        'El número del cliente no es válido para WhatsApp Cloud API (incluye código de país, ej. +18097155343).',
+    };
+  }
+
+  const cleanBody = body.trim();
+  if (!cleanBody) {
+    return {
+      ok: false,
+      mode: 'whatsapp_cloud',
+      error: 'El cuerpo del mensaje de WhatsApp no puede estar vacío.',
+    };
+  }
+
   try {
-    const endpoint = `https://api.twilio.com/2010-04-01/Accounts/${encodeURIComponent(
-      accountSid
-    )}/Messages.json`;
-
-    const credentials = Buffer.from(`${accountSid}:${authToken}`).toString(
-      'base64'
-    );
-
-    const formBody = new URLSearchParams({
-      To: toPhone,
-      From: fromNumber,
-      Body: body,
-    });
+    const endpoint = `https://graph.facebook.com/v20.0/${encodeURIComponent(
+      phoneNumberId
+    )}/messages`;
 
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
-        Authorization: `Basic ${credentials}`,
-        'Content-Type': 'application/x-www-form-urlencoded',
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
       },
-      body: formBody.toString(),
+      body: JSON.stringify({
+        messaging_product: 'whatsapp',
+        recipient_type: 'individual',
+        to: cleanRecipient,
+        type: 'text',
+        text: {
+          preview_url: true,
+          body: cleanBody,
+        },
+      }),
     });
 
     const payload = (await response.json().catch(() => ({}))) as {
-      sid?: string;
-      message?: string;
+      messages?: Array<{ id?: string }>;
+      error?: MetaGraphErrorPayload;
     };
 
     if (!response.ok) {
       return {
         ok: false,
-        mode: 'twilio',
-        error:
-          payload.message ||
-          `Twilio respondió con estado HTTP ${response.status}.`,
+        mode: 'whatsapp_cloud',
+        error: formatMetaErrorMessage(payload.error, response.status),
       };
     }
 
     return {
       ok: true,
-      mode: 'twilio',
-      externalId: payload.sid,
+      mode: 'whatsapp_cloud',
+      externalId: payload.messages?.[0]?.id,
     };
   } catch (err) {
     return {
       ok: false,
-      mode: 'twilio',
+      mode: 'whatsapp_cloud',
       error:
         err instanceof Error
           ? err.message
-          : 'Error de red al intentar enviar SMS con Twilio.',
+          : 'Error de red al intentar enviar el mensaje mediante WhatsApp Cloud API.',
     };
   }
 }
+
+

@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import {
   buildReminderMessage,
   buildReviewLink,
-  isTwilioConfigured,
-  sendSmsOrSimulate,
+  getWhatsAppEnvStatus,
+  sendWhatsAppOrSimulate,
 } from '@/lib/messaging/send-reminder';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
@@ -32,7 +32,7 @@ export interface ProcessedReminderItem {
   customerPhone: string;
   reviewLink: string;
   messagePreview: string;
-  deliveryMode: 'twilio' | 'simulated';
+  deliveryMode: 'whatsapp_cloud' | 'simulated';
 }
 
 function isAuthorizedCron(request: NextRequest): boolean {
@@ -103,7 +103,10 @@ async function processPendingReminders(
         reviewLink,
       });
 
-      const delivery = await sendSmsOrSimulate(row.customer_phone, messageBody);
+      const delivery = await sendWhatsAppOrSimulate(
+        row.customer_phone,
+        messageBody
+      );
       if (!delivery.ok) {
         failedItems.push({
           id: row.id,
@@ -136,9 +139,11 @@ async function processPendingReminders(
       });
     }
 
+    const whatsAppStatus = getWhatsAppEnvStatus();
+
     return NextResponse.json({
       ok: true,
-      mode: isTwilioConfigured() ? 'twilio' : 'simulated',
+      mode: whatsAppStatus.isConfigured ? 'whatsapp_cloud' : 'simulated',
       processed: processedItems.length,
       failed: failedItems.length,
       pendingFutureCount: 0,
@@ -214,7 +219,10 @@ async function processPendingReminders(
       reviewLink,
     });
 
-    const delivery = await sendSmsOrSimulate(row.customer_phone, messageBody);
+    const delivery = await sendWhatsAppOrSimulate(
+      row.customer_phone,
+      messageBody
+    );
     if (!delivery.ok) {
       failedItems.push({
         id: row.id,
@@ -260,9 +268,11 @@ async function processPendingReminders(
     pendingFutureCount = count ?? 0;
   }
 
+  const whatsAppStatus = getWhatsAppEnvStatus();
+
   return NextResponse.json({
     ok: true,
-    mode: isTwilioConfigured() ? 'twilio' : 'simulated',
+    mode: whatsAppStatus.isConfigured ? 'whatsapp_cloud' : 'simulated',
     processed: processedItems.length,
     failed: failedItems.length,
     pendingFutureCount,

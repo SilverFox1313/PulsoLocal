@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   AlertCircle,
+  AlertTriangle,
   Check,
   CheckCircle2,
   Copy,
@@ -25,12 +26,19 @@ import type {
   ReviewRequest,
 } from '@/types/database';
 
+interface WhatsAppEnvStatus {
+  hasPhoneNumberId: boolean;
+  hasAccessToken: boolean;
+  isConfigured: boolean;
+}
+
 interface DashboardWorkspaceProps {
   userEmail: string;
   initialBusiness: Business | null;
   initialRequests: ReviewRequest[];
   initialFeedback: PrivateFeedbackItem[];
   loadError?: string | null;
+  whatsAppEnvStatus?: WhatsAppEnvStatus;
 }
 
 interface ProcessedReminderItem {
@@ -39,15 +47,16 @@ interface ProcessedReminderItem {
   customerPhone: string;
   reviewLink: string;
   messagePreview: string;
-  deliveryMode: 'twilio' | 'simulated';
+  deliveryMode: 'whatsapp_cloud' | 'simulated';
 }
 
 interface DispatchSummary {
-  mode: 'twilio' | 'simulated';
+  mode: 'whatsapp_cloud' | 'simulated';
   processed: number;
   failed: number;
   pendingFutureCount: number;
   items: ProcessedReminderItem[];
+  errors?: Array<{ id: string; error: string }>;
 }
 
 type DashboardTab = 'requests' | 'feedback' | 'settings' | 'subscription';
@@ -76,6 +85,11 @@ export default function DashboardWorkspace({
   initialRequests,
   initialFeedback,
   loadError = null,
+  whatsAppEnvStatus = {
+    hasPhoneNumberId: false,
+    hasAccessToken: false,
+    isConfigured: false,
+  },
 }: DashboardWorkspaceProps) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<DashboardTab>('requests');
@@ -97,6 +111,16 @@ export default function DashboardWorkspace({
   function handleRequestCreated(newRequest: ReviewRequest) {
     setRequests((prev) => [newRequest, ...prev]);
     setDispatchSummary(null);
+  }
+
+  function handleRequestUpdated(updatedRequest: ReviewRequest) {
+    setRequests((prev) =>
+      prev.map((item) =>
+        item.id === updatedRequest.id ? updatedRequest : item
+      )
+    );
+    setDispatchSummary(null);
+    router.refresh();
   }
 
   function handleBusinessUpdated(updated: Business) {
@@ -156,6 +180,7 @@ export default function DashboardWorkspace({
         failed: payload.failed,
         pendingFutureCount: payload.pendingFutureCount,
         items: payload.items,
+        errors: payload.errors,
       });
 
       router.refresh();
@@ -366,6 +391,34 @@ export default function DashboardWorkspace({
               </button>
             </div>
 
+            {!whatsAppEnvStatus.isConfigured && (
+              <div
+                role="status"
+                className="mt-4 flex items-start gap-2.5 rounded-lg border border-amber-300 bg-amber-50/80 px-4 py-3 text-sm text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-100"
+              >
+                <AlertTriangle
+                  className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400"
+                  aria-hidden="true"
+                />
+                <div>
+                  <p className="font-semibold">
+                    {whatsAppEnvStatus.hasPhoneNumberId ||
+                    whatsAppEnvStatus.hasAccessToken
+                      ? 'Configuración incompleta de WhatsApp Cloud API'
+                      : 'WhatsApp Cloud API en modo simulado'}
+                  </p>
+                  <p className="mt-0.5 text-xs text-amber-800 dark:text-amber-200/90">
+                    {!whatsAppEnvStatus.hasPhoneNumberId &&
+                    !whatsAppEnvStatus.hasAccessToken
+                      ? 'Configura WHATSAPP_PHONE_NUMBER_ID y WHATSAPP_ACCESS_TOKEN en tus variables de entorno para enviar mensajes reales mediante la WhatsApp Cloud API de Meta.'
+                      : !whatsAppEnvStatus.hasPhoneNumberId
+                        ? 'Falta agregar WHATSAPP_PHONE_NUMBER_ID en tus variables de entorno para enviar mensajes por WhatsApp Cloud API.'
+                        : 'Falta agregar WHATSAPP_ACCESS_TOKEN en tus variables de entorno para enviar mensajes por WhatsApp Cloud API.'}
+                  </p>
+                </div>
+              </div>
+            )}
+
             {dispatchError && (
               <div
                 role="alert"
@@ -383,10 +436,18 @@ export default function DashboardWorkspace({
               <div className="mt-5 border-t border-slate-200 pt-5 dark:border-zinc-700">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex items-start gap-2.5 text-sm">
-                    <CheckCircle2
-                      className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400"
-                      aria-hidden="true"
-                    />
+                    {dispatchSummary.processed === 0 &&
+                    dispatchSummary.failed > 0 ? (
+                      <AlertCircle
+                        className="mt-0.5 h-4 w-4 shrink-0 text-red-600 dark:text-red-400"
+                        aria-hidden="true"
+                      />
+                    ) : (
+                      <CheckCircle2
+                        className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400"
+                        aria-hidden="true"
+                      />
+                    )}
                     <div>
                       <p className="font-medium text-slate-900 tabular-nums dark:text-zinc-100">
                         {dispatchSummary.processed}{' '}
@@ -395,11 +456,32 @@ export default function DashboardWorkspace({
                           : 'solicitudes procesadas'}{' '}
                         ·{' '}
                         <span className="text-slate-600 dark:text-zinc-300">
-                          {dispatchSummary.mode === 'twilio'
-                            ? 'Enviado por Twilio SMS'
-                            : 'Modo simulado (sin Twilio)'}
+                          {dispatchSummary.mode === 'whatsapp_cloud'
+                            ? 'Enviado por WhatsApp Cloud API'
+                            : 'Modo simulado (sin WhatsApp Cloud API)'}
                         </span>
                       </p>
+                      {dispatchSummary.failed > 0 && (
+                        <div
+                          role="alert"
+                          className="mt-2 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-700 dark:text-red-200"
+                        >
+                          <p className="font-semibold">
+                            {dispatchSummary.failed}{' '}
+                            {dispatchSummary.failed === 1
+                              ? 'envío falló con WhatsApp Cloud API:'
+                              : 'envíos fallaron con WhatsApp Cloud API:'}
+                          </p>
+                          {dispatchSummary.errors &&
+                            dispatchSummary.errors.length > 0 && (
+                              <ul className="mt-1 list-disc space-y-0.5 pl-4">
+                                {dispatchSummary.errors.map((errItem) => (
+                                  <li key={errItem.id}>{errItem.error}</li>
+                                ))}
+                              </ul>
+                            )}
+                        </div>
+                      )}
                       {dispatchSummary.processed === 0 &&
                         dispatchSummary.pendingFutureCount > 0 && (
                           <p className="mt-1 text-xs text-slate-500 tabular-nums dark:text-zinc-300">
@@ -514,7 +596,10 @@ export default function DashboardWorkspace({
             )}
           </section>
 
-          <ReviewRequestsTable requests={requests} />
+          <ReviewRequestsTable
+            requests={requests}
+            onRequestUpdated={handleRequestUpdated}
+          />
         </div>
       ) : activeTab === 'feedback' ? (
         <PrivateFeedbackList items={initialFeedback} />
