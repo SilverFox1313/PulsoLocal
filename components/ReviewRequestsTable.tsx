@@ -5,6 +5,8 @@ import Link from 'next/link';
 import {
   Check,
   CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
   Clock,
   Copy,
   ExternalLink,
@@ -13,7 +15,9 @@ import {
   Pencil,
   Search,
   Send,
+  Trash2,
 } from 'lucide-react';
+import DeleteReviewRequestModal from '@/components/DeleteReviewRequestModal';
 import EditReviewRequestModal from '@/components/EditReviewRequestModal';
 import FormattedDate from '@/components/FormattedDate';
 import type { ReviewRequest, ReviewRequestStatus } from '@/types/database';
@@ -21,6 +25,7 @@ import type { ReviewRequest, ReviewRequestStatus } from '@/types/database';
 interface ReviewRequestsTableProps {
   requests: ReviewRequest[];
   onRequestUpdated?: (updated: ReviewRequest) => void;
+  onRequestDeleted?: (deletedId: string) => void;
 }
 
 type FilterStatus = 'all' | 'pending' | 'sent';
@@ -51,16 +56,59 @@ const STATUS_META: Record<
   },
 };
 
+const PAGE_SIZE = 10;
+
+function getPageNumbers(current: number, total: number): Array<number | 'ellipsis'> {
+  if (total <= 7) {
+    return Array.from({ length: total }, (_, idx) => idx + 1);
+  }
+
+  const pages: Array<number | 'ellipsis'> = [1];
+
+  if (current > 3) {
+    pages.push('ellipsis');
+  }
+
+  const start = Math.max(2, current - 1);
+  const end = Math.min(total - 1, current + 1);
+  for (let p = start; p <= end; p += 1) {
+    pages.push(p);
+  }
+
+  if (current < total - 2) {
+    pages.push('ellipsis');
+  }
+
+  pages.push(total);
+  return pages;
+}
+
 export default function ReviewRequestsTable({
   requests,
   onRequestUpdated,
+  onRequestDeleted,
 }: ReviewRequestsTableProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<FilterStatus>('all');
+  const [currentPage, setCurrentPage] = useState(1);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [editingRequest, setEditingRequest] = useState<ReviewRequest | null>(
     null
   );
+  const [deletingRequest, setDeletingRequest] = useState<ReviewRequest | null>(
+    null
+  );
+  const [deleteNotice, setDeleteNotice] = useState<string | null>(null);
+
+  function handleSearchChange(value: string) {
+    setSearchQuery(value);
+    setCurrentPage(1);
+  }
+
+  function handleStatusFilterChange(nextFilter: FilterStatus) {
+    setStatusFilter(nextFilter);
+    setCurrentPage(1);
+  }
 
   async function handleCopyLink(requestId: string) {
     try {
@@ -94,6 +142,17 @@ export default function ReviewRequestsTable({
     });
   }, [requests, searchQuery, statusFilter]);
 
+  const totalPages = Math.max(1, Math.ceil(filteredRequests.length / PAGE_SIZE));
+  const safePage = Math.min(currentPage, totalPages);
+  const startIndex = (safePage - 1) * PAGE_SIZE;
+  const paginatedRequests = filteredRequests.slice(
+    startIndex,
+    startIndex + PAGE_SIZE
+  );
+  const showingFrom = filteredRequests.length === 0 ? 0 : startIndex + 1;
+  const showingTo = Math.min(startIndex + PAGE_SIZE, filteredRequests.length);
+  const pageNumbers = getPageNumbers(safePage, totalPages);
+
   return (
     <section className="rounded-xl border border-slate-200 bg-white shadow-xs transition-colors duration-300 ease-in-out dark:border-zinc-700 dark:bg-zinc-900 dark:shadow-lg dark:shadow-black/30">
       <div className="flex flex-col gap-4 border-b border-slate-200 px-6 py-5 sm:flex-row sm:items-center sm:justify-between dark:border-zinc-700">
@@ -118,10 +177,10 @@ export default function ReviewRequestsTable({
             <input
               type="search"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => handleSearchChange(e.target.value)}
               placeholder="Buscar cliente o teléfono..."
               aria-label="Buscar solicitudes por cliente o teléfono"
-              className="h-9 w-full rounded-lg border border-slate-300 bg-white pl-9 pr-3 text-sm text-slate-900 placeholder:text-slate-400 transition-colors focus:border-amber-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30 sm:w-56 dark:border-zinc-700 dark:bg-zinc-800/90 dark:text-zinc-100 dark:placeholder:text-zinc-400 dark:focus:border-amber-500/60"
+              className="h-9 w-full rounded-lg border border-slate-300 bg-white pl-9 pr-3 text-sm text-slate-900 placeholder:text-slate-400 transition-colors focus:border-amber-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30 sm:w-64 sm:min-w-[260px] dark:border-zinc-700 dark:bg-zinc-800/90 dark:text-zinc-100 dark:placeholder:text-zinc-400 dark:focus:border-amber-500/60"
             />
           </div>
 
@@ -132,7 +191,7 @@ export default function ReviewRequestsTable({
           >
             <button
               type="button"
-              onClick={() => setStatusFilter('all')}
+              onClick={() => handleStatusFilterChange('all')}
               className={`rounded-md px-3 py-1 text-xs font-medium transition-colors whitespace-nowrap shrink-0 ${
                 statusFilter === 'all'
                   ? 'bg-white text-slate-900 shadow-xs dark:bg-zinc-700 dark:text-white dark:shadow-none'
@@ -143,7 +202,7 @@ export default function ReviewRequestsTable({
             </button>
             <button
               type="button"
-              onClick={() => setStatusFilter('pending')}
+              onClick={() => handleStatusFilterChange('pending')}
               className={`rounded-md px-3 py-1 text-xs font-medium transition-colors whitespace-nowrap shrink-0 ${
                 statusFilter === 'pending'
                   ? 'bg-white text-slate-900 shadow-xs dark:bg-zinc-700 dark:text-white dark:shadow-none'
@@ -154,7 +213,7 @@ export default function ReviewRequestsTable({
             </button>
             <button
               type="button"
-              onClick={() => setStatusFilter('sent')}
+              onClick={() => handleStatusFilterChange('sent')}
               className={`rounded-md px-3 py-1 text-xs font-medium transition-colors whitespace-nowrap shrink-0 ${
                 statusFilter === 'sent'
                   ? 'bg-white text-slate-900 shadow-xs dark:bg-zinc-700 dark:text-white dark:shadow-none'
@@ -166,6 +225,19 @@ export default function ReviewRequestsTable({
           </div>
         </div>
       </div>
+
+      {deleteNotice && (
+        <div
+          role="status"
+          className="mx-6 mt-4 flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-2.5 text-sm text-emerald-700 dark:text-emerald-200"
+        >
+          <CheckCircle2
+            className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400"
+            aria-hidden="true"
+          />
+          <span>{deleteNotice}</span>
+        </div>
+      )}
 
       {filteredRequests.length === 0 ? (
         <div className="flex flex-col items-center justify-center px-6 py-14 text-center">
@@ -206,7 +278,7 @@ export default function ReviewRequestsTable({
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 dark:divide-zinc-700/70">
-              {filteredRequests.map((item) => {
+              {paginatedRequests.map((item) => {
                 const statusInfo =
                   STATUS_META[item.status] ?? STATUS_META.pending;
                 const StatusIcon = statusInfo.Icon;
@@ -281,6 +353,17 @@ export default function ReviewRequestsTable({
                         >
                           <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
                         </Link>
+                        {item.status === 'pending' && (
+                          <button
+                            type="button"
+                            onClick={() => setDeletingRequest(item)}
+                            aria-label={`Eliminar solicitud pendiente de ${item.customer_name}`}
+                            title="Eliminar solicitud pendiente"
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 bg-slate-50 text-slate-500 transition-colors hover:border-red-300 hover:bg-red-50 hover:text-red-600 dark:border-zinc-600 dark:bg-zinc-800/90 dark:text-zinc-300 dark:hover:border-red-500/50 dark:hover:bg-red-500/15 dark:hover:text-red-400 shrink-0"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -291,6 +374,74 @@ export default function ReviewRequestsTable({
         </div>
       )}
 
+      {filteredRequests.length > PAGE_SIZE && (
+        <div className="flex flex-col gap-3 border-t border-slate-200 px-6 py-4 sm:flex-row sm:items-center sm:justify-between dark:border-zinc-700">
+          <p className="text-xs text-slate-600 tabular-nums dark:text-zinc-300">
+            Mostrando <span className="font-medium text-slate-900 dark:text-zinc-100">{showingFrom}–{showingTo}</span> de{' '}
+            <span className="font-medium text-slate-900 dark:text-zinc-100">{filteredRequests.length}</span> solicitudes
+          </p>
+
+          <nav
+            aria-label="Paginación de solicitudes"
+            className="flex flex-wrap items-center justify-between gap-2 sm:justify-end"
+          >
+            <button
+              type="button"
+              disabled={safePage <= 1}
+              onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+              className="inline-flex h-8 items-center gap-1 rounded-md border border-slate-200 bg-slate-50 px-2.5 text-xs font-medium text-slate-700 transition-colors hover:border-slate-300 hover:bg-slate-100 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-45 dark:border-zinc-700 dark:bg-zinc-800/90 dark:text-zinc-200 dark:hover:border-zinc-600 dark:hover:bg-zinc-700 dark:hover:text-white whitespace-nowrap shrink-0"
+            >
+              <ChevronLeft className="h-3.5 w-3.5" aria-hidden="true" />
+              <span>Anterior</span>
+            </button>
+
+            <div className="hidden items-center gap-1 sm:inline-flex">
+              {pageNumbers.map((entry, idx) =>
+                entry === 'ellipsis' ? (
+                  <span
+                    key={`ellipsis-${idx}`}
+                    className="px-1.5 text-xs text-slate-400 dark:text-zinc-500"
+                    aria-hidden="true"
+                  >
+                    …
+                  </span>
+                ) : (
+                  <button
+                    key={entry}
+                    type="button"
+                    onClick={() => setCurrentPage(entry)}
+                    aria-current={safePage === entry ? 'page' : undefined}
+                    className={`inline-flex h-8 min-w-8 items-center justify-center rounded-md border px-2 text-xs font-medium tabular-nums transition-colors ${
+                      safePage === entry
+                        ? 'border-orange-500 bg-orange-500/10 text-orange-600 dark:border-orange-500/80 dark:bg-orange-500/15 dark:text-orange-300'
+                        : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900 dark:border-zinc-700 dark:bg-zinc-800/70 dark:text-zinc-300 dark:hover:border-zinc-600 dark:hover:bg-zinc-700 dark:hover:text-white'
+                    }`}
+                  >
+                    {entry}
+                  </button>
+                )
+              )}
+            </div>
+
+            <span className="text-xs font-medium tabular-nums text-slate-600 sm:hidden dark:text-zinc-300">
+              Página {safePage} de {totalPages}
+            </span>
+
+            <button
+              type="button"
+              disabled={safePage >= totalPages}
+              onClick={() =>
+                setCurrentPage((prev) => Math.min(totalPages, prev + 1))
+              }
+              className="inline-flex h-8 items-center gap-1 rounded-md border border-slate-200 bg-slate-50 px-2.5 text-xs font-medium text-slate-700 transition-colors hover:border-slate-300 hover:bg-slate-100 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-45 dark:border-zinc-700 dark:bg-zinc-800/90 dark:text-zinc-200 dark:hover:border-zinc-600 dark:hover:bg-zinc-700 dark:hover:text-white whitespace-nowrap shrink-0"
+            >
+              <span>Siguiente</span>
+              <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
+            </button>
+          </nav>
+        </div>
+      )}
+
       {editingRequest && (
         <EditReviewRequestModal
           key={editingRequest.id}
@@ -298,6 +449,28 @@ export default function ReviewRequestsTable({
           onClose={() => setEditingRequest(null)}
           onSaved={(updated) => {
             onRequestUpdated?.(updated);
+          }}
+        />
+      )}
+
+      {deletingRequest && (
+        <DeleteReviewRequestModal
+          key={deletingRequest.id}
+          request={deletingRequest}
+          onClose={() => setDeletingRequest(null)}
+          onDeleted={(deletedId) => {
+            const nextCount = Math.max(0, filteredRequests.length - 1);
+            const nextTotalPages = Math.max(1, Math.ceil(nextCount / PAGE_SIZE));
+            if (currentPage > nextTotalPages) {
+              setCurrentPage(nextTotalPages);
+            }
+            onRequestDeleted?.(deletedId);
+            setDeleteNotice('Solicitud eliminada');
+            window.setTimeout(() => {
+              setDeleteNotice((prev) =>
+                prev === 'Solicitud eliminada' ? null : prev
+              );
+            }, 4000);
           }}
         />
       )}

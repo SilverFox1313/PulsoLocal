@@ -312,6 +312,69 @@ export async function updateReviewRequestAction(
   return { request: updated as ReviewRequest };
 }
 
+export async function deleteReviewRequestAction(
+  requestIdInput: string
+): Promise<{ deletedId?: string; error?: string }> {
+  const supabase = await createClient();
+
+  if (!supabase) {
+    return { error: 'La conexión con Supabase no está configurada.' };
+  }
+
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    return { error: 'Tu sesión expiró. Vuelve a iniciar sesión.' };
+  }
+
+  const requestId = requestIdInput.trim();
+  if (!UUID_REGEX.test(requestId)) {
+    return { error: 'Identificador de solicitud inválido.' };
+  }
+
+  const { data: business, error: businessError } = await supabase
+    .from('businesses')
+    .select('id')
+    .eq('user_id', user.id)
+    .single();
+
+  if (businessError || !business) {
+    return {
+      error: 'No se encontró el perfil de tu negocio.',
+    };
+  }
+
+  const { data: deleted, error: deleteError } = await supabase
+    .from('review_requests')
+    .delete()
+    .eq('id', requestId)
+    .eq('business_id', business.id)
+    .eq('status', 'pending')
+    .select('id')
+    .maybeSingle();
+
+  if (deleteError) {
+    return {
+      error:
+        deleteError.message ||
+        'No se pudo eliminar la solicitud pendiente.',
+    };
+  }
+
+  if (!deleted) {
+    return {
+      error:
+        'No se encontró la solicitud o ya fue procesada (solo se pueden eliminar solicitudes pendientes).',
+    };
+  }
+
+  revalidatePath('/dashboard');
+  return { deletedId: deleted.id };
+}
+
 export async function updateSubscriptionStatusAction(
   nextStatus: 'active' | 'trialing'
 ): Promise<{ business?: Business; error?: string }> {

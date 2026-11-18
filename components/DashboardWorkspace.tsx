@@ -123,6 +123,12 @@ export default function DashboardWorkspace({
     router.refresh();
   }
 
+  function handleRequestDeleted(deletedId: string) {
+    setRequests((prev) => prev.filter((item) => item.id !== deletedId));
+    setDispatchSummary(null);
+    router.refresh();
+  }
+
   function handleBusinessUpdated(updated: Business) {
     setBusiness(updated);
   }
@@ -599,6 +605,7 @@ export default function DashboardWorkspace({
           <ReviewRequestsTable
             requests={requests}
             onRequestUpdated={handleRequestUpdated}
+            onRequestDeleted={handleRequestDeleted}
           />
         </div>
       ) : activeTab === 'feedback' ? (
