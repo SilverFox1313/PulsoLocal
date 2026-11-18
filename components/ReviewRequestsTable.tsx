@@ -154,8 +154,8 @@ export default function ReviewRequestsTable({
   const pageNumbers = getPageNumbers(safePage, totalPages);
 
   return (
-    <section className="rounded-xl border border-slate-200 bg-white shadow-xs transition-colors duration-300 ease-in-out dark:border-zinc-700 dark:bg-zinc-900 dark:shadow-lg dark:shadow-black/30">
-      <div className="flex flex-col gap-4 border-b border-slate-200 px-6 py-5 sm:flex-row sm:items-center sm:justify-between dark:border-zinc-700">
+    <section className="rounded-xl border border-slate-200 bg-white shadow-xs transition-colors duration-300 ease-in-out dark:border-transparent dark:bg-[#1E1E24] dark:shadow-2xl dark:shadow-black/60">
+      <div className="flex flex-col gap-4 border-b border-slate-200 px-6 py-5 sm:flex-row sm:items-center sm:justify-between dark:border-white/[0.04]">
         <div>
           <h2 className="text-lg font-semibold tracking-tight text-slate-900 dark:text-zinc-50">
             Historial de solicitudes
@@ -180,22 +180,22 @@ export default function ReviewRequestsTable({
               onChange={(e) => handleSearchChange(e.target.value)}
               placeholder="Buscar cliente o teléfono..."
               aria-label="Buscar solicitudes por cliente o teléfono"
-              className="h-9 w-full rounded-lg border border-slate-300 bg-white pl-9 pr-3 text-sm text-slate-900 placeholder:text-slate-400 transition-colors focus:border-amber-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30 sm:w-64 sm:min-w-[260px] dark:border-zinc-700 dark:bg-zinc-800/90 dark:text-zinc-100 dark:placeholder:text-zinc-400 dark:focus:border-amber-500/60"
+              className="h-9 w-full rounded-lg border border-slate-300 bg-white pl-9 pr-3 text-sm text-slate-900 placeholder:text-slate-400 transition-colors focus:border-amber-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30 sm:w-64 sm:min-w-[260px] dark:border-transparent dark:bg-[#27272E] dark:text-zinc-100 dark:shadow-sm dark:shadow-black/40 dark:placeholder:text-zinc-400 dark:focus:bg-[#32323A] dark:focus:border-amber-500/60"
             />
           </div>
 
           <div
             role="group"
             aria-label="Filtrar por estado"
-            className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-100 p-1 dark:border-zinc-700 dark:bg-zinc-800/90"
+            className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-100 p-1 dark:border-transparent dark:bg-[#27272E] dark:shadow-inner dark:shadow-black/30"
           >
             <button
               type="button"
               onClick={() => handleStatusFilterChange('all')}
-              className={`rounded-md px-3 py-1 text-xs font-medium transition-colors whitespace-nowrap shrink-0 ${
+              className={`rounded-md px-3 py-1 text-xs transition-colors whitespace-nowrap shrink-0 ${
                 statusFilter === 'all'
-                  ? 'bg-white text-slate-900 shadow-xs dark:bg-zinc-700 dark:text-white dark:shadow-none'
-                  : 'text-slate-600 hover:text-slate-900 dark:text-zinc-300 dark:hover:text-zinc-100'
+                  ? 'bg-white text-slate-900 font-semibold shadow-xs dark:bg-[#383842] dark:text-white dark:shadow-md dark:shadow-black/50'
+                  : 'font-medium text-slate-600 hover:text-slate-900 dark:text-zinc-300 dark:hover:text-zinc-100 hover:dark:bg-[#32323A]/70'
               }`}
             >
               Todas
@@ -203,10 +203,10 @@ export default function ReviewRequestsTable({
             <button
               type="button"
               onClick={() => handleStatusFilterChange('pending')}
-              className={`rounded-md px-3 py-1 text-xs font-medium transition-colors whitespace-nowrap shrink-0 ${
+              className={`rounded-md px-3 py-1 text-xs transition-colors whitespace-nowrap shrink-0 ${
                 statusFilter === 'pending'
-                  ? 'bg-white text-slate-900 shadow-xs dark:bg-zinc-700 dark:text-white dark:shadow-none'
-                  : 'text-slate-600 hover:text-slate-900 dark:text-zinc-300 dark:hover:text-zinc-100'
+                  ? 'bg-white text-slate-900 font-semibold shadow-xs dark:bg-[#383842] dark:text-white dark:shadow-md dark:shadow-black/50'
+                  : 'font-medium text-slate-600 hover:text-slate-900 dark:text-zinc-300 dark:hover:text-zinc-100 hover:dark:bg-[#32323A]/70'
               }`}
             >
               Pendientes
@@ -214,10 +214,10 @@ export default function ReviewRequestsTable({
             <button
               type="button"
               onClick={() => handleStatusFilterChange('sent')}
-              className={`rounded-md px-3 py-1 text-xs font-medium transition-colors whitespace-nowrap shrink-0 ${
+              className={`rounded-md px-3 py-1 text-xs transition-colors whitespace-nowrap shrink-0 ${
                 statusFilter === 'sent'
-                  ? 'bg-white text-slate-900 shadow-xs dark:bg-zinc-700 dark:text-white dark:shadow-none'
-                  : 'text-slate-600 hover:text-slate-900 dark:text-zinc-300 dark:hover:text-zinc-100'
+                  ? 'bg-white text-slate-900 font-semibold shadow-xs dark:bg-[#383842] dark:text-white dark:shadow-md dark:shadow-black/50'
+                  : 'font-medium text-slate-600 hover:text-slate-900 dark:text-zinc-300 dark:hover:text-zinc-100 hover:dark:bg-[#32323A]/70'
               }`}
             >
               Enviadas
@@ -241,7 +241,7 @@ export default function ReviewRequestsTable({
 
       {filteredRequests.length === 0 ? (
         <div className="flex flex-col items-center justify-center px-6 py-14 text-center">
-          <div className="flex h-11 w-11 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-400 dark:border-zinc-700 dark:bg-zinc-800/90 dark:text-zinc-300">
+          <div className="flex h-11 w-11 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-400 dark:border-transparent dark:bg-[#27272E] dark:text-zinc-300 dark:shadow-sm dark:shadow-black/40">
             <Inbox className="h-5 w-5" aria-hidden="true" />
           </div>
           <p className="mt-4 text-sm font-medium text-slate-800 dark:text-zinc-200">
@@ -259,7 +259,7 @@ export default function ReviewRequestsTable({
         <div className="overflow-x-auto">
           <table className="w-full border-collapse text-left text-sm">
             <thead>
-              <tr className="border-b border-slate-200 text-xs font-medium text-slate-500 dark:border-zinc-700/80 dark:text-zinc-300">
+              <tr className="border-b border-slate-200 text-xs font-medium text-slate-500 dark:border-white/[0.04] dark:text-zinc-300">
                 <th scope="col" className="px-6 py-3">
                   Cliente
                 </th>
@@ -277,7 +277,7 @@ export default function ReviewRequestsTable({
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-200 dark:divide-zinc-700/70">
+            <tbody className="divide-y divide-slate-200 dark:divide-white/[0.04]">
               {paginatedRequests.map((item) => {
                 const statusInfo =
                   STATUS_META[item.status] ?? STATUS_META.pending;
@@ -287,7 +287,7 @@ export default function ReviewRequestsTable({
                 return (
                   <tr
                     key={item.id}
-                    className="transition-colors hover:bg-slate-50 dark:hover:bg-zinc-800/60"
+                    className="transition-colors hover:bg-orange-500/[0.08] dark:hover:bg-orange-500/[0.08]"
                   >
                     <td className="px-6 py-3.5 font-medium text-slate-900 dark:text-zinc-100">
                       {item.customer_name}
@@ -309,23 +309,34 @@ export default function ReviewRequestsTable({
                     <td className="px-6 py-3.5 text-right font-mono text-xs tabular-nums text-slate-500 dark:text-zinc-300">
                       <FormattedDate dateString={item.scheduled_for} />
                     </td>
-                    <td className="px-6 py-3.5 text-right">
+                      <td className="px-6 py-3.5 text-right">
                       <div className="inline-flex items-center justify-end gap-2">
                         {item.status === 'pending' && (
                           <button
                             type="button"
                             onClick={() => setEditingRequest(item)}
                             aria-label={`Editar solicitud de ${item.customer_name}`}
-                            className="inline-flex h-8 items-center gap-1.5 rounded-md border border-slate-200 bg-slate-50 px-2.5 text-xs font-medium text-slate-700 transition-colors hover:border-orange-400 hover:bg-orange-500/10 hover:text-orange-600 dark:border-zinc-600 dark:bg-zinc-800/90 dark:text-zinc-200 dark:hover:border-orange-500/70 dark:hover:bg-orange-500/15 dark:hover:text-orange-300 whitespace-nowrap shrink-0"
+                            className="inline-flex h-8 items-center gap-1.5 rounded-md border border-slate-200 bg-slate-50 px-3 text-xs font-medium text-slate-700 transition-colors hover:border-amber-400 hover:bg-amber-500/10 hover:text-amber-600 dark:border-none dark:bg-[#27272E] dark:text-zinc-200 dark:shadow-sm dark:shadow-black/40 hover:dark:bg-[#32323A] dark:hover:text-amber-300 whitespace-nowrap shrink-0"
                           >
                             <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
                             <span>Editar</span>
                           </button>
                         )}
+                        {item.status === 'pending' && (
+                          <button
+                            type="button"
+                            onClick={() => setDeletingRequest(item)}
+                            aria-label={`Eliminar solicitud pendiente de ${item.customer_name}`}
+                            className="inline-flex h-8 items-center gap-1.5 rounded-md border border-slate-200 bg-slate-50 px-3 text-xs font-medium text-slate-700 transition-colors hover:border-red-400 hover:bg-red-500/10 hover:text-red-600 dark:border-none dark:bg-[#27272E] dark:text-zinc-200 dark:shadow-sm dark:shadow-black/40 hover:dark:bg-[#32323A] dark:hover:text-red-300 whitespace-nowrap shrink-0"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                            <span>Borrar</span>
+                          </button>
+                        )}
                         <button
                           type="button"
                           onClick={() => handleCopyLink(item.id)}
-                          className="inline-flex h-8 items-center gap-1.5 rounded-md border border-slate-200 bg-slate-50 px-2.5 text-xs font-medium text-slate-700 transition-colors hover:border-slate-300 hover:text-slate-900 dark:border-zinc-600 dark:bg-zinc-800/90 dark:text-zinc-200 dark:hover:border-zinc-500 dark:hover:bg-zinc-700 dark:hover:text-white whitespace-nowrap shrink-0"
+                          className="inline-flex h-8 items-center gap-1.5 rounded-md border border-slate-200 bg-slate-50 px-3 text-xs font-medium text-slate-700 transition-colors hover:border-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-600 dark:border-none dark:bg-[#27272E] dark:text-zinc-200 dark:shadow-sm dark:shadow-black/40 hover:dark:bg-[#32323A] dark:hover:text-emerald-300 whitespace-nowrap shrink-0"
                         >
                           {isCopied ? (
                             <>
@@ -349,21 +360,11 @@ export default function ReviewRequestsTable({
                           target="_blank"
                           rel="noopener noreferrer"
                           aria-label={`Abrir enlace de reseña para ${item.customer_name}`}
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 bg-slate-50 text-slate-500 transition-colors hover:border-slate-300 hover:text-amber-600 dark:border-zinc-600 dark:bg-zinc-800/90 dark:text-zinc-200 dark:hover:border-zinc-500 dark:hover:bg-zinc-700 dark:hover:text-amber-300"
+                          className="inline-flex h-8 items-center gap-1.5 rounded-md border border-slate-200 bg-slate-50 px-3 text-xs font-medium text-slate-700 transition-colors hover:border-cyan-400 hover:bg-cyan-500/10 hover:text-cyan-600 dark:border-none dark:bg-[#27272E] dark:text-zinc-200 dark:shadow-sm dark:shadow-black/40 hover:dark:bg-[#32323A] dark:hover:text-cyan-300 whitespace-nowrap shrink-0"
                         >
                           <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+                          <span>Abrir</span>
                         </Link>
-                        {item.status === 'pending' && (
-                          <button
-                            type="button"
-                            onClick={() => setDeletingRequest(item)}
-                            aria-label={`Eliminar solicitud pendiente de ${item.customer_name}`}
-                            title="Eliminar solicitud pendiente"
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 bg-slate-50 text-slate-500 transition-colors hover:border-red-300 hover:bg-red-50 hover:text-red-600 dark:border-zinc-600 dark:bg-zinc-800/90 dark:text-zinc-300 dark:hover:border-red-500/50 dark:hover:bg-red-500/15 dark:hover:text-red-400 shrink-0"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
-                          </button>
-                        )}
                       </div>
                     </td>
                   </tr>
@@ -375,7 +376,7 @@ export default function ReviewRequestsTable({
       )}
 
       {filteredRequests.length > PAGE_SIZE && (
-        <div className="flex flex-col gap-3 border-t border-slate-200 px-6 py-4 sm:flex-row sm:items-center sm:justify-between dark:border-zinc-700">
+        <div className="flex flex-col gap-3 border-t border-slate-200 px-6 py-4 sm:flex-row sm:items-center sm:justify-between dark:border-white/[0.04]">
           <p className="text-xs text-slate-600 tabular-nums dark:text-zinc-300">
             Mostrando <span className="font-medium text-slate-900 dark:text-zinc-100">{showingFrom}–{showingTo}</span> de{' '}
             <span className="font-medium text-slate-900 dark:text-zinc-100">{filteredRequests.length}</span> solicitudes
@@ -389,7 +390,7 @@ export default function ReviewRequestsTable({
               type="button"
               disabled={safePage <= 1}
               onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-              className="inline-flex h-8 items-center gap-1 rounded-md border border-slate-200 bg-slate-50 px-2.5 text-xs font-medium text-slate-700 transition-colors hover:border-slate-300 hover:bg-slate-100 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-45 dark:border-zinc-700 dark:bg-zinc-800/90 dark:text-zinc-200 dark:hover:border-zinc-600 dark:hover:bg-zinc-700 dark:hover:text-white whitespace-nowrap shrink-0"
+              className="inline-flex h-8 items-center gap-1 rounded-md border border-slate-200 bg-slate-50 px-2.5 text-xs font-medium text-slate-700 transition-colors hover:border-slate-300 hover:bg-slate-100 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-45 dark:border-none dark:bg-[#27272E] dark:text-zinc-200 dark:shadow-sm dark:shadow-black/40 hover:dark:bg-[#32323A] whitespace-nowrap shrink-0"
             >
               <ChevronLeft className="h-3.5 w-3.5" aria-hidden="true" />
               <span>Anterior</span>
@@ -413,8 +414,8 @@ export default function ReviewRequestsTable({
                     aria-current={safePage === entry ? 'page' : undefined}
                     className={`inline-flex h-8 min-w-8 items-center justify-center rounded-md border px-2 text-xs font-medium tabular-nums transition-colors ${
                       safePage === entry
-                        ? 'border-orange-500 bg-orange-500/10 text-orange-600 dark:border-orange-500/80 dark:bg-orange-500/15 dark:text-orange-300'
-                        : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900 dark:border-zinc-700 dark:bg-zinc-800/70 dark:text-zinc-300 dark:hover:border-zinc-600 dark:hover:bg-zinc-700 dark:hover:text-white'
+                        ? 'border-orange-500 bg-orange-500/10 text-orange-600 dark:border-none dark:bg-orange-500/20 dark:text-orange-300'
+                        : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900 dark:border-none dark:bg-[#27272E] dark:text-zinc-300 dark:shadow-sm dark:shadow-black/40 hover:dark:bg-[#32323A] dark:hover:text-white'
                     }`}
                   >
                     {entry}
@@ -433,7 +434,7 @@ export default function ReviewRequestsTable({
               onClick={() =>
                 setCurrentPage((prev) => Math.min(totalPages, prev + 1))
               }
-              className="inline-flex h-8 items-center gap-1 rounded-md border border-slate-200 bg-slate-50 px-2.5 text-xs font-medium text-slate-700 transition-colors hover:border-slate-300 hover:bg-slate-100 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-45 dark:border-zinc-700 dark:bg-zinc-800/90 dark:text-zinc-200 dark:hover:border-zinc-600 dark:hover:bg-zinc-700 dark:hover:text-white whitespace-nowrap shrink-0"
+              className="inline-flex h-8 items-center gap-1 rounded-md border border-slate-200 bg-slate-50 px-2.5 text-xs font-medium text-slate-700 transition-colors hover:border-slate-300 hover:bg-slate-100 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-45 dark:border-none dark:bg-[#27272E] dark:text-zinc-200 dark:shadow-sm dark:shadow-black/40 hover:dark:bg-[#32323A] whitespace-nowrap shrink-0"
             >
               <span>Siguiente</span>
               <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />

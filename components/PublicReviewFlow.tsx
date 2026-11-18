@@ -136,7 +136,7 @@ export default function PublicReviewFlow({ data }: PublicReviewFlowProps) {
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-        className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm sm:p-10 dark:border-zinc-700/80 dark:bg-zinc-900/90 dark:shadow-none"
+        className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm sm:p-10 dark:border-transparent dark:bg-[#1E1E24] dark:shadow-2xl dark:shadow-black/60"
       >
         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl border border-emerald-500/25 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
           <CheckCircle2 className="h-6 w-6" aria-hidden="true" />
@@ -153,7 +153,7 @@ export default function PublicReviewFlow({ data }: PublicReviewFlowProps) {
         </p>
 
         {googleReviewUrl && (
-          <div className="mt-7 border-t border-slate-200 pt-6 dark:border-zinc-700/80">
+          <div className="mt-7 border-t border-slate-200 pt-6 dark:border-white/[0.04]">
             <p className="text-sm leading-relaxed text-slate-600 dark:text-zinc-300">
               Si además deseas dejar una reseña pública en Google, puedes
               hacerlo aquí:
@@ -178,7 +178,7 @@ export default function PublicReviewFlow({ data }: PublicReviewFlowProps) {
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-        className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm sm:p-10 dark:border-zinc-700/80 dark:bg-zinc-900/90 dark:shadow-none"
+        className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm sm:p-10 dark:border-transparent dark:bg-[#1E1E24] dark:shadow-2xl dark:shadow-black/60"
       >
         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl border border-amber-500/25 bg-amber-500/10 text-amber-500 dark:text-amber-400">
           <Star className="h-6 w-6 fill-amber-500 dark:fill-amber-400" aria-hidden="true" />
@@ -229,7 +229,7 @@ export default function PublicReviewFlow({ data }: PublicReviewFlowProps) {
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-        className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-7 shadow-sm sm:p-9 dark:border-zinc-700/80 dark:bg-zinc-900/90 dark:shadow-none"
+        className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-7 shadow-sm sm:p-9 dark:border-transparent dark:bg-[#1E1E24] dark:shadow-2xl dark:shadow-black/60"
       >
         <p className="text-xs font-medium text-slate-500 dark:text-zinc-300">
           {data.business_name} · {selectedRating} de 5 estrellas
@@ -270,7 +270,7 @@ export default function PublicReviewFlow({ data }: PublicReviewFlowProps) {
               value={comment}
               onChange={(e) => setComment(e.target.value)}
               placeholder="Escribe aquí tu experiencia o sugerencia..."
-              className="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-3 text-sm leading-relaxed text-slate-900 placeholder:text-slate-400 transition-colors focus:border-amber-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-700 dark:bg-zinc-800/90 dark:text-zinc-100 dark:placeholder:text-zinc-400 dark:focus:border-amber-500/60"
+              className="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-3 text-sm leading-relaxed text-slate-900 placeholder:text-slate-400 transition-colors focus:border-amber-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30 disabled:cursor-not-allowed disabled:opacity-60 dark:border-transparent dark:bg-[#27272E] dark:text-zinc-100 dark:shadow-sm dark:shadow-black/40 dark:placeholder:text-zinc-400 dark:focus:bg-[#32323A] dark:focus:border-amber-500/60"
             />
           </div>
 
@@ -279,7 +279,7 @@ export default function PublicReviewFlow({ data }: PublicReviewFlowProps) {
               type="button"
               disabled={submittingComment}
               onClick={() => setStep('empathetic_done')}
-              className="inline-flex h-11 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 px-4 text-sm font-medium text-slate-700 transition-colors hover:border-slate-300 hover:text-slate-900 disabled:opacity-60 dark:border-zinc-600 dark:bg-zinc-800/90 dark:text-zinc-100 dark:hover:border-zinc-500 dark:hover:bg-zinc-700 whitespace-nowrap shrink-0"
+              className="inline-flex h-11 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 px-4 text-sm font-medium text-slate-700 transition-colors hover:border-slate-300 hover:text-slate-900 disabled:opacity-60 dark:border-none dark:bg-[#27272E] dark:text-zinc-100 dark:shadow-sm dark:shadow-black/40 hover:dark:bg-[#32323A] whitespace-nowrap shrink-0"
             >
               Omitir
             </button>
@@ -312,9 +312,9 @@ export default function PublicReviewFlow({ data }: PublicReviewFlowProps) {
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-        className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm sm:p-10 dark:border-zinc-700/80 dark:bg-zinc-900/90 dark:shadow-none"
+        className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm sm:p-10 dark:border-transparent dark:bg-[#1E1E24] dark:shadow-2xl dark:shadow-black/60"
       >
-        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl border border-amber-500/25 bg-amber-500/10 text-amber-600 dark:border-zinc-600 dark:bg-zinc-800/90 dark:text-amber-400">
+        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl border border-amber-500/25 bg-amber-500/10 text-amber-600 dark:border-transparent dark:bg-[#27272E] dark:text-amber-400 dark:shadow-sm dark:shadow-black/40">
           <HeartHandshake className="h-6 w-6" aria-hidden="true" />
         </div>
         <p className="mt-5 text-xs font-medium text-slate-500 dark:text-zinc-300">
@@ -329,7 +329,7 @@ export default function PublicReviewFlow({ data }: PublicReviewFlowProps) {
         </p>
 
         {googleReviewUrl && (
-          <div className="mt-7 border-t border-slate-200 pt-6 dark:border-zinc-700/80">
+          <div className="mt-7 border-t border-slate-200 pt-6 dark:border-white/[0.04]">
             <p className="text-sm leading-relaxed text-slate-600 dark:text-zinc-300">
               Si además deseas dejar una reseña pública en Google, puedes
               hacerlo aquí:
@@ -353,7 +353,7 @@ export default function PublicReviewFlow({ data }: PublicReviewFlowProps) {
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-      className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm sm:p-10 dark:border-zinc-700/80 dark:bg-zinc-900/90 dark:shadow-none"
+      className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm sm:p-10 dark:border-transparent dark:bg-[#1E1E24] dark:shadow-2xl dark:shadow-black/60"
     >
       <p className="text-sm font-medium text-amber-600 dark:text-amber-400">
         {data.business_name}
@@ -403,7 +403,7 @@ export default function PublicReviewFlow({ data }: PublicReviewFlowProps) {
               onFocus={() => setHoveredRating(star)}
               onBlur={() => setHoveredRating(0)}
               onClick={() => handleSelectRating(star)}
-              className="group flex h-12 w-12 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 transition-transform duration-150 hover:scale-105 hover:border-amber-500/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/60 disabled:cursor-not-allowed disabled:opacity-60 sm:h-14 sm:w-14 dark:border-zinc-700 dark:bg-zinc-800/90 dark:hover:border-amber-500/60"
+              className="group flex h-12 w-12 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 transition-all duration-150 hover:scale-105 hover:border-amber-500/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/60 disabled:cursor-not-allowed disabled:opacity-60 sm:h-14 sm:w-14 dark:border-transparent dark:bg-[#27272E] dark:shadow-sm dark:shadow-black/40 hover:dark:bg-[#32323A]"
             >
               <Star
                 className={`h-6 w-6 transition-colors sm:h-7 sm:w-7 ${

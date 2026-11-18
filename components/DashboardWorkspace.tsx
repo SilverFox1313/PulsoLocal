@@ -201,7 +201,7 @@ export default function DashboardWorkspace({
 
   return (
     <div className="space-y-8">
-      <section className="border-b border-slate-200 pb-8 dark:border-zinc-700">
+      <section className="border-b border-slate-200 pb-8 dark:border-white/[0.04]">
         <div>
           <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl">
             <span className="bg-gradient-to-r from-orange-600 via-orange-500 to-amber-500 bg-clip-text text-transparent dark:from-orange-400 dark:via-amber-400 dark:to-orange-500">
@@ -243,7 +243,7 @@ export default function DashboardWorkspace({
           <div
             role="tablist"
             aria-label="Secciones del panel"
-            className="grid w-full grid-cols-2 gap-1 rounded-lg border border-slate-200 bg-white p-1 shadow-xs transition-colors duration-300 ease-in-out md:inline-flex md:w-auto md:flex-nowrap md:items-center md:gap-1 shrink-0 dark:border-zinc-700 dark:bg-zinc-900 dark:shadow-lg dark:shadow-black/30"
+            className="grid w-full grid-cols-2 gap-1 rounded-xl border border-slate-200 bg-white p-1 shadow-xs transition-colors duration-300 ease-in-out md:inline-flex md:w-auto md:flex-nowrap md:items-center md:gap-1 shrink-0 dark:border-transparent dark:bg-[#27272E] dark:shadow-md dark:shadow-black/50"
           >
             <button
               type="button"
@@ -253,7 +253,7 @@ export default function DashboardWorkspace({
               className={`inline-flex h-9 items-center justify-center gap-2 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors whitespace-nowrap shrink-0 sm:px-3.5 sm:text-sm ${
                 activeTab === 'requests'
                   ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-zinc-900 font-semibold shadow-xs dark:text-white'
-                  : 'text-slate-600 hover:text-slate-900 dark:text-zinc-300 dark:hover:text-white'
+                  : 'text-slate-600 hover:text-slate-900 dark:text-zinc-300 hover:dark:bg-[#32323A] dark:hover:text-white'
               }`}
             >
               <Users className="h-4 w-4 shrink-0" aria-hidden="true" />
@@ -268,7 +268,7 @@ export default function DashboardWorkspace({
               className={`inline-flex h-9 items-center justify-center gap-2 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors whitespace-nowrap shrink-0 sm:px-3.5 sm:text-sm ${
                 activeTab === 'feedback'
                   ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-zinc-900 font-semibold shadow-xs dark:text-white'
-                  : 'text-slate-600 hover:text-slate-900 dark:text-zinc-300 dark:hover:text-white'
+                  : 'text-slate-600 hover:text-slate-900 dark:text-zinc-300 hover:dark:bg-[#32323A] dark:hover:text-white'
               }`}
             >
               <MessageSquareWarning className="h-4 w-4 shrink-0" aria-hidden="true" />
@@ -286,7 +286,7 @@ export default function DashboardWorkspace({
               className={`inline-flex h-9 items-center justify-center gap-2 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors whitespace-nowrap shrink-0 sm:px-3.5 sm:text-sm ${
                 activeTab === 'settings'
                   ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-zinc-900 font-semibold shadow-xs dark:text-white'
-                  : 'text-slate-600 hover:text-slate-900 dark:text-zinc-300 dark:hover:text-white'
+                  : 'text-slate-600 hover:text-slate-900 dark:text-zinc-300 hover:dark:bg-[#32323A] dark:hover:text-white'
               }`}
             >
               <Settings className="h-4 w-4 shrink-0" aria-hidden="true" />
@@ -301,7 +301,7 @@ export default function DashboardWorkspace({
               className={`inline-flex h-9 items-center justify-center gap-2 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors whitespace-nowrap shrink-0 sm:px-3.5 sm:text-sm ${
                 activeTab === 'subscription'
                   ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-zinc-900 font-semibold shadow-xs dark:text-white'
-                  : 'text-slate-600 hover:text-slate-900 dark:text-zinc-300 dark:hover:text-white'
+                  : 'text-slate-600 hover:text-slate-900 dark:text-zinc-300 hover:dark:bg-[#32323A] dark:hover:text-white'
               }`}
             >
               <CreditCard className="h-4 w-4 shrink-0" aria-hidden="true" />
@@ -325,7 +325,7 @@ export default function DashboardWorkspace({
       )}
 
       {business && !business.google_review_url && activeTab === 'requests' && (
-        <div className="flex flex-col gap-3 rounded-xl border border-amber-300 bg-amber-50/80 px-5 py-4 sm:flex-row sm:items-center sm:justify-between dark:border-amber-500/50 dark:bg-zinc-900 dark:shadow-lg dark:shadow-black/30">
+        <div className="flex flex-col gap-3 rounded-xl border border-amber-300 bg-amber-50/80 px-5 py-4 sm:flex-row sm:items-center sm:justify-between dark:border-amber-500/40 dark:bg-[#1E1E24] dark:shadow-xl dark:shadow-black/50">
           <p className="text-sm text-amber-900 dark:text-amber-100">
             Aún no has agregado tu enlace directo de reseñas de Google Maps.
             Configúralo antes de enviar tus primeras invitaciones.
@@ -333,7 +333,7 @@ export default function DashboardWorkspace({
           <button
             type="button"
             onClick={() => setActiveTab('settings')}
-            className="inline-flex h-9 items-center justify-center rounded-lg border border-amber-500/40 bg-white px-3.5 text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-50 dark:border-amber-500/50 dark:bg-zinc-800 dark:text-amber-300 dark:hover:bg-zinc-700 whitespace-nowrap shrink-0"
+            className="inline-flex h-9 items-center justify-center rounded-lg border border-amber-500/40 bg-white px-3.5 text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-50 dark:border-none dark:bg-[#27272E] dark:text-amber-300 hover:dark:bg-[#32323A] dark:shadow-sm dark:shadow-black/40 whitespace-nowrap shrink-0"
           >
             Configurar enlace
           </button>
@@ -341,7 +341,7 @@ export default function DashboardWorkspace({
       )}
 
       {!business ? (
-        <section className="rounded-xl border border-slate-200 bg-white p-8 text-sm text-slate-600 shadow-xs dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:shadow-lg dark:shadow-black/30">
+        <section className="rounded-xl border border-slate-200 bg-white p-8 text-sm text-slate-600 shadow-xs dark:border-transparent dark:bg-[#1E1E24] dark:text-zinc-300 dark:shadow-2xl dark:shadow-black/60">
           No se encontró el perfil del negocio en Supabase. Verifica que hayas
           ejecutado el script SQL de creación de tablas y políticas RLS en tu
           proyecto.
@@ -353,7 +353,7 @@ export default function DashboardWorkspace({
             onCreated={handleRequestCreated}
           />
 
-          <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-xs transition-colors duration-300 ease-in-out dark:border-zinc-700 dark:bg-zinc-900 dark:shadow-lg dark:shadow-black/30">
+          <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-xs transition-colors duration-300 ease-in-out dark:border-transparent dark:bg-[#1E1E24] dark:shadow-2xl dark:shadow-black/60">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h2 className="text-base font-semibold tracking-tight text-slate-900 dark:text-zinc-50">
@@ -439,7 +439,7 @@ export default function DashboardWorkspace({
             )}
 
             {dispatchSummary && (
-              <div className="mt-5 border-t border-slate-200 pt-5 dark:border-zinc-700">
+              <div className="mt-5 border-t border-slate-200 pt-5 dark:border-white/[0.04]">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex items-start gap-2.5 text-sm">
                     {dispatchSummary.processed === 0 &&
@@ -507,7 +507,7 @@ export default function DashboardWorkspace({
                         type="button"
                         disabled={dispatching}
                         onClick={() => runSendReminders(true)}
-                        className="inline-flex h-9 items-center justify-center rounded-lg border border-slate-300 bg-slate-100 px-3.5 text-xs font-medium text-slate-800 transition-colors hover:border-slate-400 hover:bg-slate-200 disabled:opacity-60 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:border-zinc-500 dark:hover:bg-zinc-700 whitespace-nowrap shrink-0"
+                        className="inline-flex h-9 items-center justify-center rounded-lg border border-slate-300 bg-slate-100 px-3.5 text-xs font-medium text-slate-800 transition-colors hover:border-slate-400 hover:bg-slate-200 disabled:opacity-60 dark:border-none dark:bg-[#27272E] dark:text-zinc-100 dark:shadow-md dark:shadow-black/40 hover:dark:bg-[#32323A] whitespace-nowrap shrink-0"
                       >
                         Forzar envío ahora (prueba)
                       </button>
@@ -515,7 +515,7 @@ export default function DashboardWorkspace({
                 </div>
 
                 {dispatchSummary.items.length > 0 && (
-                  <ul className="mt-4 divide-y divide-slate-200 border-t border-slate-200 dark:divide-zinc-700 dark:border-zinc-700">
+                  <ul className="mt-4 divide-y divide-slate-200 border-t border-slate-200 dark:divide-white/[0.04] dark:border-transparent">
                     {dispatchSummary.items.map((item) => {
                       const linkKey = `link-${item.id}`;
                       const msgKey = `msg-${item.id}`;
@@ -542,7 +542,7 @@ export default function DashboardWorkspace({
                               onClick={() =>
                                 handleCopyText(linkKey, item.reviewLink)
                               }
-                              className="inline-flex h-8 items-center gap-1.5 rounded-md border border-slate-200 bg-slate-50 px-2.5 text-xs font-medium text-slate-700 transition-colors hover:border-slate-300 hover:text-slate-900 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:border-zinc-500 dark:hover:bg-zinc-700 dark:hover:text-white whitespace-nowrap shrink-0"
+                              className="inline-flex h-8 items-center gap-1.5 rounded-md border border-slate-200 bg-slate-50 px-2.5 text-xs font-medium text-slate-700 transition-colors hover:border-slate-300 hover:text-slate-900 dark:border-none dark:bg-[#27272E] dark:text-zinc-200 dark:shadow-sm dark:shadow-black/40 hover:dark:bg-[#32323A] dark:hover:text-white whitespace-nowrap shrink-0"
                             >
                               {copiedKey === linkKey ? (
                                 <>
@@ -570,7 +570,7 @@ export default function DashboardWorkspace({
                               onClick={() =>
                                 handleCopyText(msgKey, item.messagePreview)
                               }
-                              className="inline-flex h-8 items-center gap-1.5 rounded-md border border-slate-200 bg-slate-50 px-2.5 text-xs font-medium text-slate-700 transition-colors hover:border-slate-300 hover:text-slate-900 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:border-zinc-500 dark:hover:bg-zinc-700 dark:hover:text-white whitespace-nowrap shrink-0"
+                              className="inline-flex h-8 items-center gap-1.5 rounded-md border border-slate-200 bg-slate-50 px-2.5 text-xs font-medium text-slate-700 transition-colors hover:border-slate-300 hover:text-slate-900 dark:border-none dark:bg-[#27272E] dark:text-zinc-200 dark:shadow-sm dark:shadow-black/40 hover:dark:bg-[#32323A] dark:hover:text-white whitespace-nowrap shrink-0"
                             >
                               {copiedKey === msgKey ? (
                                 <>

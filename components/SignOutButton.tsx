@@ -37,7 +37,7 @@ export default function SignOutButton({ fullWidth = false }: SignOutButtonProps)
         onClick={handleSignOut}
         disabled={isPending}
         aria-busy={isPending}
-        className={`inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3.5 text-sm font-medium text-slate-700 shadow-xs transition-colors hover:border-slate-300 hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/60 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-600 dark:bg-zinc-800/90 dark:text-zinc-100 dark:shadow-none dark:hover:border-zinc-500 dark:hover:bg-zinc-700 whitespace-nowrap shrink-0 ${
+        className={`inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3.5 text-sm font-medium text-slate-700 shadow-xs transition-colors hover:border-slate-300 hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/60 disabled:cursor-not-allowed disabled:opacity-60 dark:border-none dark:bg-[#27272E] dark:text-zinc-100 dark:shadow-md dark:shadow-black/50 hover:dark:bg-[#32323A] whitespace-nowrap shrink-0 ${
           fullWidth ? 'h-11 w-full' : 'h-9'
         } ${isPending ? 'pointer-events-none opacity-60' : ''}`}
       >

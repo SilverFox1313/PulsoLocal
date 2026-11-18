@@ -62,10 +62,10 @@ export default function DeleteReviewRequestModal({
       }}
     >
       <div
-        className="w-full max-w-md rounded-xl border border-slate-200 bg-white shadow-xl transition-colors dark:border-zinc-700 dark:bg-zinc-900 dark:shadow-2xl dark:shadow-black/60"
+        className="w-full max-w-md rounded-xl border border-slate-200 bg-white shadow-xl transition-colors dark:border-transparent dark:bg-[#1E1E24] dark:shadow-2xl dark:shadow-black/60"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-6 py-4 dark:border-zinc-700">
+        <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-6 py-4 dark:border-white/[0.04]">
           <div className="flex items-start gap-3">
             <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-red-200 bg-red-50 text-red-600 dark:border-red-500/30 dark:bg-red-500/15 dark:text-red-400">
               <Trash2 className="h-4 w-4" aria-hidden="true" />
@@ -88,7 +88,7 @@ export default function DeleteReviewRequestModal({
             disabled={deleting}
             onClick={onClose}
             aria-label="Cerrar confirmación"
-            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-slate-50 text-slate-500 transition-colors hover:border-slate-300 hover:text-slate-900 disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600 dark:hover:text-white"
+            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-slate-50 text-slate-500 transition-colors hover:border-slate-300 hover:text-slate-900 disabled:opacity-50 dark:border-none dark:bg-[#27272E] dark:text-zinc-300 dark:shadow-sm dark:shadow-black/40 hover:dark:bg-[#32323A] dark:hover:text-white"
           >
             <X className="h-4 w-4" aria-hidden="true" />
           </button>
@@ -113,7 +113,7 @@ export default function DeleteReviewRequestModal({
               type="button"
               disabled={deleting}
               onClick={onClose}
-              className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-700 dark:bg-zinc-800/80 dark:text-zinc-200 dark:hover:bg-zinc-800 whitespace-nowrap shrink-0"
+              className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-none dark:bg-[#27272E] dark:text-zinc-200 dark:shadow-sm dark:shadow-black/40 hover:dark:bg-[#32323A] whitespace-nowrap shrink-0"
             >
               Cancelar
             </button>

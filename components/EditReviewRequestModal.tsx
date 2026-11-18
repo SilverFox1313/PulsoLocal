@@ -146,10 +146,10 @@ export default function EditReviewRequestModal({
       }}
     >
       <div
-        className="w-full max-w-lg rounded-xl border border-slate-200 bg-white shadow-xl transition-colors dark:border-zinc-700 dark:bg-zinc-900 dark:shadow-2xl dark:shadow-black/60"
+        className="w-full max-w-lg rounded-xl border border-slate-200 bg-white shadow-xl transition-colors dark:border-transparent dark:bg-[#1E1E24] dark:shadow-2xl dark:shadow-black/60"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-6 py-4 dark:border-zinc-700">
+        <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-6 py-4 dark:border-white/[0.04]">
           <div>
             <h3
               id="edit-request-modal-title"
@@ -167,7 +167,7 @@ export default function EditReviewRequestModal({
             disabled={isSaving}
             onClick={onClose}
             aria-label="Cerrar ventana de edición"
-            className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 bg-slate-50 text-slate-500 transition-colors hover:border-slate-300 hover:text-slate-900 disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600 dark:hover:text-white"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 bg-slate-50 text-slate-500 transition-colors hover:border-slate-300 hover:text-slate-900 disabled:opacity-50 dark:border-none dark:bg-[#27272E] dark:text-zinc-300 dark:shadow-sm dark:shadow-black/40 hover:dark:bg-[#32323A] dark:hover:text-white"
           >
             <X className="h-4 w-4" aria-hidden="true" />
           </button>
@@ -205,7 +205,7 @@ export default function EditReviewRequestModal({
                 setCustomerName(e.target.value);
               }}
               placeholder="Ej. Carlos Mendoza"
-              className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3.5 text-sm text-slate-900 placeholder:text-slate-400 transition-colors focus:border-amber-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-700 dark:bg-zinc-800/90 dark:text-zinc-100 dark:placeholder:text-zinc-400 dark:focus:border-amber-500/60"
+              className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3.5 text-sm text-slate-900 placeholder:text-slate-400 transition-colors focus:border-amber-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30 disabled:cursor-not-allowed disabled:opacity-60 dark:border-transparent dark:bg-[#27272E] dark:text-zinc-100 dark:shadow-sm dark:shadow-black/40 dark:placeholder:text-zinc-400 dark:focus:bg-[#32323A] dark:focus:border-amber-500/60"
             />
           </div>
 
@@ -227,7 +227,7 @@ export default function EditReviewRequestModal({
                 setCustomerPhone(e.target.value);
               }}
               placeholder="+18097155343"
-              className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3.5 font-mono text-sm tabular-nums text-slate-900 placeholder:font-sans placeholder:text-slate-400 transition-colors focus:border-amber-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-700 dark:bg-zinc-800/90 dark:text-zinc-100 dark:placeholder:text-zinc-400 dark:focus:border-amber-500/60"
+              className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3.5 font-mono text-sm tabular-nums text-slate-900 placeholder:font-sans placeholder:text-slate-400 transition-colors focus:border-amber-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30 disabled:cursor-not-allowed disabled:opacity-60 dark:border-transparent dark:bg-[#27272E] dark:text-zinc-100 dark:shadow-sm dark:shadow-black/40 dark:placeholder:text-zinc-400 dark:focus:bg-[#32323A] dark:focus:border-amber-500/60"
             />
             <p className="mt-1 text-xs text-slate-500 dark:text-zinc-400">
               Incluye el código de país (ej. +18097155343 o +525512345678).
@@ -267,19 +267,19 @@ export default function EditReviewRequestModal({
                 setError(null);
                 setScheduledLocal(e.target.value);
               }}
-              className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3.5 font-mono text-sm text-slate-900 transition-colors focus:border-amber-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-700 dark:bg-zinc-800/90 dark:text-zinc-100 dark:focus:border-amber-500/60"
+              className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3.5 font-mono text-sm text-slate-900 transition-colors focus:border-amber-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30 disabled:cursor-not-allowed disabled:opacity-60 dark:border-transparent dark:bg-[#27272E] dark:text-zinc-100 dark:shadow-sm dark:shadow-black/40 dark:focus:bg-[#32323A] dark:focus:border-amber-500/60"
             />
             <p className="mt-1 text-xs text-slate-500 dark:text-zinc-400">
               Zona horaria local ({localTimezone}); se guarda sincronizada en UTC.
             </p>
           </div>
 
-          <div className="flex flex-col-reverse gap-2.5 border-t border-slate-200 pt-4 sm:flex-row sm:items-center sm:justify-between dark:border-zinc-700">
+          <div className="flex flex-col-reverse gap-2.5 border-t border-slate-200 pt-4 sm:flex-row sm:items-center sm:justify-between dark:border-white/[0.04]">
             <button
               type="button"
               disabled={isSaving}
               onClick={() => void submitUpdate(true)}
-              className="inline-flex h-10 items-center justify-center gap-1.5 rounded-lg border border-slate-300 bg-slate-100 px-3.5 text-xs font-semibold text-slate-800 transition-colors hover:border-slate-400 hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:border-zinc-500 dark:hover:bg-zinc-700 whitespace-nowrap shrink-0"
+              className="inline-flex h-10 items-center justify-center gap-1.5 rounded-lg border border-slate-300 bg-slate-100 px-3.5 text-xs font-semibold text-slate-800 transition-colors hover:border-slate-400 hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-60 dark:border-none dark:bg-[#27272E] dark:text-zinc-100 dark:shadow-sm dark:shadow-black/40 hover:dark:bg-[#32323A] whitespace-nowrap shrink-0"
             >
               {savingMode === 'sendNow' ? (
                 <>
@@ -299,7 +299,7 @@ export default function EditReviewRequestModal({
                 type="button"
                 disabled={isSaving}
                 onClick={onClose}
-                className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-700 dark:bg-zinc-800/70 dark:text-zinc-200 dark:hover:bg-zinc-800 whitespace-nowrap shrink-0"
+                className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-none dark:bg-[#27272E] dark:text-zinc-200 dark:shadow-sm dark:shadow-black/40 hover:dark:bg-[#32323A] whitespace-nowrap shrink-0"
               >
                 Cancelar
               </button>

@@ -102,8 +102,8 @@ export default function BusinessSettingsForm({
   }
 
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-xs transition-colors duration-300 ease-in-out sm:p-8 dark:border-zinc-700 dark:bg-zinc-900 dark:shadow-lg dark:shadow-black/30">
-      <div className="border-b border-slate-200 pb-5 dark:border-zinc-700">
+    <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-xs transition-colors duration-300 ease-in-out sm:p-8 dark:border-transparent dark:bg-[#1E1E24] dark:shadow-2xl dark:shadow-black/60">
+      <div className="border-b border-slate-200 pb-5 dark:border-white/[0.04]">
         <h2 className="text-lg font-semibold tracking-tight text-slate-900 dark:text-zinc-50">
           Configuración del negocio
         </h2>
@@ -160,7 +160,7 @@ export default function BusinessSettingsForm({
                 setBusinessName(e.target.value);
               }}
               placeholder="Ej. Clínica Dental Norte"
-              className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3.5 text-sm text-slate-900 placeholder:text-slate-400 transition-colors focus:border-amber-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-700 dark:bg-zinc-800/90 dark:text-zinc-100 dark:placeholder:text-zinc-400 dark:focus:border-amber-500/60"
+              className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3.5 text-sm text-slate-900 placeholder:text-slate-400 transition-colors focus:border-amber-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30 disabled:cursor-not-allowed disabled:opacity-60 dark:border-transparent dark:bg-[#27272E] dark:text-zinc-100 dark:shadow-sm dark:shadow-black/40 dark:placeholder:text-zinc-400 dark:focus:bg-[#32323A] dark:focus:border-amber-500/60"
             />
           </div>
 
@@ -185,7 +185,7 @@ export default function BusinessSettingsForm({
                 setSavedMessage(null);
                 setDelayMinutes(e.target.value);
               }}
-              className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3.5 font-mono text-sm tabular-nums text-slate-900 placeholder:text-slate-400 transition-colors focus:border-amber-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-700 dark:bg-zinc-800/90 dark:text-zinc-100 dark:placeholder:text-zinc-400 dark:focus:border-amber-500/60"
+              className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3.5 font-mono text-sm tabular-nums text-slate-900 placeholder:text-slate-400 transition-colors focus:border-amber-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30 disabled:cursor-not-allowed disabled:opacity-60 dark:border-transparent dark:bg-[#27272E] dark:text-zinc-100 dark:shadow-sm dark:shadow-black/40 dark:placeholder:text-zinc-400 dark:focus:bg-[#32323A] dark:focus:border-amber-500/60"
             />
             <p className="mt-1.5 text-xs text-slate-500 dark:text-zinc-400">
               Usa{' '}
@@ -219,7 +219,7 @@ export default function BusinessSettingsForm({
               setGoogleReviewUrl(e.target.value);
             }}
             placeholder="https://g.page/r/tu-codigo-de-google/review"
-            className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3.5 font-mono text-sm text-slate-900 placeholder:font-sans placeholder:text-slate-400 transition-colors focus:border-amber-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-700 dark:bg-zinc-800/90 dark:text-zinc-100 dark:placeholder:text-zinc-400 dark:focus:border-amber-500/60"
+            className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3.5 font-mono text-sm text-slate-900 placeholder:font-sans placeholder:text-slate-400 transition-colors focus:border-amber-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30 disabled:cursor-not-allowed disabled:opacity-60 dark:border-transparent dark:bg-[#27272E] dark:text-zinc-100 dark:shadow-sm dark:shadow-black/40 dark:placeholder:text-zinc-400 dark:focus:bg-[#32323A] dark:focus:border-amber-500/60"
           />
           <p className="mt-1.5 text-xs text-slate-500 dark:text-zinc-400">
             Copia este enlace desde tu perfil de Google Business Profile en la
@@ -242,7 +242,7 @@ export default function BusinessSettingsForm({
                   type="button"
                   disabled={saving}
                   onClick={() => insertVariable(item.token)}
-                  className="rounded-md border border-slate-200 bg-slate-100 px-2.5 py-1 font-mono text-xs text-slate-700 transition-colors hover:border-slate-300 hover:text-amber-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/50 disabled:opacity-50 dark:border-zinc-600 dark:bg-zinc-800/90 dark:text-zinc-200 dark:hover:border-zinc-500 dark:hover:bg-zinc-700 dark:hover:text-amber-300 whitespace-nowrap shrink-0"
+                  className="rounded-md border border-slate-200 bg-slate-100 px-2.5 py-1 font-mono text-xs text-slate-700 transition-colors hover:border-slate-300 hover:text-amber-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/50 disabled:opacity-50 dark:border-none dark:bg-[#27272E] dark:text-zinc-200 dark:shadow-sm dark:shadow-black/40 hover:dark:bg-[#32323A] dark:hover:text-amber-300 whitespace-nowrap shrink-0"
                 >
                   {item.label}
                 </button>
@@ -262,10 +262,10 @@ export default function BusinessSettingsForm({
               setMessageTemplate(e.target.value);
             }}
             placeholder="Hola {nombre}, gracias por visitarnos en {negocio}. ¿Cómo calificarías tu experiencia? {enlace}"
-            className="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-3 text-sm leading-relaxed text-slate-900 placeholder:text-slate-400 transition-colors focus:border-amber-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-700 dark:bg-zinc-800/90 dark:text-zinc-100 dark:placeholder:text-zinc-400 dark:focus:border-amber-500/60"
+            className="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-3 text-sm leading-relaxed text-slate-900 placeholder:text-slate-400 transition-colors focus:border-amber-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30 disabled:cursor-not-allowed disabled:opacity-60 dark:border-transparent dark:bg-[#27272E] dark:text-zinc-100 dark:shadow-sm dark:shadow-black/40 dark:placeholder:text-zinc-400 dark:focus:bg-[#32323A] dark:focus:border-amber-500/60"
           />
 
-          <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-zinc-700 dark:bg-zinc-800/80">
+          <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-transparent dark:bg-[#27272E] dark:shadow-inner">
             <p className="text-xs font-medium text-slate-500 dark:text-zinc-400">
               Vista previa con datos de ejemplo
             </p>
@@ -275,7 +275,7 @@ export default function BusinessSettingsForm({
           </div>
         </div>
 
-        <div className="flex items-center justify-end border-t border-slate-200 pt-5 dark:border-zinc-700">
+        <div className="flex items-center justify-end border-t border-slate-200 pt-5 dark:border-white/[0.04]">
           <button
             type="submit"
             disabled={saving}

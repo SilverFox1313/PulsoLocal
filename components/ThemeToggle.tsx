@@ -69,7 +69,7 @@ export default function ThemeToggle() {
       onClick={handleToggle}
       aria-label={isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
       title={isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
-      className="relative inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 shadow-xs transition-colors duration-300 ease-in-out hover:border-slate-300 hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/60 dark:border-zinc-600 dark:bg-zinc-800/90 dark:text-zinc-200 dark:shadow-none dark:hover:border-zinc-500 dark:hover:bg-zinc-700 dark:hover:text-white shrink-0"
+      className="relative inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 shadow-xs transition-colors duration-300 ease-in-out hover:border-slate-300 hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/60 dark:border-none dark:bg-[#27272E] dark:text-zinc-200 dark:shadow-md dark:shadow-black/50 hover:dark:bg-[#32323A] dark:hover:text-white shrink-0"
     >
       <Sun
         className="h-4 w-4 text-amber-400 transition-[transform,opacity] duration-300 ease-in-out -rotate-90 scale-0 opacity-0 dark:rotate-0 dark:scale-100 dark:opacity-100"

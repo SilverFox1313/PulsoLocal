@@ -93,7 +93,7 @@ export default async function PublicReviewPage({
         {data ? (
           <PublicReviewFlow data={data} />
         ) : (
-          <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm dark:border-zinc-700/80 dark:bg-zinc-900/90 dark:shadow-none">
+          <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm dark:border-transparent dark:bg-[#1E1E24] dark:shadow-2xl dark:shadow-black/60">
             <h1 className="text-xl font-semibold tracking-tight text-slate-900 dark:text-zinc-50">
               {error === 'invalid_id'
                 ? 'Enlace no válido'

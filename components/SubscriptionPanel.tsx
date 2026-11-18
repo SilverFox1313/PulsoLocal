@@ -72,8 +72,8 @@ export default function SubscriptionPanel({
 
   return (
     <div className="space-y-8">
-      <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-xs transition-colors duration-300 ease-in-out sm:p-8 dark:border-zinc-700 dark:bg-zinc-900 dark:shadow-lg dark:shadow-black/30">
-        <div className="flex flex-col gap-6 border-b border-slate-200 pb-6 sm:flex-row sm:items-start sm:justify-between dark:border-zinc-700">
+      <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-xs transition-colors duration-300 ease-in-out sm:p-8 dark:border-transparent dark:bg-[#1E1E24] dark:shadow-2xl dark:shadow-black/60">
+        <div className="flex flex-col gap-6 border-b border-slate-200 pb-6 sm:flex-row sm:items-start sm:justify-between dark:border-white/[0.04]">
           <div>
             <p className="text-xs font-medium text-slate-500 dark:text-zinc-300">
               Estado actual de tu suscripción
@@ -128,9 +128,9 @@ export default function SubscriptionPanel({
       </section>
 
       <section className="grid gap-6 lg:grid-cols-2">
-        <div className="flex flex-col justify-between rounded-xl border border-slate-200 bg-white p-6 shadow-xs transition-colors duration-300 ease-in-out sm:p-8 dark:border-zinc-700 dark:bg-zinc-900 dark:shadow-lg dark:shadow-black/30">
+        <div className="flex flex-col justify-between rounded-xl border border-slate-200 bg-white p-6 shadow-xs transition-colors duration-300 ease-in-out sm:p-8 dark:border-transparent dark:bg-[#1E1E24] dark:shadow-2xl dark:shadow-black/60">
           <div>
-            <div className="flex items-baseline justify-between gap-4 border-b border-slate-200 pb-5 dark:border-zinc-700">
+            <div className="flex items-baseline justify-between gap-4 border-b border-slate-200 pb-5 dark:border-white/[0.04]">
               <div>
                 <h3 className="text-lg font-semibold text-slate-900 dark:text-zinc-50">
                   Plan Básico
@@ -148,7 +148,7 @@ export default function SubscriptionPanel({
             </div>
 
             <dl className="mt-6 space-y-3 text-sm">
-              <div className="flex items-center justify-between border-b border-slate-200/80 pb-2.5 dark:border-zinc-700/70">
+              <div className="flex items-center justify-between border-b border-slate-200/80 pb-2.5 dark:border-white/[0.04]">
                 <dt className="text-slate-600 dark:text-zinc-300">
                   Solicitudes de reseña
                 </dt>
@@ -156,7 +156,7 @@ export default function SubscriptionPanel({
                   Hasta 30 envíos de reseña / mes
                 </dd>
               </div>
-              <div className="flex items-center justify-between border-b border-slate-200/80 pb-2.5 dark:border-zinc-700/70">
+              <div className="flex items-center justify-between border-b border-slate-200/80 pb-2.5 dark:border-white/[0.04]">
                 <dt className="text-slate-600 dark:text-zinc-300">
                   Encuesta de satisfacción (1–5)
                 </dt>
@@ -164,7 +164,7 @@ export default function SubscriptionPanel({
                   Incluida
                 </dd>
               </div>
-              <div className="flex items-center justify-between border-b border-slate-200/80 pb-2.5 dark:border-zinc-700/70">
+              <div className="flex items-center justify-between border-b border-slate-200/80 pb-2.5 dark:border-white/[0.04]">
                 <dt className="text-slate-600 dark:text-zinc-300">
                   Acceso directo a Google Maps
                 </dt>
@@ -205,9 +205,9 @@ export default function SubscriptionPanel({
           </div>
         </div>
 
-        <div className="flex flex-col justify-between rounded-xl border border-amber-500/40 bg-white p-6 shadow-xs transition-colors duration-300 ease-in-out sm:p-8 dark:border-amber-500/60 dark:bg-zinc-900 dark:shadow-lg dark:shadow-black/30">
+        <div className="flex flex-col justify-between rounded-xl border border-amber-500/40 bg-white p-6 shadow-xs transition-colors duration-300 ease-in-out sm:p-8 dark:border-amber-500/40 dark:bg-[#1E1E24] dark:shadow-2xl dark:shadow-black/60">
           <div>
-            <div className="flex items-baseline justify-between gap-4 border-b border-slate-200 pb-5 dark:border-zinc-700">
+            <div className="flex items-baseline justify-between gap-4 border-b border-slate-200 pb-5 dark:border-white/[0.04]">
               <div>
                 <h3 className="text-lg font-semibold text-slate-900 dark:text-zinc-50">
                   Plan Pro
@@ -225,7 +225,7 @@ export default function SubscriptionPanel({
             </div>
 
             <dl className="mt-6 space-y-3 text-sm">
-              <div className="flex items-center justify-between border-b border-slate-200/80 pb-2.5 dark:border-zinc-700/70">
+              <div className="flex items-center justify-between border-b border-slate-200/80 pb-2.5 dark:border-white/[0.04]">
                 <dt className="text-slate-600 dark:text-zinc-300">
                   Solicitudes de reseña
                 </dt>
@@ -233,7 +233,7 @@ export default function SubscriptionPanel({
                   Ilimitadas
                 </dd>
               </div>
-              <div className="flex items-center justify-between border-b border-slate-200/80 pb-2.5 dark:border-zinc-700/70">
+              <div className="flex items-center justify-between border-b border-slate-200/80 pb-2.5 dark:border-white/[0.04]">
                 <dt className="text-slate-600 dark:text-zinc-300">
                   Automatización Cron y WhatsApp
                 </dt>
@@ -241,7 +241,7 @@ export default function SubscriptionPanel({
                   WhatsApp Cloud API
                 </dd>
               </div>
-              <div className="flex items-center justify-between border-b border-slate-200/80 pb-2.5 dark:border-zinc-700/70">
+              <div className="flex items-center justify-between border-b border-slate-200/80 pb-2.5 dark:border-white/[0.04]">
                 <dt className="text-slate-600 dark:text-zinc-300">
                   Flujo transparente a Google Maps
                 </dt>
