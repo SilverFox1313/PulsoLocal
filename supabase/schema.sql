@@ -402,3 +402,33 @@ $$;
 grant execute on function public.get_public_review_request(uuid) to anon, authenticated;
 grant execute on function public.submit_public_feedback(uuid, smallint, text) to anon, authenticated;
 grant execute on function public.update_public_feedback_comment(uuid, text) to anon, authenticated;
+
+-- ----------------------------------------------------------------------------
+-- 7. SUPABASE REALTIME
+-- Habilita eventos en tiempo real para solicitudes y opiniones privadas
+-- ----------------------------------------------------------------------------
+do $$
+begin
+  if exists (select 1 from pg_publication where pubname = 'supabase_realtime') then
+    if not exists (
+      select 1
+      from pg_publication_tables
+      where pubname = 'supabase_realtime'
+        and schemaname = 'public'
+        and tablename = 'review_requests'
+    ) then
+      alter publication supabase_realtime add table public.review_requests;
+    end if;
+
+    if not exists (
+      select 1
+      from pg_publication_tables
+      where pubname = 'supabase_realtime'
+        and schemaname = 'public'
+        and tablename = 'feedback'
+    ) then
+      alter publication supabase_realtime add table public.feedback;
+    end if;
+  end if;
+end
+$$;

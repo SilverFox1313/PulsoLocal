@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   AlertCircle,
@@ -21,6 +21,7 @@ import PrivateFeedbackList from '@/components/PrivateFeedbackList';
 import ReviewRequestForm from '@/components/ReviewRequestForm';
 import ReviewRequestsTable from '@/components/ReviewRequestsTable';
 import SubscriptionPanel from '@/components/SubscriptionPanel';
+import { createClient } from '@/lib/supabase/client';
 import type {
   Business,
   PrivateFeedbackItem,
@@ -96,6 +97,8 @@ export default function DashboardWorkspace({
   const [activeTab, setActiveTab] = useState<DashboardTab>('requests');
   const [business, setBusiness] = useState<Business | null>(initialBusiness);
   const [requests, setRequests] = useState<ReviewRequest[]>(initialRequests);
+  const [feedbackItems, setFeedbackItems] =
+    useState<PrivateFeedbackItem[]>(initialFeedback);
 
   const [dispatching, setDispatching] = useState(false);
   const [dispatchError, setDispatchError] = useState<string | null>(null);
@@ -103,7 +106,218 @@ export default function DashboardWorkspace({
     useState<DispatchSummary | null>(null);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
-  const negativeFeedbackCount = initialFeedback.filter(
+  const businessId = business?.id ?? null;
+
+  useEffect(() => {
+    if (!businessId) {
+      return;
+    }
+
+    let isMounted = true;
+    let feedbackTimer: number | null = null;
+    let lastVisibilitySyncAt = 0;
+
+    let supabase: ReturnType<typeof createClient>;
+    try {
+      supabase = createClient();
+    } catch {
+      return;
+    }
+
+    async function fetchFeedbackSilently() {
+      try {
+        const { data, error } = await supabase
+          .from('feedback')
+          .select(
+            'id, request_id, rating, comment, redirected_to_google, created_at, review_requests(customer_name, customer_phone)'
+          )
+          .eq('business_id', businessId)
+          .order('created_at', { ascending: false });
+
+        if (!isMounted || error || !data) {
+          return;
+        }
+
+        const mapped: PrivateFeedbackItem[] = data.map((row) => {
+          const linkedReq = Array.isArray(row.review_requests)
+            ? row.review_requests[0]
+            : row.review_requests;
+
+          return {
+            id: row.id,
+            request_id: row.request_id,
+            rating: row.rating,
+            comment: row.comment,
+            redirected_to_google: row.redirected_to_google,
+            created_at: row.created_at,
+            customer_name: linkedReq?.customer_name ?? 'Cliente',
+            customer_phone: linkedReq?.customer_phone ?? '',
+          };
+        });
+
+        setFeedbackItems(mapped);
+      } catch {
+        // Silencioso en segundo plano
+      }
+    }
+
+    async function refreshAllSilently() {
+      try {
+        const [requestsRes, feedbackRes] = await Promise.all([
+          supabase
+            .from('review_requests')
+            .select(
+              'id, business_id, customer_name, customer_phone, status, scheduled_for, created_at'
+            )
+            .eq('business_id', businessId)
+            .order('created_at', { ascending: false }),
+          supabase
+            .from('feedback')
+            .select(
+              'id, request_id, rating, comment, redirected_to_google, created_at, review_requests(customer_name, customer_phone)'
+            )
+            .eq('business_id', businessId)
+            .order('created_at', { ascending: false }),
+        ]);
+
+        if (!isMounted) {
+          return;
+        }
+
+        if (!requestsRes.error && requestsRes.data) {
+          setRequests(requestsRes.data as ReviewRequest[]);
+        }
+
+        if (!feedbackRes.error && feedbackRes.data) {
+          const mapped: PrivateFeedbackItem[] = feedbackRes.data.map((row) => {
+            const linkedReq = Array.isArray(row.review_requests)
+              ? row.review_requests[0]
+              : row.review_requests;
+
+            return {
+              id: row.id,
+              request_id: row.request_id,
+              rating: row.rating,
+              comment: row.comment,
+              redirected_to_google: row.redirected_to_google,
+              created_at: row.created_at,
+              customer_name: linkedReq?.customer_name ?? 'Cliente',
+              customer_phone: linkedReq?.customer_phone ?? '',
+            };
+          });
+
+          setFeedbackItems(mapped);
+        }
+      } catch {
+        // Silencioso en segundo plano
+      }
+    }
+
+    function scheduleFeedbackRefresh() {
+      if (feedbackTimer !== null) {
+        window.clearTimeout(feedbackTimer);
+      }
+      feedbackTimer = window.setTimeout(() => {
+        feedbackTimer = null;
+        void fetchFeedbackSilently();
+      }, 200);
+    }
+
+    const channel = supabase
+      .channel(`pulsolocal-dashboard-${businessId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'review_requests',
+          filter: `business_id=eq.${businessId}`,
+        },
+        (payload) => {
+          if (!isMounted) {
+            return;
+          }
+
+          if (payload.eventType === 'INSERT') {
+            const inserted = payload.new as ReviewRequest;
+            setRequests((prev) =>
+              prev.some((item) => item.id === inserted.id)
+                ? prev.map((item) => (item.id === inserted.id ? inserted : item))
+                : [inserted, ...prev]
+            );
+            return;
+          }
+
+          if (payload.eventType === 'UPDATE') {
+            const updated = payload.new as ReviewRequest;
+            setRequests((prev) => {
+              const exists = prev.some((item) => item.id === updated.id);
+              if (!exists) {
+                return [updated, ...prev];
+              }
+              return prev.map((item) =>
+                item.id === updated.id ? { ...item, ...updated } : item
+              );
+            });
+            return;
+          }
+
+          if (payload.eventType === 'DELETE') {
+            const deletedId = (payload.old as { id?: string } | null)?.id;
+            if (deletedId) {
+              setRequests((prev) =>
+                prev.filter((item) => item.id !== deletedId)
+              );
+            } else {
+              void refreshAllSilently();
+            }
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'feedback',
+          filter: `business_id=eq.${businessId}`,
+        },
+        () => {
+          if (!isMounted) {
+            return;
+          }
+          scheduleFeedbackRefresh();
+        }
+      )
+      .subscribe();
+
+    const handleVisibilityOrFocus = () => {
+      if (document.visibilityState !== 'visible') {
+        return;
+      }
+      const now = Date.now();
+      if (now - lastVisibilitySyncAt < 1500) {
+        return;
+      }
+      lastVisibilitySyncAt = now;
+      void refreshAllSilently();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityOrFocus);
+    window.addEventListener('focus', handleVisibilityOrFocus);
+
+    return () => {
+      isMounted = false;
+      if (feedbackTimer !== null) {
+        window.clearTimeout(feedbackTimer);
+      }
+      document.removeEventListener('visibilitychange', handleVisibilityOrFocus);
+      window.removeEventListener('focus', handleVisibilityOrFocus);
+      void supabase.removeChannel(channel);
+    };
+  }, [businessId]);
+
+  const negativeFeedbackCount = feedbackItems.filter(
     (item) => item.rating <= 3
   ).length;
 
@@ -620,7 +834,7 @@ export default function DashboardWorkspace({
           />
         </div>
       ) : activeTab === 'feedback' ? (
-        <PrivateFeedbackList items={initialFeedback} />
+        <PrivateFeedbackList items={feedbackItems} />
       ) : activeTab === 'settings' ? (
         <BusinessSettingsForm
           business={business}
