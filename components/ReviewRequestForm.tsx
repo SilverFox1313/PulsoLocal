@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from 'react';
 import { AlertCircle, CheckCircle2, Loader2, UserPlus } from 'lucide-react';
+import { toast } from 'sonner';
 import { createReviewRequestAction } from '@/app/dashboard/actions';
 import type { ReviewRequest } from '@/types/database';
 
@@ -30,13 +31,17 @@ export default function ReviewRequestForm({
     const trimmedPhone = customerPhone.trim();
 
     if (trimmedName.length < 2) {
-      setError('Ingresa el nombre completo del cliente.');
+      const msg = 'Ingresa el nombre completo del cliente.';
+      setError(msg);
+      toast.error(msg);
       return;
     }
 
     const digits = trimmedPhone.replace(/\D/g, '');
     if (digits.length < 7 || digits.length > 15) {
-      setError('Ingresa un teléfono válido (ej. +52 55 1234 5678).');
+      const msg = 'Ingresa un teléfono válido (ej. +52 55 1234 5678).';
+      setError(msg);
+      toast.error(msg);
       return;
     }
 
@@ -51,6 +56,7 @@ export default function ReviewRequestForm({
 
     if (result.error) {
       setError(result.error);
+      toast.error(result.error);
       return;
     }
 
@@ -58,9 +64,9 @@ export default function ReviewRequestForm({
       onCreated(result.request);
       setCustomerName('');
       setCustomerPhone('');
-      setSuccessMessage(
-        `Solicitud programada para ${result.request.customer_name}.`
-      );
+      const msg = `Solicitud programada para ${result.request.customer_name}`;
+      setSuccessMessage(`${msg}.`);
+      toast.success(msg);
     }
   }
 

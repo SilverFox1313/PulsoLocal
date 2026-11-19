@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from 'react';
 import { AlertCircle, CheckCircle2, Loader2, Save } from 'lucide-react';
+import { toast } from 'sonner';
 import { updateBusinessSettingsAction } from '@/app/dashboard/actions';
 import type { Business } from '@/types/database';
 
@@ -69,9 +70,10 @@ export default function BusinessSettingsForm({
       parsedDelay < 0 ||
       parsedDelay > 10080
     ) {
-      setError(
-        'Ingresa un retraso válido en minutos (número entero entre 0 y 10080).'
-      );
+      const msg =
+        'Ingresa un retraso válido en minutos (número entero entre 0 y 10080).';
+      setError(msg);
+      toast.error(msg);
       return;
     }
 
@@ -88,6 +90,7 @@ export default function BusinessSettingsForm({
 
     if (result.error) {
       setError(result.error);
+      toast.error(result.error);
       return;
     }
 
@@ -98,6 +101,7 @@ export default function BusinessSettingsForm({
       setMessageTemplate(result.business.message_template);
       setDelayMinutes(String(result.business.delay_minutes));
       setSavedMessage('Cambios guardados correctamente.');
+      toast.success('Configuración del negocio guardada');
     }
   }
 

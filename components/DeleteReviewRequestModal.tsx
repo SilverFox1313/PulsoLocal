@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { AlertCircle, Loader2, Trash2, X } from 'lucide-react';
+import { toast } from 'sonner';
 import { deleteReviewRequestAction } from '@/app/dashboard/actions';
 import type { ReviewRequest } from '@/types/database';
 
@@ -40,11 +41,13 @@ export default function DeleteReviewRequestModal({
 
     if (result.error) {
       setError(result.error);
+      toast.error(result.error);
       return;
     }
 
     if (result.deletedId) {
       onDeleted(result.deletedId);
+      toast.success(`Solicitud de ${request.customer_name} eliminada`);
       onClose();
     }
   }

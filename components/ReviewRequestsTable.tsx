@@ -17,6 +17,7 @@ import {
   Send,
   Trash2,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import DeleteReviewRequestModal from '@/components/DeleteReviewRequestModal';
 import EditReviewRequestModal from '@/components/EditReviewRequestModal';
 import FormattedDate from '@/components/FormattedDate';
@@ -98,7 +99,6 @@ export default function ReviewRequestsTable({
   const [deletingRequest, setDeletingRequest] = useState<ReviewRequest | null>(
     null
   );
-  const [deleteNotice, setDeleteNotice] = useState<string | null>(null);
 
   function handleSearchChange(value: string) {
     setSearchQuery(value);
@@ -115,11 +115,12 @@ export default function ReviewRequestsTable({
       const url = `${window.location.origin}/r/${requestId}`;
       await navigator.clipboard.writeText(url);
       setCopiedId(requestId);
+      toast.info('Enlace copiado al portapapeles');
       window.setTimeout(() => {
         setCopiedId((prev) => (prev === requestId ? null : prev));
       }, 2000);
     } catch {
-      // Silencioso si el portapapeles no está disponible
+      toast.error('No se pudo copiar el enlace al portapapeles');
     }
   }
 
@@ -225,19 +226,6 @@ export default function ReviewRequestsTable({
           </div>
         </div>
       </div>
-
-      {deleteNotice && (
-        <div
-          role="status"
-          className="mx-6 mt-4 flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-2.5 text-sm text-emerald-700 dark:text-emerald-200"
-        >
-          <CheckCircle2
-            className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400"
-            aria-hidden="true"
-          />
-          <span>{deleteNotice}</span>
-        </div>
-      )}
 
       {filteredRequests.length === 0 ? (
         <div className="flex flex-col items-center justify-center px-6 py-14 text-center">
@@ -359,6 +347,9 @@ export default function ReviewRequestsTable({
                           href={`/r/${item.id}`}
                           target="_blank"
                           rel="noopener noreferrer"
+                          onClick={() =>
+                            toast.info(`Abriendo enlace de ${item.customer_name}`)
+                          }
                           aria-label={`Abrir enlace de reseña para ${item.customer_name}`}
                           className="inline-flex h-8 items-center gap-1.5 rounded-md border border-slate-200 bg-slate-50 px-3 text-xs font-medium text-slate-700 transition-colors hover:border-cyan-400 hover:bg-cyan-500/10 hover:text-cyan-600 dark:border-none dark:bg-[#27272E] dark:text-zinc-200 dark:shadow-sm dark:shadow-black/40 hover:dark:bg-[#32323A] dark:hover:text-cyan-300 whitespace-nowrap shrink-0"
                         >
@@ -466,12 +457,6 @@ export default function ReviewRequestsTable({
               setCurrentPage(nextTotalPages);
             }
             onRequestDeleted?.(deletedId);
-            setDeleteNotice('Solicitud eliminada');
-            window.setTimeout(() => {
-              setDeleteNotice((prev) =>
-                prev === 'Solicitud eliminada' ? null : prev
-              );
-            }, 4000);
           }}
         />
       )}

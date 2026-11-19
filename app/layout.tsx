@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
 import { Plus_Jakarta_Sans, JetBrains_Mono } from 'next/font/google';
+import AppToaster from '@/components/AppToaster';
 import NavigationProgress from '@/components/NavigationProgress';
 import './globals.css';
 
@@ -60,6 +61,7 @@ export default function RootLayout({
           <NavigationProgress />
         </Suspense>
         {children}
+        <AppToaster />
       </body>
     </html>
   );

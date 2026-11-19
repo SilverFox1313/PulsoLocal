@@ -9,6 +9,7 @@ import {
   Send,
   X,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { updateReviewRequestAction } from '@/app/dashboard/actions';
 import type { ReviewRequest } from '@/types/database';
 
@@ -114,11 +115,17 @@ export default function EditReviewRequestModal({
 
     if (result.error) {
       setError(result.error);
+      toast.error(result.error);
       return;
     }
 
     if (result.request) {
       onSaved(result.request);
+      toast.success(
+        sendNow
+          ? `Envío programado ahora para ${result.request.customer_name}`
+          : `Solicitud de ${result.request.customer_name} actualizada`
+      );
       onClose();
     }
   }

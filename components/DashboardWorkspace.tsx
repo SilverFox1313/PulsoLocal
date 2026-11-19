@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   AlertCircle,
@@ -16,6 +16,7 @@ import {
   Settings,
   Users,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import BusinessSettingsForm from '@/components/BusinessSettingsForm';
 import PrivateFeedbackList from '@/components/PrivateFeedbackList';
 import ReviewRequestForm from '@/components/ReviewRequestForm';
@@ -108,6 +109,26 @@ export default function DashboardWorkspace({
 
   const businessId = business?.id ?? null;
 
+  const requestsByIdRef = useRef<Map<string, ReviewRequest>>(
+    new Map(initialRequests.map((item) => [item.id, item]))
+  );
+  const localMutationTimestampsRef = useRef<Map<string, number>>(new Map());
+  const manualDispatchActiveRef = useRef(false);
+
+  function markLocalMutation(requestId: string) {
+    localMutationTimestampsRef.current.set(requestId, Date.now());
+  }
+
+  function wasLocallyMutated(requestId: string): boolean {
+    const ts = localMutationTimestampsRef.current.get(requestId);
+    if (!ts) return false;
+    if (Date.now() - ts > 8000) {
+      localMutationTimestampsRef.current.delete(requestId);
+      return false;
+    }
+    return true;
+  }
+
   useEffect(() => {
     if (!businessId) {
       return;
@@ -116,6 +137,8 @@ export default function DashboardWorkspace({
     let isMounted = true;
     let feedbackTimer: number | null = null;
     let lastVisibilitySyncAt = 0;
+    const feedbackNotifiedAt = new Map<string, number>();
+    const completedToastTimers = new Map<string, number>();
 
     let supabase: ReturnType<typeof createClient>;
     try {
@@ -124,7 +147,7 @@ export default function DashboardWorkspace({
       return;
     }
 
-    async function fetchFeedbackSilently() {
+    async function fetchFeedbackSilently(notifyForId?: string) {
       try {
         const { data, error } = await supabase
           .from('feedback')
@@ -156,6 +179,15 @@ export default function DashboardWorkspace({
         });
 
         setFeedbackItems(mapped);
+
+        if (notifyForId) {
+          const target = mapped.find((item) => item.id === notifyForId);
+          if (target) {
+            toast.info(
+              `Nueva calificación (${target.rating}/5) recibida de ${target.customer_name}`
+            );
+          }
+        }
       } catch {
         // Silencioso en segundo plano
       }
@@ -185,7 +217,11 @@ export default function DashboardWorkspace({
         }
 
         if (!requestsRes.error && requestsRes.data) {
-          setRequests(requestsRes.data as ReviewRequest[]);
+          const freshRequests = requestsRes.data as ReviewRequest[];
+          requestsByIdRef.current = new Map(
+            freshRequests.map((item) => [item.id, item])
+          );
+          setRequests(freshRequests);
         }
 
         if (!feedbackRes.error && feedbackRes.data) {
@@ -213,13 +249,13 @@ export default function DashboardWorkspace({
       }
     }
 
-    function scheduleFeedbackRefresh() {
+    function scheduleFeedbackRefresh(notifyForId?: string) {
       if (feedbackTimer !== null) {
         window.clearTimeout(feedbackTimer);
       }
       feedbackTimer = window.setTimeout(() => {
         feedbackTimer = null;
-        void fetchFeedbackSilently();
+        void fetchFeedbackSilently(notifyForId);
       }, 200);
     }
 
@@ -240,6 +276,7 @@ export default function DashboardWorkspace({
 
           if (payload.eventType === 'INSERT') {
             const inserted = payload.new as ReviewRequest;
+            requestsByIdRef.current.set(inserted.id, inserted);
             setRequests((prev) =>
               prev.some((item) => item.id === inserted.id)
                 ? prev.map((item) => (item.id === inserted.id ? inserted : item))
@@ -250,6 +287,9 @@ export default function DashboardWorkspace({
 
           if (payload.eventType === 'UPDATE') {
             const updated = payload.new as ReviewRequest;
+            const previous = requestsByIdRef.current.get(updated.id);
+            requestsByIdRef.current.set(updated.id, updated);
+
             setRequests((prev) => {
               const exists = prev.some((item) => item.id === updated.id);
               if (!exists) {
@@ -259,12 +299,43 @@ export default function DashboardWorkspace({
                 item.id === updated.id ? { ...item, ...updated } : item
               );
             });
+
+            if (
+              !manualDispatchActiveRef.current &&
+              !wasLocallyMutated(updated.id)
+            ) {
+              if (previous?.status !== 'sent' && updated.status === 'sent') {
+                toast.info(`Solicitud enviada a ${updated.customer_name}`);
+              } else if (
+                previous?.status !== 'completed' &&
+                updated.status === 'completed'
+              ) {
+                const notifiedAt = feedbackNotifiedAt.get(updated.id);
+                if (!notifiedAt || Date.now() - notifiedAt > 4000) {
+                  const existingTimer = completedToastTimers.get(updated.id);
+                  if (existingTimer !== undefined) {
+                    window.clearTimeout(existingTimer);
+                  }
+                  const timer = window.setTimeout(() => {
+                    completedToastTimers.delete(updated.id);
+                    const fbAt = feedbackNotifiedAt.get(updated.id);
+                    if (!fbAt || Date.now() - fbAt > 4000) {
+                      toast.success(
+                        `${updated.customer_name} completó su reseña`
+                      );
+                    }
+                  }, 300);
+                  completedToastTimers.set(updated.id, timer);
+                }
+              }
+            }
             return;
           }
 
           if (payload.eventType === 'DELETE') {
             const deletedId = (payload.old as { id?: string } | null)?.id;
             if (deletedId) {
+              requestsByIdRef.current.delete(deletedId);
               setRequests((prev) =>
                 prev.filter((item) => item.id !== deletedId)
               );
@@ -282,10 +353,48 @@ export default function DashboardWorkspace({
           table: 'feedback',
           filter: `business_id=eq.${businessId}`,
         },
-        () => {
+        (payload) => {
           if (!isMounted) {
             return;
           }
+
+          if (payload.eventType === 'INSERT') {
+            const inserted = payload.new as {
+              id?: string;
+              request_id?: string;
+              rating?: number;
+            };
+
+            if (inserted.request_id) {
+              feedbackNotifiedAt.set(inserted.request_id, Date.now());
+              const pendingCompletedTimer = completedToastTimers.get(
+                inserted.request_id
+              );
+              if (pendingCompletedTimer !== undefined) {
+                window.clearTimeout(pendingCompletedTimer);
+                completedToastTimers.delete(inserted.request_id);
+              }
+            }
+
+            const linkedRequest = inserted.request_id
+              ? requestsByIdRef.current.get(inserted.request_id)
+              : undefined;
+
+            if (linkedRequest) {
+              toast.info(
+                `Nueva calificación${
+                  typeof inserted.rating === 'number'
+                    ? ` (${inserted.rating}/5)`
+                    : ''
+                } recibida de ${linkedRequest.customer_name}`
+              );
+              scheduleFeedbackRefresh();
+            } else {
+              scheduleFeedbackRefresh(inserted.id);
+            }
+            return;
+          }
+
           scheduleFeedbackRefresh();
         }
       )
@@ -311,6 +420,10 @@ export default function DashboardWorkspace({
       if (feedbackTimer !== null) {
         window.clearTimeout(feedbackTimer);
       }
+      for (const timer of completedToastTimers.values()) {
+        window.clearTimeout(timer);
+      }
+      completedToastTimers.clear();
       document.removeEventListener('visibilitychange', handleVisibilityOrFocus);
       window.removeEventListener('focus', handleVisibilityOrFocus);
       void supabase.removeChannel(channel);
@@ -324,11 +437,19 @@ export default function DashboardWorkspace({
   const pendingCount = requests.filter((r) => r.status === 'pending').length;
 
   function handleRequestCreated(newRequest: ReviewRequest) {
-    setRequests((prev) => [newRequest, ...prev]);
+    markLocalMutation(newRequest.id);
+    requestsByIdRef.current.set(newRequest.id, newRequest);
+    setRequests((prev) =>
+      prev.some((item) => item.id === newRequest.id)
+        ? prev
+        : [newRequest, ...prev]
+    );
     setDispatchSummary(null);
   }
 
   function handleRequestUpdated(updatedRequest: ReviewRequest) {
+    markLocalMutation(updatedRequest.id);
+    requestsByIdRef.current.set(updatedRequest.id, updatedRequest);
     setRequests((prev) =>
       prev.map((item) =>
         item.id === updatedRequest.id ? updatedRequest : item
@@ -339,6 +460,8 @@ export default function DashboardWorkspace({
   }
 
   function handleRequestDeleted(deletedId: string) {
+    markLocalMutation(deletedId);
+    requestsByIdRef.current.delete(deletedId);
     setRequests((prev) => prev.filter((item) => item.id !== deletedId));
     setDispatchSummary(null);
     router.refresh();
@@ -352,17 +475,28 @@ export default function DashboardWorkspace({
     try {
       await navigator.clipboard.writeText(value);
       setCopiedKey(key);
+      toast.info(
+        key.startsWith('link-')
+          ? 'Enlace copiado al portapapeles'
+          : 'Mensaje copiado al portapapeles'
+      );
       window.setTimeout(() => {
         setCopiedKey((prev) => (prev === key ? null : prev));
       }, 2000);
     } catch {
-      // Silencioso si el portapapeles no está disponible
+      toast.error('No se pudo copiar al portapapeles');
     }
   }
 
   async function runSendReminders(includeFuture = false) {
     setDispatchError(null);
     setDispatching(true);
+    manualDispatchActiveRef.current = true;
+    const toastId = toast.loading(
+      includeFuture
+        ? 'Enviando solicitudes pendientes...'
+        : 'Verificando y enviando solicitudes pendientes...'
+    );
 
     try {
       const response = await fetch('/api/cron/send-reminders', {
@@ -378,15 +512,26 @@ export default function DashboardWorkspace({
         | undefined;
 
       if (!response.ok || !payload?.ok) {
-        setDispatchError(
+        const errMsg =
           payload?.error ||
-            'No se pudo ejecutar la verificación de envíos pendientes.'
-        );
+          'No se pudo ejecutar la verificación de envíos pendientes.';
+        setDispatchError(errMsg);
+        toast.error(errMsg, { id: toastId });
+        manualDispatchActiveRef.current = false;
         setDispatching(false);
         return;
       }
 
       const sentIds = new Set(payload.items.map((item) => item.id));
+      for (const id of sentIds) {
+        markLocalMutation(id);
+        const existing = requestsByIdRef.current.get(id);
+        if (existing) {
+          requestsByIdRef.current.set(id, { ...existing, status: 'sent' });
+        }
+      }
+      manualDispatchActiveRef.current = false;
+
       if (sentIds.size > 0) {
         setRequests((prev) =>
           prev.map((req) =>
@@ -404,12 +549,50 @@ export default function DashboardWorkspace({
         errors: payload.errors,
       });
 
+      if (payload.processed > 0 && payload.failed === 0) {
+        const countLabel =
+          payload.processed === 1
+            ? '1 solicitud'
+            : `${payload.processed} solicitudes`;
+        toast.success(
+          payload.mode === 'whatsapp_cloud'
+            ? `${countLabel} ${
+                payload.processed === 1 ? 'enviada' : 'enviadas'
+              } por WhatsApp`
+            : `${countLabel} ${
+                payload.processed === 1 ? 'procesada' : 'procesadas'
+              } (modo simulado)`,
+          { id: toastId }
+        );
+      } else if (payload.processed > 0 && payload.failed > 0) {
+        toast.warning(
+          `${payload.processed} enviadas y ${payload.failed} con error en WhatsApp`,
+          { id: toastId }
+        );
+      } else if (payload.processed === 0 && payload.failed > 0) {
+        toast.error(
+          payload.errors?.[0]?.error ||
+            'Error al enviar mensajes mediante WhatsApp Cloud API.',
+          { id: toastId }
+        );
+      } else {
+        toast.info(
+          payload.pendingFutureCount > 0
+            ? `No hay envíos vencidos (${payload.pendingFutureCount} programadas a futuro)`
+            : 'No hay solicitudes pendientes por enviar',
+          { id: toastId }
+        );
+      }
+
       router.refresh();
     } catch {
-      setDispatchError(
-        'Error de conexión al ejecutar la verificación de envíos.'
-      );
+      manualDispatchActiveRef.current = false;
+      const errMsg =
+        'Error de conexión al ejecutar la verificación de envíos.';
+      setDispatchError(errMsg);
+      toast.error(errMsg, { id: toastId });
     } finally {
+      manualDispatchActiveRef.current = false;
       setDispatching(false);
     }
   }
