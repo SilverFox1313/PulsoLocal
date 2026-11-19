@@ -114,6 +114,7 @@ export default function DashboardWorkspace({
   );
   const localMutationTimestampsRef = useRef<Map<string, number>>(new Map());
   const manualDispatchActiveRef = useRef(false);
+  const shouldFocusGoogleUrlRef = useRef(false);
 
   function markLocalMutation(requestId: string) {
     localMutationTimestampsRef.current.set(requestId, Date.now());
@@ -471,6 +472,39 @@ export default function DashboardWorkspace({
     setBusiness(updated);
   }
 
+  function scrollToAndFocusGoogleUrl() {
+    window.requestAnimationFrame(() => {
+      const input = document.getElementById(
+        'settings-google-url'
+      ) as HTMLInputElement | null;
+      if (!input) {
+        return;
+      }
+      input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      window.setTimeout(() => {
+        input.focus({ preventScroll: true });
+      }, 150);
+    });
+  }
+
+  useEffect(() => {
+    if (activeTab !== 'settings' || !shouldFocusGoogleUrlRef.current) {
+      return;
+    }
+
+    shouldFocusGoogleUrlRef.current = false;
+    scrollToAndFocusGoogleUrl();
+  }, [activeTab]);
+
+  function handleGoToGoogleUrlSetting() {
+    if (activeTab === 'settings') {
+      scrollToAndFocusGoogleUrl();
+      return;
+    }
+    shouldFocusGoogleUrlRef.current = true;
+    setActiveTab('settings');
+  }
+
   async function handleCopyText(key: string, value: string) {
     try {
       await navigator.clipboard.writeText(value);
@@ -623,11 +657,17 @@ export default function DashboardWorkspace({
                   Espera: {business.delay_minutes} min
                 </span>
                 <span aria-hidden="true">·</span>
-                <span>
-                  {business.google_review_url
-                    ? 'Enlace de Google configurado'
-                    : 'Falta configurar enlace de Google'}
-                </span>
+                {business.google_review_url ? (
+                  <span>Enlace de Google configurado</span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleGoToGoogleUrlSetting}
+                    className="cursor-pointer rounded-xs font-medium text-red-600 transition-colors hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 dark:text-red-400"
+                  >
+                    Falta configurar enlace de Google
+                  </button>
+                )}
                 <span aria-hidden="true">·</span>
                 <span className="font-medium tabular-nums text-slate-800 dark:text-zinc-200">
                   {getHeaderPlanLabel(business)}
@@ -730,7 +770,7 @@ export default function DashboardWorkspace({
           </p>
           <button
             type="button"
-            onClick={() => setActiveTab('settings')}
+            onClick={handleGoToGoogleUrlSetting}
             className="inline-flex h-9 items-center justify-center rounded-lg border border-amber-500/40 bg-white px-3.5 text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-50 dark:border-none dark:bg-[#27272E] dark:text-amber-300 hover:dark:bg-[#32323A] dark:shadow-sm dark:shadow-black/40 whitespace-nowrap shrink-0"
           >
             Configurar enlace
