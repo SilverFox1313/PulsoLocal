@@ -7,6 +7,7 @@ import {
   AlertTriangle,
   Check,
   CheckCircle2,
+  Clock,
   Copy,
   CreditCard,
   Loader2,
@@ -367,6 +368,16 @@ export default function DashboardWorkspace({
                           ? 'solicitud pendiente'
                           : 'solicitudes pendientes'
                       } esperando su hora programada.`}
+                </p>
+                <p className="mt-1.5 inline-flex items-center gap-1.5 text-xs text-slate-500 dark:text-zinc-400">
+                  <Clock
+                    className="h-3.5 w-3.5 shrink-0 text-amber-600 dark:text-amber-400"
+                    aria-hidden="true"
+                  />
+                  <span>
+                    Envío automático programado cada hora · Usa el botón manual
+                    para pruebas rápidas.
+                  </span>
                 </p>
               </div>
 
