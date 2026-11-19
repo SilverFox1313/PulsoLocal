@@ -375,8 +375,8 @@ export default function DashboardWorkspace({
                     aria-hidden="true"
                   />
                   <span>
-                    Envío automático programado cada hora · Usa el botón manual
-                    para pruebas rápidas.
+                    Envío automático programado una vez al día (12:00 UTC) · Usa
+                    el botón manual para pruebas rápidas.
                   </span>
                 </p>
               </div>
