@@ -15,7 +15,7 @@ create table if not exists public.businesses (
   user_id uuid not null unique references auth.users(id) on delete cascade,
   business_name text not null default 'Mi Negocio',
   google_review_url text,
-  message_template text not null default 'Hola {{customer_name}}, gracias por elegir {{business_name}}. ¿Cómo calificarías tu experiencia hoy? {{review_link}}',
+  message_template text not null default 'Hola {nombre}, gracias por elegir {negocio}. ¿Cómo calificarías tu experiencia hoy? {enlace}',
   delay_minutes integer not null default 60 check (delay_minutes >= 0 and delay_minutes <= 10080),
   subscription_status text not null default 'trialing' check (subscription_status in ('trialing', 'active', 'past_due', 'canceled', 'inactive')),
   created_at timestamptz not null default now()

@@ -17,6 +17,13 @@ const TEMPLATE_VARIABLES = [
   { token: '{enlace}', label: '+ {enlace}' },
 ];
 
+function normalizeTemplateVariables(template: string): string {
+  return template
+    .replaceAll('{{customer_name}}', '{nombre}')
+    .replaceAll('{{business_name}}', '{negocio}')
+    .replaceAll('{{review_link}}', '{enlace}');
+}
+
 export default function BusinessSettingsForm({
   business,
   onUpdated,
@@ -25,8 +32,8 @@ export default function BusinessSettingsForm({
   const [googleReviewUrl, setGoogleReviewUrl] = useState(
     business.google_review_url ?? ''
   );
-  const [messageTemplate, setMessageTemplate] = useState(
-    business.message_template
+  const [messageTemplate, setMessageTemplate] = useState(() =>
+    normalizeTemplateVariables(business.message_template)
   );
   const [delayMinutes, setDelayMinutes] = useState(
     String(business.delay_minutes)
@@ -49,13 +56,10 @@ export default function BusinessSettingsForm({
 
   function renderPreview(): string {
     const sampleBusiness = businessName.trim() || 'Tu Negocio';
-    return messageTemplate
+    return normalizeTemplateVariables(messageTemplate)
       .replaceAll('{nombre}', 'María')
-      .replaceAll('{{customer_name}}', 'María')
       .replaceAll('{negocio}', sampleBusiness)
-      .replaceAll('{{business_name}}', sampleBusiness)
-      .replaceAll('{enlace}', 'https://pulsolocal.app/r/ejemplo')
-      .replaceAll('{{review_link}}', 'https://pulsolocal.app/r/ejemplo');
+      .replaceAll('{enlace}', 'https://pulsolocal.app/r/ejemplo');
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -71,7 +75,7 @@ export default function BusinessSettingsForm({
       parsedDelay > 10080
     ) {
       const msg =
-        'Ingresa un retraso válido en minutos (número entero entre 0 y 10080).';
+        'Ingresa un tiempo de espera válido en minutos (número entero entre 0 y 10080).';
       setError(msg);
       toast.error(msg);
       return;
@@ -79,10 +83,12 @@ export default function BusinessSettingsForm({
 
     setSaving(true);
 
+    const normalizedTemplate = normalizeTemplateVariables(messageTemplate);
+
     const result = await updateBusinessSettingsAction({
       businessName,
       googleReviewUrl,
-      messageTemplate,
+      messageTemplate: normalizedTemplate,
       delayMinutes: parsedDelay,
     });
 
@@ -98,7 +104,9 @@ export default function BusinessSettingsForm({
       onUpdated(result.business);
       setBusinessName(result.business.business_name);
       setGoogleReviewUrl(result.business.google_review_url ?? '');
-      setMessageTemplate(result.business.message_template);
+      setMessageTemplate(
+        normalizeTemplateVariables(result.business.message_template)
+      );
       setDelayMinutes(String(result.business.delay_minutes));
       setSavedMessage('Cambios guardados correctamente.');
       toast.success('Configuración del negocio guardada');
@@ -173,7 +181,7 @@ export default function BusinessSettingsForm({
               htmlFor="settings-delay-minutes"
               className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-zinc-300"
             >
-              Minutos de retraso antes de enviar
+              Minutos de espera antes de enviar
             </label>
             <input
               id="settings-delay-minutes"
@@ -237,7 +245,7 @@ export default function BusinessSettingsForm({
               htmlFor="settings-message-template"
               className="block text-sm font-medium text-slate-700 dark:text-zinc-300"
             >
-              Plantilla del mensaje de texto
+              Mensaje de invitación por WhatsApp
             </label>
             <div className="flex flex-wrap items-center gap-1.5">
               {TEMPLATE_VARIABLES.map((item) => (

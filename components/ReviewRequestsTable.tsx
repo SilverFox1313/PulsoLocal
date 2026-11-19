@@ -1,7 +1,6 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import Link from 'next/link';
 import {
   Check,
   CheckCircle2,
@@ -9,7 +8,6 @@ import {
   ChevronRight,
   Clock,
   Copy,
-  ExternalLink,
   Inbox,
   MousePointerClick,
   Pencil,
@@ -339,23 +337,10 @@ export default function ReviewRequestsTable({
                           ) : (
                             <>
                               <Copy className="h-3.5 w-3.5" aria-hidden="true" />
-                              <span>Copiar</span>
+                              <span>Copiar enlace</span>
                             </>
                           )}
                         </button>
-                        <Link
-                          href={`/r/${item.id}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          onClick={() =>
-                            toast.info(`Abriendo enlace de ${item.customer_name}`)
-                          }
-                          aria-label={`Abrir enlace de reseña para ${item.customer_name}`}
-                          className="inline-flex h-8 items-center gap-1.5 rounded-md border border-slate-200 bg-slate-50 px-3 text-xs font-medium text-slate-700 transition-colors hover:border-cyan-400 hover:bg-cyan-500/10 hover:text-cyan-600 dark:border-none dark:bg-[#27272E] dark:text-zinc-200 dark:shadow-sm dark:shadow-black/40 hover:dark:bg-[#32323A] dark:hover:text-cyan-300 whitespace-nowrap shrink-0"
-                        >
-                          <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
-                          <span>Abrir</span>
-                        </Link>
                       </div>
                     </td>
                   </tr>

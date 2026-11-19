@@ -29,7 +29,7 @@ function getStatusSummary(
       return {
         label: 'Plan Pro Activo',
         detail:
-          'Todas las funciones de automatización, envío y gestión transparente de reseñas están habilitadas sin límite de solicitudes.',
+          'Todas las funciones de envío automático por WhatsApp, hasta 300 envíos de reseña al mes y gestión de opiniones están habilitadas.',
         isActive: true,
       };
     case 'trialing':
@@ -109,10 +109,10 @@ export default function SubscriptionPanel({
             <p className="text-xs text-slate-500 dark:text-zinc-400">
               Solicitudes registradas
             </p>
-            <p className="mt-1 font-mono text-sm font-medium tabular-nums text-slate-900 dark:text-zinc-100">
+            <p className="mt-1 text-sm font-medium tabular-nums text-slate-900 dark:text-zinc-100">
               {totalRequestsCount}{' '}
               {business.subscription_status === 'active'
-                ? '/ Ilimitadas'
+                ? '/ 300 este mes'
                 : '/ 25 incluidas en Trial'}
             </p>
           </div>
@@ -128,7 +128,7 @@ export default function SubscriptionPanel({
       </section>
 
       <section className="grid gap-6 lg:grid-cols-2">
-        <div className="flex flex-col justify-between rounded-xl border border-slate-200 bg-white p-6 shadow-xs transition-colors duration-300 ease-in-out sm:p-8 dark:border-transparent dark:bg-[#1E1E24] dark:shadow-2xl dark:shadow-black/60">
+        <div className="flex h-full flex-col justify-between rounded-xl border border-slate-200 bg-white p-6 shadow-xs transition-colors duration-300 ease-in-out sm:p-8 dark:border-transparent dark:bg-[#1E1E24] dark:shadow-2xl dark:shadow-black/60">
           <div>
             <div className="flex items-baseline justify-between gap-4 border-b border-slate-200 pb-5 dark:border-white/[0.04]">
               <div>
@@ -139,7 +139,7 @@ export default function SubscriptionPanel({
                   Para negocios locales que inician
                 </p>
               </div>
-              <p className="font-mono text-2xl font-bold tabular-nums text-slate-900 dark:text-zinc-100">
+              <p className="text-2xl font-bold tabular-nums text-slate-900 dark:text-zinc-100">
                 $10{' '}
                 <span className="text-xs font-normal text-slate-500 dark:text-zinc-300">
                   USD / mes
@@ -150,34 +150,40 @@ export default function SubscriptionPanel({
             <dl className="mt-6 space-y-3 text-sm">
               <div className="flex items-center justify-between border-b border-slate-200/80 pb-2.5 dark:border-white/[0.04]">
                 <dt className="text-slate-600 dark:text-zinc-300">
-                  Solicitudes de reseña
+                  Envíos por mes
                 </dt>
-                <dd className="font-mono text-xs tabular-nums text-slate-800 dark:text-zinc-200">
-                  Hasta 30 envíos de reseña / mes
+                <dd className="text-xs text-slate-800 dark:text-zinc-200">
+                  Hasta 30 envíos / mes
                 </dd>
               </div>
               <div className="flex items-center justify-between border-b border-slate-200/80 pb-2.5 dark:border-white/[0.04]">
                 <dt className="text-slate-600 dark:text-zinc-300">
-                  Encuesta de satisfacción (1–5)
+                  Envíos por WhatsApp
                 </dt>
                 <dd className="text-xs font-medium text-slate-800 dark:text-zinc-200">
-                  Incluida
+                  Incluido
                 </dd>
               </div>
               <div className="flex items-center justify-between border-b border-slate-200/80 pb-2.5 dark:border-white/[0.04]">
                 <dt className="text-slate-600 dark:text-zinc-300">
-                  Acceso directo a Google Maps
+                  Enlace a Google Maps
+                </dt>
+                <dd className="text-xs font-medium text-slate-800 dark:text-zinc-200">
+                  Incluido
+                </dd>
+              </div>
+              <div className="flex items-center justify-between border-b border-slate-200/80 pb-2.5 dark:border-white/[0.04]">
+                <dt className="text-slate-600 dark:text-zinc-300">
+                  Opiniones privadas (1–3 estrellas)
                 </dt>
                 <dd className="text-xs font-medium text-slate-800 dark:text-zinc-200">
                   Incluido
                 </dd>
               </div>
               <div className="flex items-center justify-between">
-                <dt className="text-slate-600 dark:text-zinc-300">
-                  Canal interno de mejora
-                </dt>
+                <dt className="text-slate-600 dark:text-zinc-300">Soporte</dt>
                 <dd className="text-xs font-medium text-slate-800 dark:text-zinc-200">
-                  Incluido
+                  Estándar
                 </dd>
               </div>
             </dl>
@@ -205,7 +211,7 @@ export default function SubscriptionPanel({
           </div>
         </div>
 
-        <div className="flex flex-col justify-between rounded-xl border border-amber-500/40 bg-white p-6 shadow-xs transition-colors duration-300 ease-in-out sm:p-8 dark:border-amber-500/40 dark:bg-[#1E1E24] dark:shadow-2xl dark:shadow-black/60">
+        <div className="flex h-full flex-col justify-between rounded-xl border border-amber-500/40 bg-white p-6 shadow-xs transition-colors duration-300 ease-in-out sm:p-8 dark:border-amber-500/40 dark:bg-[#1E1E24] dark:shadow-2xl dark:shadow-black/60">
           <div>
             <div className="flex items-baseline justify-between gap-4 border-b border-slate-200 pb-5 dark:border-white/[0.04]">
               <div>
@@ -213,10 +219,10 @@ export default function SubscriptionPanel({
                   Plan Pro
                 </h3>
                 <p className="mt-1 text-xs font-medium text-amber-600 dark:text-amber-400">
-                  Para negocios locales en crecimiento continuo
+                  Todo lo del Plan Básico para negocios en crecimiento
                 </p>
               </div>
-              <p className="font-mono text-2xl font-bold tabular-nums text-slate-900 dark:text-zinc-50">
+              <p className="text-2xl font-bold tabular-nums text-slate-900 dark:text-zinc-50">
                 $29{' '}
                 <span className="text-xs font-normal text-slate-500 dark:text-zinc-300">
                   USD / mes
@@ -227,23 +233,47 @@ export default function SubscriptionPanel({
             <dl className="mt-6 space-y-3 text-sm">
               <div className="flex items-center justify-between border-b border-slate-200/80 pb-2.5 dark:border-white/[0.04]">
                 <dt className="text-slate-600 dark:text-zinc-300">
-                  Solicitudes de reseña
+                  Envíos por mes
                 </dt>
-                <dd className="text-xs font-semibold text-slate-900 dark:text-zinc-100">
-                  Ilimitadas
+                <dd className="text-xs text-slate-800 dark:text-zinc-200">
+                  Hasta 300 envíos / mes
                 </dd>
               </div>
               <div className="flex items-center justify-between border-b border-slate-200/80 pb-2.5 dark:border-white/[0.04]">
                 <dt className="text-slate-600 dark:text-zinc-300">
-                  Automatización Cron y WhatsApp
+                  Envíos automáticos por WhatsApp
                 </dt>
                 <dd className="text-xs font-medium text-slate-800 dark:text-zinc-200">
-                  WhatsApp Cloud API
+                  Incluido
                 </dd>
               </div>
               <div className="flex items-center justify-between border-b border-slate-200/80 pb-2.5 dark:border-white/[0.04]">
                 <dt className="text-slate-600 dark:text-zinc-300">
-                  Flujo transparente a Google Maps
+                  Enlace a Google Maps
+                </dt>
+                <dd className="text-xs font-medium text-slate-800 dark:text-zinc-200">
+                  Incluido
+                </dd>
+              </div>
+              <div className="flex items-center justify-between border-b border-slate-200/80 pb-2.5 dark:border-white/[0.04]">
+                <dt className="text-slate-600 dark:text-zinc-300">
+                  Opiniones privadas (1–3 estrellas)
+                </dt>
+                <dd className="text-xs font-medium text-slate-800 dark:text-zinc-200">
+                  Incluido
+                </dd>
+              </div>
+              <div className="flex items-center justify-between border-b border-slate-200/80 pb-2.5 dark:border-white/[0.04]">
+                <dt className="text-slate-600 dark:text-zinc-300">
+                  Plantilla de invitación editable
+                </dt>
+                <dd className="text-xs font-medium text-slate-800 dark:text-zinc-200">
+                  Incluido
+                </dd>
+              </div>
+              <div className="flex items-center justify-between border-b border-slate-200/80 pb-2.5 dark:border-white/[0.04]">
+                <dt className="text-slate-600 dark:text-zinc-300">
+                  Búsqueda y filtros en historial
                 </dt>
                 <dd className="text-xs font-medium text-slate-800 dark:text-zinc-200">
                   Incluido

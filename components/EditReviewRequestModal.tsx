@@ -277,7 +277,7 @@ export default function EditReviewRequestModal({
               className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3.5 font-mono text-sm text-slate-900 transition-colors focus:border-amber-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30 disabled:cursor-not-allowed disabled:opacity-60 dark:border-transparent dark:bg-[#27272E] dark:text-zinc-100 dark:shadow-sm dark:shadow-black/40 dark:focus:bg-[#32323A] dark:focus:border-amber-500/60"
             />
             <p className="mt-1 text-xs text-slate-500 dark:text-zinc-400">
-              Zona horaria local ({localTimezone}); se guarda sincronizada en UTC.
+              Se muestra según tu zona horaria local ({localTimezone}).
             </p>
           </div>
 

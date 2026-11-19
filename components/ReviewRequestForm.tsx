@@ -83,7 +83,7 @@ export default function ReviewRequestForm({
         </div>
 
         <p className="text-xs text-slate-500 tabular-nums dark:text-zinc-300">
-          Retraso configurado:{' '}
+          Tiempo de envío:{' '}
           <span className="font-mono text-slate-800 dark:text-zinc-200">
             {delayMinutes === 0 ? 'Inmediato (0 min)' : `${delayMinutes} min`}
           </span>
@@ -149,7 +149,7 @@ export default function ReviewRequestForm({
             htmlFor="customer-phone"
             className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-zinc-300"
           >
-            Teléfono (WhatsApp / SMS)
+            Teléfono (WhatsApp)
           </label>
           <input
             id="customer-phone"

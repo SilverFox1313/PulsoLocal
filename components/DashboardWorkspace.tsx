@@ -620,7 +620,7 @@ export default function DashboardWorkspace({
               <>
                 <span aria-hidden="true">·</span>
                 <span className="tabular-nums">
-                  Retraso: {business.delay_minutes} min
+                  Espera: {business.delay_minutes} min
                 </span>
                 <span aria-hidden="true">·</span>
                 <span>
@@ -772,8 +772,8 @@ export default function DashboardWorkspace({
                     aria-hidden="true"
                   />
                   <span>
-                    Envío automático programado una vez al día (12:00 UTC) · Usa
-                    el botón manual para pruebas rápidas.
+                    Envío automático diario · Usa el botón manual para enviar al
+                    instante.
                   </span>
                 </p>
               </div>

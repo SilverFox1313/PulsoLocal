@@ -62,9 +62,9 @@ export default function PrivateFeedbackList({ items }: PrivateFeedbackListProps)
               type="search"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Buscar cliente o comentario..."
+              placeholder="Buscar cliente o comentario"
               aria-label="Buscar opiniones privadas"
-              className="h-9 w-full rounded-lg border border-slate-300 bg-white pl-9 pr-3 text-sm text-slate-900 placeholder:text-slate-400 transition-colors focus:border-amber-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30 sm:w-56 dark:border-transparent dark:bg-[#27272E] dark:text-zinc-100 dark:shadow-sm dark:shadow-black/40 dark:placeholder:text-zinc-400 dark:focus:bg-[#32323A] dark:focus:border-amber-500/60"
+              className="h-9 w-full rounded-lg border border-slate-300 bg-white pl-9 pr-3 text-sm text-slate-900 placeholder:text-slate-400 transition-colors focus:border-amber-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30 sm:w-64 sm:min-w-[260px] dark:border-transparent dark:bg-[#27272E] dark:text-zinc-100 dark:shadow-sm dark:shadow-black/40 dark:placeholder:text-zinc-400 dark:focus:bg-[#32323A] dark:focus:border-amber-500/60"
             />
           </div>
 
@@ -173,7 +173,7 @@ export default function PrivateFeedbackList({ items }: PrivateFeedbackListProps)
                   <span className="text-xs text-slate-500 dark:text-zinc-300">
                     {item.redirected_to_google
                       ? 'Flujo directo a Google'
-                      : 'Atención interna + enlace Google'}
+                      : 'Seguimiento privado + enlace a Google'}
                   </span>
                 </div>
               </div>
