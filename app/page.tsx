@@ -43,7 +43,7 @@ export default async function HomePage() {
             </h1>
 
             <p className="mt-6 max-w-2xl text-base leading-relaxed text-slate-600 sm:text-lg dark:text-zinc-300">
-              Captura feedback privado a tiempo para atender a tus clientes al
+              Recibe opiniones privadas a tiempo para atender a tus clientes al
               instante y potencia tus reseñas positivas en Google de forma
               transparente.
             </p>
@@ -55,7 +55,7 @@ export default async function HomePage() {
                 className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 px-7 text-sm font-semibold text-zinc-900 shadow-lg shadow-amber-500/25 transition-all hover:from-amber-400 hover:to-orange-500 dark:text-white whitespace-nowrap shrink-0"
               >
                 <span>
-                  {isAuthenticated ? 'Abrir mi panel' : 'Comenzar ahora'}
+                  {isAuthenticated ? 'Abrir mi panel' : 'Empieza Gratis'}
                 </span>
                 <ArrowRight className="h-4 w-4" aria-hidden="true" />
               </ActionLink>
@@ -85,8 +85,8 @@ export default async function HomePage() {
               </h2>
               <p className="mt-3 text-base leading-relaxed text-slate-600 dark:text-zinc-300">
                 Gestiona la satisfacción de tus clientes en un solo lugar y haz
-                crecer tu reputación local de forma transparente, con datos
-                aislados mediante seguridad a nivel de fila (RLS).
+                crecer tu reputación local de forma transparente, con los datos
+                de tu negocio protegidos y privados.
               </p>
             </div>
 
@@ -100,7 +100,7 @@ export default async function HomePage() {
                 </h3>
                 <p className="mt-3 text-sm leading-relaxed text-slate-600 dark:text-zinc-300">
                   Registra el nombre y teléfono del cliente y programa el envío
-                  automático según el retraso configurado por tu negocio.
+                  automático en el momento que elijas después de su visita.
                 </p>
               </div>
 
@@ -112,9 +112,9 @@ export default async function HomePage() {
                   02. Atención proactiva
                 </h3>
                 <p className="mt-3 text-sm leading-relaxed text-slate-600 dark:text-zinc-300">
-                  Escucha primero a tus clientes insatisfechos para resolver su
-                  problema al instante de manera interna, manteniéndoles siempre
-                  visible el acceso a Google.
+                  Escucha primero a los clientes que no tuvieron una buena experiencia
+                  para resolverlo a tiempo en privado, manteniendo siempre
+                  visible el enlace a tu perfil de Google.
                 </p>
               </div>
 
@@ -126,9 +126,9 @@ export default async function HomePage() {
                   03. Impulso en Google
                 </h3>
                 <p className="mt-3 text-sm leading-relaxed text-slate-600 dark:text-zinc-300">
-                  Facilita que tus clientes felices te recomienden con un clic y
-                  permite que todo cliente acceda libremente a publicar su
-                  reseña en tu perfil oficial de Google.
+                  Haz que tus clientes satisfechos lleguen en un clic a dejar su
+                  reseña en tu perfil de Google y haz crecer tu reputación día a
+                  día.
                 </p>
               </div>
             </div>

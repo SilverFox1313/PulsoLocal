@@ -105,7 +105,7 @@ export default function LandingFooter() {
                       2. Aislamiento y seguridad
                     </h3>
                     <p className="mt-1">
-                      Cada cuenta opera en un entorno aislado mediante políticas de seguridad a nivel de fila (Row Level Security), garantizando que únicamente el titular autenticado pueda consultar, editar o eliminar sus solicitudes y comentarios internos.
+                      Cada cuenta opera en un entorno protegido con aislamiento estricto de datos, garantizando que únicamente el titular autenticado pueda consultar, editar o eliminar sus solicitudes y comentarios internos.
                     </p>
                   </div>
                   <div>
