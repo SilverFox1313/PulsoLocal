@@ -52,10 +52,24 @@ export interface ReminderExecutionResult {
 }
 
 export async function processGlobalPendingReminders(
-  origin: string
+  origin: string,
+  source = 'cron:global'
 ): Promise<ReminderExecutionResult> {
+  const whatsAppStatus = getWhatsAppEnvStatus();
+  console.info('[Reminders] Iniciando procesamiento global de pendientes', {
+    source,
+    origin,
+    hasAccessToken: whatsAppStatus.hasAccessToken,
+    hasPhoneNumberId: whatsAppStatus.hasPhoneNumberId,
+    isConfigured: whatsAppStatus.isConfigured,
+  });
+
   const adminClient = createAdminClient();
   if (!adminClient) {
+    console.error(
+      '[Reminders] Falta SUPABASE_SERVICE_ROLE_KEY para procesamiento global.',
+      { source }
+    );
     return {
       status: 500,
       missingServiceRoleKey: true,
@@ -80,6 +94,10 @@ export async function processGlobalPendingReminders(
     .limit(50);
 
   if (fetchError) {
+    console.error('[Reminders] Error al consultar solicitudes pendientes globales', {
+      source,
+      error: fetchError.message,
+    });
     return {
       status: 500,
       body: {
@@ -90,6 +108,12 @@ export async function processGlobalPendingReminders(
   }
 
   const rows = (dueRequests ?? []) as PendingRequestWithBusiness[];
+  console.info('[Reminders] Solicitudes pendientes vencidas encontradas', {
+    source,
+    count: rows.length,
+    nowIso,
+  });
+
   const processedItems: ProcessedReminderItem[] = [];
   const failedItems: Array<{ id: string; error: string }> = [];
 
@@ -107,12 +131,19 @@ export async function processGlobalPendingReminders(
 
     const delivery = await sendWhatsAppOrSimulate(
       row.customer_phone,
-      messageBody
+      messageBody,
+      { source, requestId: row.id }
     );
     if (!delivery.ok) {
+      const errMsg = delivery.error ?? 'Error al enviar mensaje.';
+      console.error('[Reminders] Falló el envío en lote global', {
+        source,
+        requestId: row.id,
+        error: errMsg,
+      });
       failedItems.push({
         id: row.id,
-        error: delivery.error ?? 'Error al enviar mensaje.',
+        error: errMsg,
       });
       continue;
     }
@@ -124,6 +155,11 @@ export async function processGlobalPendingReminders(
       .eq('status', 'pending');
 
     if (updateError) {
+      console.error('[Reminders] Error al actualizar estado a sent en Supabase', {
+        source,
+        requestId: row.id,
+        error: updateError.message,
+      });
       failedItems.push({
         id: row.id,
         error: 'No se pudo actualizar el estado en la base de datos.',
@@ -141,7 +177,13 @@ export async function processGlobalPendingReminders(
     });
   }
 
-  const whatsAppStatus = getWhatsAppEnvStatus();
+  console.info('[Reminders] Finalizó procesamiento global de pendientes', {
+    source,
+    mode: whatsAppStatus.isConfigured ? 'whatsapp_cloud' : 'simulated',
+    processed: processedItems.length,
+    failed: failedItems.length,
+    errors: failedItems,
+  });
 
   return {
     status: 200,
@@ -160,8 +202,20 @@ export async function processGlobalPendingReminders(
 
 export async function processUserPendingReminders(
   origin: string,
-  options: { includeFuture?: boolean } = {}
+  options: { includeFuture?: boolean; source?: string } = {}
 ): Promise<ReminderExecutionResult> {
+  const source = options.source ?? 'manual:user';
+  const whatsAppStatus = getWhatsAppEnvStatus();
+
+  console.info('[Reminders] Iniciando procesamiento manual por usuario', {
+    source,
+    origin,
+    includeFuture: Boolean(options.includeFuture),
+    hasAccessToken: whatsAppStatus.hasAccessToken,
+    hasPhoneNumberId: whatsAppStatus.hasPhoneNumberId,
+    isConfigured: whatsAppStatus.isConfigured,
+  });
+
   const supabase = await createClient();
   if (!supabase) {
     return {
@@ -222,6 +276,11 @@ export async function processUserPendingReminders(
   const { data: pendingRows, error: pendingError } = await query;
 
   if (pendingError) {
+    console.error('[Reminders] Error al consultar solicitudes pendientes del usuario', {
+      source,
+      businessId: business.id,
+      error: pendingError.message,
+    });
     return {
       status: 500,
       body: {
@@ -232,6 +291,13 @@ export async function processUserPendingReminders(
   }
 
   const rows = pendingRows ?? [];
+  console.info('[Reminders] Solicitudes pendientes del usuario encontradas', {
+    source,
+    businessId: business.id,
+    count: rows.length,
+    nowIso,
+  });
+
   const processedItems: ProcessedReminderItem[] = [];
   const failedItems: Array<{ id: string; error: string }> = [];
 
@@ -245,12 +311,19 @@ export async function processUserPendingReminders(
 
     const delivery = await sendWhatsAppOrSimulate(
       row.customer_phone,
-      messageBody
+      messageBody,
+      { source, requestId: row.id }
     );
     if (!delivery.ok) {
+      const errMsg = delivery.error ?? 'Error al enviar mensaje.';
+      console.error('[Reminders] Falló el envío en lote manual', {
+        source,
+        requestId: row.id,
+        error: errMsg,
+      });
       failedItems.push({
         id: row.id,
-        error: delivery.error ?? 'Error al enviar mensaje.',
+        error: errMsg,
       });
       continue;
     }
@@ -263,6 +336,11 @@ export async function processUserPendingReminders(
       .eq('status', 'pending');
 
     if (updateError) {
+      console.error('[Reminders] Error al actualizar estado a sent en Supabase', {
+        source,
+        requestId: row.id,
+        error: updateError.message,
+      });
       failedItems.push({
         id: row.id,
         error: 'No se pudo actualizar el estado de la solicitud.',
@@ -292,7 +370,15 @@ export async function processUserPendingReminders(
     pendingFutureCount = count ?? 0;
   }
 
-  const whatsAppStatus = getWhatsAppEnvStatus();
+  console.info('[Reminders] Finalizó procesamiento manual por usuario', {
+    source,
+    businessId: business.id,
+    mode: whatsAppStatus.isConfigured ? 'whatsapp_cloud' : 'simulated',
+    processed: processedItems.length,
+    failed: failedItems.length,
+    pendingFutureCount,
+    errors: failedItems,
+  });
 
   return {
     status: 200,

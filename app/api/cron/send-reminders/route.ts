@@ -26,17 +26,24 @@ function isAuthorizedCron(request: NextRequest): boolean {
 
 async function handleSendReminders(
   request: NextRequest,
-  options: { includeFuture?: boolean } = {}
+  options: { includeFuture?: boolean; method?: string } = {}
 ) {
   const origin = new URL(request.url).origin;
+  const sourceBase = `${options.method ?? request.method}:/api/cron/send-reminders`;
 
   if (isAuthorizedCron(request)) {
-    const result = await processGlobalPendingReminders(origin);
+    const result = await processGlobalPendingReminders(
+      origin,
+      `${sourceBase}(cron)`
+    );
     return NextResponse.json(result.body, { status: result.status });
   }
 
   // Ejecución manual desde el Dashboard del usuario autenticado (protegida por sesión + RLS)
-  const result = await processUserPendingReminders(origin, options);
+  const result = await processUserPendingReminders(origin, {
+    includeFuture: options.includeFuture,
+    source: `${sourceBase}(manual)`,
+  });
   return NextResponse.json(result.body, { status: result.status });
 }
 

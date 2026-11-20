@@ -37,13 +37,22 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const globalResult = await processGlobalPendingReminders(origin);
+  console.info('[Cron /api/cron/enviar-pendientes] Ejecución iniciada', {
+    origin,
+    hasCronSecret: Boolean(cronSecret),
+  });
+
+  const globalResult = await processGlobalPendingReminders(
+    origin,
+    'GET:/api/cron/enviar-pendientes'
+  );
 
   // En desarrollo local sin SUPABASE_SERVICE_ROLE_KEY ni CRON_SECRET,
   // permite usar la sesión autenticada del navegador si existe.
   if (globalResult.missingServiceRoleKey && !cronSecret) {
     const userResult = await processUserPendingReminders(origin, {
       includeFuture: false,
+      source: 'GET:/api/cron/enviar-pendientes(fallback-user)',
     });
     if (userResult.status !== 401) {
       return NextResponse.json(userResult.body, { status: userResult.status });

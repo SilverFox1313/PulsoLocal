@@ -93,11 +93,17 @@ export interface DeliveryResult {
   error?: string;
 }
 
+export interface SendWhatsAppContext {
+  source?: string;
+  requestId?: string;
+}
+
 interface MetaGraphErrorPayload {
   message?: string;
   type?: string;
   code?: number;
   error_subcode?: number;
+  fbtrace_id?: string;
   error_data?: {
     details?: string;
   };
@@ -134,12 +140,27 @@ function formatMetaErrorMessage(
 
 export async function sendWhatsAppOrSimulate(
   toPhone: string,
-  body: string
+  body: string,
+  context: SendWhatsAppContext = {}
 ): Promise<DeliveryResult> {
+  const source = context.source ?? 'unknown';
+  const requestId = context.requestId ?? null;
   const phoneNumberId = cleanEnvValue(process.env.WHATSAPP_PHONE_NUMBER_ID);
   const accessToken = cleanEnvValue(process.env.WHATSAPP_ACCESS_TOKEN);
 
+  console.info('[WhatsApp Cloud API] Verificación previa de credenciales', {
+    source,
+    requestId,
+    hasAccessToken: Boolean(accessToken),
+    accessTokenLength: accessToken.length,
+    phoneNumberId: phoneNumberId || null,
+  });
+
   if (!phoneNumberId && !accessToken) {
+    console.warn(
+      '[WhatsApp Cloud API] Faltan WHATSAPP_PHONE_NUMBER_ID y WHATSAPP_ACCESS_TOKEN; ejecutando en modo simulado (no se envió a Meta).',
+      { source, requestId }
+    );
     return {
       ok: true,
       mode: 'simulated',
@@ -147,31 +168,55 @@ export async function sendWhatsAppOrSimulate(
   }
 
   if (!phoneNumberId || !accessToken) {
+    const missingError = !phoneNumberId
+      ? 'Falta configurar WHATSAPP_PHONE_NUMBER_ID en las variables de entorno.'
+      : 'Falta configurar WHATSAPP_ACCESS_TOKEN en las variables de entorno.';
+
+    console.error('[WhatsApp Cloud API] Error de credenciales incompletas', {
+      source,
+      requestId,
+      hasAccessToken: Boolean(accessToken),
+      phoneNumberId: phoneNumberId || null,
+      error: missingError,
+    });
+
     return {
       ok: false,
       mode: 'whatsapp_cloud',
-      error: !phoneNumberId
-        ? 'Falta configurar WHATSAPP_PHONE_NUMBER_ID en las variables de entorno.'
-        : 'Falta configurar WHATSAPP_ACCESS_TOKEN en las variables de entorno.',
+      error: missingError,
     };
   }
 
   const cleanRecipient = normalizeWhatsAppRecipient(toPhone);
   if (!cleanRecipient) {
+    const phoneError =
+      'El número del cliente no es válido para WhatsApp Cloud API (incluye código de país, ej. +18097155343).';
+    console.error('[WhatsApp Cloud API] Número de destinatario inválido', {
+      source,
+      requestId,
+      rawPhone: toPhone,
+      error: phoneError,
+    });
     return {
       ok: false,
       mode: 'whatsapp_cloud',
-      error:
-        'El número del cliente no es válido para WhatsApp Cloud API (incluye código de país, ej. +18097155343).',
+      error: phoneError,
     };
   }
 
   const cleanBody = body.trim();
   if (!cleanBody) {
+    const bodyError = 'El cuerpo del mensaje de WhatsApp no puede estar vacío.';
+    console.error('[WhatsApp Cloud API] Cuerpo de mensaje vacío', {
+      source,
+      requestId,
+      recipient: cleanRecipient,
+      error: bodyError,
+    });
     return {
       ok: false,
       mode: 'whatsapp_cloud',
-      error: 'El cuerpo del mensaje de WhatsApp no puede estar vacío.',
+      error: bodyError,
     };
   }
 
@@ -179,6 +224,14 @@ export async function sendWhatsAppOrSimulate(
     const endpoint = `https://graph.facebook.com/v20.0/${encodeURIComponent(
       phoneNumberId
     )}/messages`;
+
+    console.info('[WhatsApp Cloud API] Enviando petición a Meta', {
+      source,
+      requestId,
+      endpoint,
+      phoneNumberId,
+      recipient: cleanRecipient,
+    });
 
     const response = await fetch(endpoint, {
       method: 'POST',
@@ -198,32 +251,82 @@ export async function sendWhatsAppOrSimulate(
       }),
     });
 
-    const payload = (await response.json().catch(() => ({}))) as {
+    const rawText = await response.text();
+    let data: {
       messages?: Array<{ id?: string }>;
       error?: MetaGraphErrorPayload;
-    };
+      [key: string]: unknown;
+    } = {};
+
+    if (rawText) {
+      try {
+        data = JSON.parse(rawText) as typeof data;
+      } catch {
+        data = { rawText };
+      }
+    }
 
     if (!response.ok) {
+      console.error('[WhatsApp Cloud API] Respuesta de error de Meta', {
+        source,
+        requestId,
+        status: response.status,
+        recipient: cleanRecipient,
+        phoneNumberId,
+        metaError: data.error
+          ? {
+              code: data.error.code ?? null,
+              message: data.error.message ?? null,
+              type: data.error.type ?? null,
+              error_subcode: data.error.error_subcode ?? null,
+              fbtrace_id: data.error.fbtrace_id ?? null,
+              error_data: data.error.error_data ?? null,
+            }
+          : null,
+        data,
+      });
+
       return {
         ok: false,
         mode: 'whatsapp_cloud',
-        error: formatMetaErrorMessage(payload.error, response.status),
+        error: formatMetaErrorMessage(data.error, response.status),
       };
     }
+
+    console.info('[WhatsApp Cloud API] Respuesta exitosa de Meta', {
+      source,
+      requestId,
+      status: response.status,
+      recipient: cleanRecipient,
+      phoneNumberId,
+      messageId: data.messages?.[0]?.id ?? null,
+      data,
+    });
 
     return {
       ok: true,
       mode: 'whatsapp_cloud',
-      externalId: payload.messages?.[0]?.id,
+      externalId: data.messages?.[0]?.id,
     };
   } catch (err) {
+    const errorMessage =
+      err instanceof Error
+        ? err.message
+        : 'Error de red al intentar enviar el mensaje mediante WhatsApp Cloud API.';
+
+    console.error('[WhatsApp Cloud API] Error de red o excepción inesperada', {
+      source,
+      requestId,
+      recipient: cleanRecipient,
+      phoneNumberId,
+      error: errorMessage,
+      stack: err instanceof Error ? err.stack : undefined,
+    });
+
     return {
       ok: false,
       mode: 'whatsapp_cloud',
-      error:
-        err instanceof Error
-          ? err.message
-          : 'Error de red al intentar enviar el mensaje mediante WhatsApp Cloud API.',
+      error: errorMessage,
     };
   }
 }
