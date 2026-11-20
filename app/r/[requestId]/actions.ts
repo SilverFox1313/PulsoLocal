@@ -261,6 +261,10 @@ export async function savePrivateFeedbackCommentAction(
   }
 
   const payload = data as { success?: boolean; error?: string } | null;
+  if (payload?.error === 'owner_forbidden') {
+    return { error: OWNER_FORBIDDEN_ERROR };
+  }
+
   if (!payload?.success) {
     return { error: 'No se encontró la calificación para actualizar.' };
   }

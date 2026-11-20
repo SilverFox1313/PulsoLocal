@@ -78,7 +78,10 @@ create policy "Users can insert their own business"
   on public.businesses
   for insert
   to authenticated
-  with check ((select auth.uid()) = user_id);
+  with check (
+    (select auth.uid()) = user_id
+    and subscription_status = 'trialing'
+  );
 
 drop policy if exists "Users can update their own business" on public.businesses;
 create policy "Users can update their own business"
@@ -94,6 +97,42 @@ create policy "Users can delete their own business"
   for delete
   to authenticated
   using ((select auth.uid()) = user_id);
+
+-- Protección contra auto-asignación de suscripción o manipulación de campos sensibles
+create or replace function public.protect_business_subscription()
+returns trigger
+language plpgsql
+set search_path = public
+as $$
+begin
+  if current_user in ('anon', 'authenticated') then
+    if tg_op = 'INSERT' then
+      if new.subscription_status is distinct from 'trialing' then
+        raise exception 'No tienes permisos para establecer el estado de suscripción directamente.';
+      end if;
+      new.created_at := now();
+    elsif tg_op = 'UPDATE' then
+      if new.subscription_status is distinct from old.subscription_status then
+        raise exception 'No tienes permisos para modificar el estado de suscripción.';
+      end if;
+      if new.user_id is distinct from old.user_id then
+        raise exception 'No tienes permisos para cambiar el propietario del negocio.';
+      end if;
+      if new.created_at is distinct from old.created_at then
+        raise exception 'No tienes permisos para modificar la fecha de creación del negocio.';
+      end if;
+    end if;
+  end if;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists trg_protect_business_subscription on public.businesses;
+create trigger trg_protect_business_subscription
+  before insert or update on public.businesses
+  for each row
+  execute function public.protect_business_subscription();
 
 -- Políticas para review_requests
 drop policy if exists "Users can view their own review requests" on public.review_requests;
@@ -160,7 +199,7 @@ create policy "Users can delete their own review requests"
     )
   );
 
--- Políticas para feedback
+-- Políticas para feedback (solo lectura para el dueño; escrituras exclusivamente vía backend / funciones SECURITY DEFINER)
 drop policy if exists "Users can view their own feedback" on public.feedback;
 create policy "Users can view their own feedback"
   on public.feedback
@@ -176,54 +215,12 @@ create policy "Users can view their own feedback"
   );
 
 drop policy if exists "Users can insert their own feedback" on public.feedback;
-create policy "Users can insert their own feedback"
-  on public.feedback
-  for insert
-  to authenticated
-  with check (
-    exists (
-      select 1
-      from public.businesses b
-      where b.id = feedback.business_id
-        and b.user_id = (select auth.uid())
-    )
-  );
-
 drop policy if exists "Users can update their own feedback" on public.feedback;
-create policy "Users can update their own feedback"
-  on public.feedback
-  for update
-  to authenticated
-  using (
-    exists (
-      select 1
-      from public.businesses b
-      where b.id = feedback.business_id
-        and b.user_id = (select auth.uid())
-    )
-  )
-  with check (
-    exists (
-      select 1
-      from public.businesses b
-      where b.id = feedback.business_id
-        and b.user_id = (select auth.uid())
-    )
-  );
-
 drop policy if exists "Users can delete their own feedback" on public.feedback;
-create policy "Users can delete their own feedback"
-  on public.feedback
-  for delete
-  to authenticated
-  using (
-    exists (
-      select 1
-      from public.businesses b
-      where b.id = feedback.business_id
-        and b.user_id = (select auth.uid())
-    )
-  );
+
+revoke all on public.feedback from anon;
+revoke insert, update, delete on public.feedback from authenticated;
+grant select on public.feedback to authenticated;
 
 -- ----------------------------------------------------------------------------
 -- 5. TRIGGER AUTOMÁTICO DE ONBOARDING
@@ -322,6 +319,7 @@ begin
     rr.id,
     rr.business_id,
     rr.status,
+    b.user_id as owner_user_id,
     b.google_review_url
   into v_request
   from public.review_requests rr
@@ -331,6 +329,10 @@ begin
 
   if not found then
     return jsonb_build_object('error', 'not_found');
+  end if;
+
+  if auth.uid() is not null and v_request.owner_user_id = auth.uid() then
+    return jsonb_build_object('error', 'owner_forbidden');
   end if;
 
   if v_request.status = 'completed' or exists (
@@ -384,6 +386,16 @@ declare
   v_updated_id uuid;
 begin
   v_clean_comment := nullif(trim(coalesce(p_comment, '')), '');
+
+  if auth.uid() is not null and exists (
+    select 1
+    from public.review_requests rr
+    inner join public.businesses b on b.id = rr.business_id
+    where rr.id = p_request_id
+      and b.user_id = auth.uid()
+  ) then
+    return jsonb_build_object('error', 'owner_forbidden');
+  end if;
 
   update public.feedback
   set comment = v_clean_comment

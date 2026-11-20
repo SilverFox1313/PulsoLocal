@@ -1,3 +1,4 @@
+import { timingSafeEqual } from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import {
   processGlobalPendingReminders,
@@ -6,58 +7,99 @@ import {
 
 export const dynamic = 'force-dynamic';
 
+function safeCompareSecret(provided: string, expected: string): boolean {
+  const providedBuf = Buffer.from(provided, 'utf8');
+  const expectedBuf = Buffer.from(expected, 'utf8');
+
+  if (providedBuf.length !== expectedBuf.length) {
+    return false;
+  }
+
+  return timingSafeEqual(providedBuf, expectedBuf);
+}
+
 function isValidCronRequest(request: NextRequest, cronSecret: string): boolean {
   const authHeader = request.headers.get('authorization') ?? '';
-  const bearerToken = authHeader.startsWith('Bearer ')
-    ? authHeader.slice(7).trim()
-    : '';
-  const customHeader = request.headers.get('x-cron-secret')?.trim() ?? '';
+  if (!authHeader.startsWith('Bearer ')) {
+    return false;
+  }
 
-  return bearerToken === cronSecret || customHeader === cronSecret;
+  const bearerToken = authHeader.slice(7).trim();
+  if (!bearerToken) {
+    return false;
+  }
+
+  return safeCompareSecret(bearerToken, cronSecret);
 }
 
 export async function GET(request: NextRequest) {
   const origin = new URL(request.url).origin;
   const cronSecret = process.env.CRON_SECRET?.trim();
+  const isProduction =
+    process.env.NODE_ENV === 'production' ||
+    Boolean(process.env.VERCEL) ||
+    Boolean(process.env.VERCEL_ENV);
 
-  if (cronSecret) {
-    if (!isValidCronRequest(request, cronSecret)) {
+  if (!cronSecret) {
+    if (isProduction) {
+      console.error(
+        '[Cron /api/cron/enviar-pendientes] Error crítico: CRON_SECRET no está configurado en producción.'
+      );
       return NextResponse.json(
         {
           ok: false,
           error:
-            'No autorizado. Proporciona un header Authorization Bearer válido.',
+            'Configuración incompleta: CRON_SECRET es obligatorio en producción.',
+        },
+        { status: 500 }
+      );
+    }
+
+    // En desarrollo local sin CRON_SECRET, jamás ejecutar el envío global:
+    // únicamente permitir el procesamiento acotado al usuario autenticado si existe sesión.
+    const userResult = await processUserPendingReminders(origin, {
+      includeFuture: false,
+      source: 'GET:/api/cron/enviar-pendientes(dev-session-only)',
+    });
+
+    if (userResult.status === 401) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error:
+            'No autorizado. Define CRON_SECRET o inicia sesión para pruebas locales.',
         },
         { status: 401 }
       );
     }
-  } else {
+
+    return NextResponse.json(userResult.body, { status: userResult.status });
+  }
+
+  if (!isValidCronRequest(request, cronSecret)) {
     console.warn(
-      '[Cron /api/cron/enviar-pendientes] Advertencia: CRON_SECRET no está definido. Ejecutando sin validación Bearer para facilitar pruebas locales.'
+      '[Cron /api/cron/enviar-pendientes] Solicitud rechazada: header Authorization Bearer ausente o inválido.'
+    );
+    return NextResponse.json(
+      {
+        ok: false,
+        error:
+          'No autorizado. Proporciona un header Authorization Bearer válido.',
+      },
+      { status: 401 }
     );
   }
 
   console.info('[Cron /api/cron/enviar-pendientes] Ejecución iniciada', {
     origin,
-    hasCronSecret: Boolean(cronSecret),
+    hasCronSecret: true,
+    isProduction,
   });
 
   const globalResult = await processGlobalPendingReminders(
     origin,
     'GET:/api/cron/enviar-pendientes'
   );
-
-  // En desarrollo local sin SUPABASE_SERVICE_ROLE_KEY ni CRON_SECRET,
-  // permite usar la sesión autenticada del navegador si existe.
-  if (globalResult.missingServiceRoleKey && !cronSecret) {
-    const userResult = await processUserPendingReminders(origin, {
-      includeFuture: false,
-      source: 'GET:/api/cron/enviar-pendientes(fallback-user)',
-    });
-    if (userResult.status !== 401) {
-      return NextResponse.json(userResult.body, { status: userResult.status });
-    }
-  }
 
   return NextResponse.json(globalResult.body, { status: globalResult.status });
 }
