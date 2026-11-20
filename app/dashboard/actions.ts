@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { normalizePhoneToE164 } from '@/lib/messaging/phone';
 import { createClient } from '@/lib/supabase/server';
 import type { Business, ReviewRequest } from '@/types/database';
 
@@ -142,7 +143,7 @@ export async function createReviewRequestAction(
   }
 
   const customerName = input.customerName.trim();
-  const customerPhone = input.customerPhone.trim();
+  const customerPhone = normalizePhoneToE164(input.customerPhone);
 
   if (customerName.length < 2 || customerName.length > 100) {
     return {
@@ -150,11 +151,10 @@ export async function createReviewRequestAction(
     };
   }
 
-  const digitsOnly = customerPhone.replace(/\D/g, '');
-  if (digitsOnly.length < 7 || digitsOnly.length > 15) {
+  if (!customerPhone) {
     return {
       error:
-        'Ingresa un número de teléfono válido (entre 7 y 15 dígitos, con código de país si aplica).',
+        'Ingresa un número de teléfono válido (entre 7 y 15 dígitos, con código de país).',
     };
   }
 
@@ -238,7 +238,7 @@ export async function updateReviewRequestAction(
   }
 
   const customerName = input.customerName.trim();
-  const customerPhone = input.customerPhone.trim();
+  const customerPhone = normalizePhoneToE164(input.customerPhone);
 
   if (customerName.length < 2 || customerName.length > 100) {
     return {
@@ -246,11 +246,10 @@ export async function updateReviewRequestAction(
     };
   }
 
-  const digitsOnly = customerPhone.replace(/\D/g, '');
-  if (digitsOnly.length < 7 || digitsOnly.length > 15) {
+  if (!customerPhone) {
     return {
       error:
-        'Ingresa un número de teléfono válido (entre 7 y 15 dígitos, con código de país si aplica).',
+        'Ingresa un número de teléfono válido (entre 7 y 15 dígitos, con código de país).',
     };
   }
 

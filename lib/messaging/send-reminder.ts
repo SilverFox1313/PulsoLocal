@@ -1,3 +1,5 @@
+import { normalizePhoneToE164 } from '@/lib/messaging/phone';
+
 export interface TemplateParams {
   customerName: string;
   businessName: string;
@@ -53,16 +55,11 @@ function cleanEnvValue(value: string | undefined): string {
  * la Meta WhatsApp Cloud API (solo dígitos con código de país, sin `+` ni `whatsapp:`).
  */
 export function normalizeWhatsAppRecipient(raw: string): string | null {
-  const cleaned = cleanEnvValue(raw)
-    .replace(/^(whatsapp\s*:\s*)+/i, '')
-    .trim();
-
-  const digits = cleaned.replace(/\D/g, '');
-  if (digits.length < 7 || digits.length > 15) {
+  const e164 = normalizePhoneToE164(raw);
+  if (!e164) {
     return null;
   }
-
-  return digits;
+  return e164.slice(1);
 }
 
 export interface WhatsAppEnvStatus {

@@ -4,6 +4,11 @@ import { useState, type FormEvent } from 'react';
 import { AlertCircle, CheckCircle2, Loader2, UserPlus } from 'lucide-react';
 import { toast } from 'sonner';
 import { createReviewRequestAction } from '@/app/dashboard/actions';
+import {
+  COUNTRY_DIAL_CODES,
+  normalizePhoneToE164,
+  parseInternationalInput,
+} from '@/lib/messaging/phone';
 import type { ReviewRequest } from '@/types/database';
 
 interface ReviewRequestFormProps {
@@ -16,11 +21,36 @@ export default function ReviewRequestForm({
   onCreated,
 }: ReviewRequestFormProps) {
   const [customerName, setCustomerName] = useState('');
+  const [dialCode, setDialCode] = useState('+1');
   const [customerPhone, setCustomerPhone] = useState('');
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  const selectedDialOption =
+    COUNTRY_DIAL_CODES.find((option) => option.code === dialCode) ??
+    COUNTRY_DIAL_CODES[0];
+
+  function handlePhoneInputChange(rawValue: string) {
+    setError(null);
+    setSuccessMessage(null);
+
+    const trimmedStart = rawValue.trimStart();
+    if (trimmedStart.startsWith('+')) {
+      const parsed = parseInternationalInput(trimmedStart);
+      if (parsed.matchedCode && trimmedStart.length > 4) {
+        setDialCode(parsed.matchedCode);
+        setCustomerPhone(parsed.localPart);
+        return;
+      }
+      setDialCode('custom');
+      setCustomerPhone(parsed.collapsedRaw);
+      return;
+    }
+
+    setCustomerPhone(rawValue);
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -37,9 +67,9 @@ export default function ReviewRequestForm({
       return;
     }
 
-    const digits = trimmedPhone.replace(/\D/g, '');
-    if (digits.length < 7 || digits.length > 15) {
-      const msg = 'Ingresa un teléfono válido (ej. +52 55 1234 5678).';
+    const normalizedPhone = normalizePhoneToE164(trimmedPhone, dialCode);
+    if (!normalizedPhone) {
+      const msg = 'Ingresa un teléfono válido (ej. +1 809 555 0199).';
       setError(msg);
       toast.error(msg);
       return;
@@ -49,7 +79,7 @@ export default function ReviewRequestForm({
 
     const result = await createReviewRequestAction({
       customerName: trimmedName,
-      customerPhone: trimmedPhone,
+      customerPhone: normalizedPhone,
     });
 
     setSubmitting(false);
@@ -63,6 +93,7 @@ export default function ReviewRequestForm({
     if (result.request) {
       onCreated(result.request);
       setCustomerName('');
+      setDialCode('+1');
       setCustomerPhone('');
       const msg = `Solicitud programada para ${result.request.customer_name}`;
       setSuccessMessage(`${msg}.`);
@@ -151,20 +182,41 @@ export default function ReviewRequestForm({
           >
             Teléfono (WhatsApp)
           </label>
-          <input
-            id="customer-phone"
-            name="customerPhone"
-            type="tel"
-            required
-            disabled={submitting}
-            value={customerPhone}
-            onChange={(e) => {
-              setSuccessMessage(null);
-              setCustomerPhone(e.target.value);
-            }}
-            placeholder="+52 55 1234 5678"
-            className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3.5 font-mono text-sm tabular-nums text-slate-900 placeholder:font-sans placeholder:text-slate-400 transition-colors focus:border-amber-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30 disabled:cursor-not-allowed disabled:opacity-60 dark:border-transparent dark:bg-[#27272E] dark:text-zinc-100 dark:shadow-sm dark:shadow-black/40 dark:placeholder:text-zinc-400 dark:focus:bg-[#32323A] dark:focus:border-amber-500/60"
-          />
+          <div className="flex h-11 w-full overflow-hidden rounded-lg border border-slate-300 bg-white transition-colors focus-within:border-amber-500 focus-within:ring-2 focus-within:ring-amber-500/30 dark:border-transparent dark:bg-[#27272E] dark:shadow-sm dark:shadow-black/40 dark:focus-within:bg-[#32323A] dark:focus-within:border-amber-500/60">
+            <select
+              id="customer-phone-country"
+              aria-label="Código de país"
+              disabled={submitting}
+              value={dialCode}
+              onChange={(e) => {
+                setError(null);
+                setSuccessMessage(null);
+                setDialCode(e.target.value);
+              }}
+              className="h-full shrink-0 cursor-pointer border-r border-slate-200 bg-slate-50 px-2.5 font-mono text-xs font-medium text-slate-700 transition-colors focus:outline-none disabled:cursor-not-allowed disabled:opacity-60 dark:border-white/[0.08] dark:bg-[#202027] dark:text-zinc-200"
+            >
+              {COUNTRY_DIAL_CODES.map((option) => (
+                <option
+                  key={option.code}
+                  value={option.code}
+                  className="bg-white text-slate-900 dark:bg-[#27272E] dark:text-zinc-100"
+                >
+                  {option.label}
+                </option>
+              ))}
+            </select>
+            <input
+              id="customer-phone"
+              name="customerPhone"
+              type="tel"
+              required
+              disabled={submitting}
+              value={customerPhone}
+              onChange={(e) => handlePhoneInputChange(e.target.value)}
+              placeholder={selectedDialOption.placeholder}
+              className="h-full min-w-0 flex-1 bg-transparent px-3 font-mono text-sm tabular-nums text-slate-900 placeholder:font-sans placeholder:text-slate-400 focus:outline-none disabled:cursor-not-allowed disabled:opacity-60 dark:text-zinc-100 dark:placeholder:text-zinc-400"
+            />
+          </div>
         </div>
 
         <div className="md:col-span-3">
