@@ -1,11 +1,15 @@
 import {
   buildReminderMessage,
   buildReviewLink,
+  canSimulateWhatsAppInCurrentEnv,
   getWhatsAppEnvStatus,
   sendWhatsAppOrSimulate,
 } from '@/lib/messaging/send-reminder';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
+
+const BATCH_SIZE = 10;
+const CONCURRENCY_LIMIT = 4;
 
 interface PendingRequestWithBusiness {
   id: string;
@@ -51,14 +55,32 @@ export interface ReminderExecutionResult {
   body: ReminderExecutionSuccess | { ok: false; error: string };
 }
 
+async function runInChunks<T>(
+  items: T[],
+  chunkSize: number,
+  worker: (item: T) => Promise<void>
+): Promise<void> {
+  for (let i = 0; i < items.length; i += chunkSize) {
+    const slice = items.slice(i, i + chunkSize);
+    await Promise.all(slice.map((item) => worker(item)));
+  }
+}
+
 export async function processGlobalPendingReminders(
   origin: string,
   source = 'cron:global'
 ): Promise<ReminderExecutionResult> {
   const whatsAppStatus = getWhatsAppEnvStatus();
+  const isSimulatedMode =
+    !whatsAppStatus.isConfigured && canSimulateWhatsAppInCurrentEnv();
+  const executionMode: 'whatsapp_cloud' | 'simulated' = isSimulatedMode
+    ? 'simulated'
+    : 'whatsapp_cloud';
+
   console.info('[Reminders] Iniciando procesamiento global de pendientes', {
     source,
     origin,
+    mode: executionMode,
     hasAccessToken: whatsAppStatus.hasAccessToken,
     hasPhoneNumberId: whatsAppStatus.hasPhoneNumberId,
     isConfigured: whatsAppStatus.isConfigured,
@@ -91,7 +113,7 @@ export async function processGlobalPendingReminders(
     .eq('status', 'pending')
     .lte('scheduled_for', nowIso)
     .order('scheduled_for', { ascending: true })
-    .limit(50);
+    .limit(BATCH_SIZE);
 
   if (fetchError) {
     console.error('[Reminders] Error al consultar solicitudes pendientes globales', {
@@ -107,52 +129,131 @@ export async function processGlobalPendingReminders(
     };
   }
 
-  const rows = (dueRequests ?? []) as PendingRequestWithBusiness[];
+  const candidateRows = (dueRequests ?? []) as PendingRequestWithBusiness[];
   console.info('[Reminders] Solicitudes pendientes vencidas encontradas', {
     source,
-    count: rows.length,
+    count: candidateRows.length,
+    batchLimit: BATCH_SIZE,
     nowIso,
+  });
+
+  if (candidateRows.length === 0) {
+    return {
+      status: 200,
+      body: {
+        ok: true,
+        mode: executionMode,
+        processed: 0,
+        failed: 0,
+        pendingFutureCount: 0,
+        items: [],
+        errors: [],
+        executedAt: nowIso,
+      },
+    };
+  }
+
+  // Reserva atómica antes de llamar a Meta para evitar envíos duplicados entre cron y clic manual
+  const candidateIds = candidateRows.map((r) => r.id);
+  const { data: claimedRows, error: claimError } = await adminClient
+    .from('review_requests')
+    .update({ status: 'processing' })
+    .in('id', candidateIds)
+    .eq('status', 'pending')
+    .select('id');
+
+  if (claimError) {
+    console.error('[Reminders] Error al reservar lote en estado processing', {
+      source,
+      code: claimError.code ?? null,
+      error: claimError.message,
+    });
+    return {
+      status: 500,
+      body: {
+        ok: false,
+        error:
+          claimError.code === '23514'
+            ? 'Falta actualizar la restricción de estado en Supabase (ejecuta supabase/migration_production_block2.sql).'
+            : 'No se pudo reservar el lote de solicitudes pendientes.',
+      },
+    };
+  }
+
+  const claimedIds = new Set((claimedRows ?? []).map((r) => r.id));
+  const rowsToSend = candidateRows.filter((row) => claimedIds.has(row.id));
+
+  console.info('[Reminders] Lote reservado atómicamente para envío global', {
+    source,
+    candidates: candidateRows.length,
+    claimed: rowsToSend.length,
   });
 
   const processedItems: ProcessedReminderItem[] = [];
   const failedItems: Array<{ id: string; error: string }> = [];
 
-  for (const row of rows) {
+  await runInChunks(rowsToSend, CONCURRENCY_LIMIT, async (row) => {
     const biz = Array.isArray(row.businesses)
       ? row.businesses[0]
       : row.businesses;
 
+    const businessName = biz?.business_name ?? 'Nuestro Negocio';
     const reviewLink = buildReviewLink(origin, row.id);
     const messageBody = buildReminderMessage(biz?.message_template ?? '', {
       customerName: row.customer_name,
-      businessName: biz?.business_name ?? 'Nuestro Negocio',
+      businessName,
       reviewLink,
     });
 
     const delivery = await sendWhatsAppOrSimulate(
       row.customer_phone,
       messageBody,
-      { source, requestId: row.id }
-    );
-    if (!delivery.ok) {
-      const errMsg = delivery.error ?? 'Error al enviar mensaje.';
-      console.error('[Reminders] Falló el envío en lote global', {
+      {
         source,
         requestId: row.id,
+        templateParams: {
+          customerName: row.customer_name,
+          businessName,
+          reviewLink,
+        },
+      }
+    );
+
+    if (!delivery.ok) {
+      const errMsg = delivery.error ?? 'Error al enviar mensaje.';
+      console.error('[Reminders] Falló el envío en lote global; liberando reserva a pending', {
+        source,
+        requestId: row.id,
+        retryable: delivery.retryable ?? true,
         error: errMsg,
       });
+
+      const { error: revertError } = await adminClient
+        .from('review_requests')
+        .update({ status: 'pending' })
+        .eq('id', row.id)
+        .eq('status', 'processing');
+
+      if (revertError) {
+        console.error('[Reminders] No se pudo revertir estado processing a pending', {
+          source,
+          requestId: row.id,
+          error: revertError.message,
+        });
+      }
+
       failedItems.push({
         id: row.id,
         error: errMsg,
       });
-      continue;
+      return;
     }
 
     const { error: updateError } = await adminClient
       .from('review_requests')
       .update({ status: 'sent' })
       .eq('id', row.id)
-      .eq('status', 'pending');
+      .eq('status', 'processing');
 
     if (updateError) {
       console.error('[Reminders] Error al actualizar estado a sent en Supabase', {
@@ -162,9 +263,9 @@ export async function processGlobalPendingReminders(
       });
       failedItems.push({
         id: row.id,
-        error: 'No se pudo actualizar el estado en la base de datos.',
+        error: 'El mensaje se envió, pero no se pudo actualizar el estado en la base de datos.',
       });
-      continue;
+      return;
     }
 
     processedItems.push({
@@ -175,11 +276,11 @@ export async function processGlobalPendingReminders(
       messagePreview: messageBody,
       deliveryMode: delivery.mode,
     });
-  }
+  });
 
   console.info('[Reminders] Finalizó procesamiento global de pendientes', {
     source,
-    mode: whatsAppStatus.isConfigured ? 'whatsapp_cloud' : 'simulated',
+    mode: executionMode,
     processed: processedItems.length,
     failed: failedItems.length,
     errors: failedItems,
@@ -189,7 +290,7 @@ export async function processGlobalPendingReminders(
     status: 200,
     body: {
       ok: true,
-      mode: whatsAppStatus.isConfigured ? 'whatsapp_cloud' : 'simulated',
+      mode: executionMode,
       processed: processedItems.length,
       failed: failedItems.length,
       pendingFutureCount: 0,
@@ -206,10 +307,16 @@ export async function processUserPendingReminders(
 ): Promise<ReminderExecutionResult> {
   const source = options.source ?? 'manual:user';
   const whatsAppStatus = getWhatsAppEnvStatus();
+  const isSimulatedMode =
+    !whatsAppStatus.isConfigured && canSimulateWhatsAppInCurrentEnv();
+  const executionMode: 'whatsapp_cloud' | 'simulated' = isSimulatedMode
+    ? 'simulated'
+    : 'whatsapp_cloud';
 
   console.info('[Reminders] Iniciando procesamiento manual por usuario', {
     source,
     origin,
+    mode: executionMode,
     includeFuture: Boolean(options.includeFuture),
     hasAccessToken: whatsAppStatus.hasAccessToken,
     hasPhoneNumberId: whatsAppStatus.hasPhoneNumberId,
@@ -267,7 +374,7 @@ export async function processUserPendingReminders(
     .eq('business_id', business.id)
     .eq('status', 'pending')
     .order('scheduled_for', { ascending: true })
-    .limit(50);
+    .limit(BATCH_SIZE);
 
   if (!options.includeFuture) {
     query = query.lte('scheduled_for', nowIso);
@@ -290,71 +397,135 @@ export async function processUserPendingReminders(
     };
   }
 
-  const rows = pendingRows ?? [];
+  const candidateRows = pendingRows ?? [];
   console.info('[Reminders] Solicitudes pendientes del usuario encontradas', {
     source,
     businessId: business.id,
-    count: rows.length,
+    count: candidateRows.length,
+    batchLimit: BATCH_SIZE,
     nowIso,
   });
 
   const processedItems: ProcessedReminderItem[] = [];
   const failedItems: Array<{ id: string; error: string }> = [];
 
-  for (const row of rows) {
-    const reviewLink = buildReviewLink(origin, row.id);
-    const messageBody = buildReminderMessage(business.message_template ?? '', {
-      customerName: row.customer_name,
-      businessName: business.business_name,
-      reviewLink,
-    });
-
-    const delivery = await sendWhatsAppOrSimulate(
-      row.customer_phone,
-      messageBody,
-      { source, requestId: row.id }
-    );
-    if (!delivery.ok) {
-      const errMsg = delivery.error ?? 'Error al enviar mensaje.';
-      console.error('[Reminders] Falló el envío en lote manual', {
-        source,
-        requestId: row.id,
-        error: errMsg,
-      });
-      failedItems.push({
-        id: row.id,
-        error: errMsg,
-      });
-      continue;
-    }
-
-    const { error: updateError } = await supabase
+  if (candidateRows.length > 0) {
+    // Reserva atómica antes de llamar a Meta
+    const candidateIds = candidateRows.map((r) => r.id);
+    const { data: claimedRows, error: claimError } = await supabase
       .from('review_requests')
-      .update({ status: 'sent' })
-      .eq('id', row.id)
+      .update({ status: 'processing' })
+      .in('id', candidateIds)
       .eq('business_id', business.id)
-      .eq('status', 'pending');
+      .eq('status', 'pending')
+      .select('id');
 
-    if (updateError) {
-      console.error('[Reminders] Error al actualizar estado a sent en Supabase', {
+    if (claimError) {
+      console.error('[Reminders] Error al reservar lote manual en processing', {
         source,
-        requestId: row.id,
-        error: updateError.message,
+        businessId: business.id,
+        code: claimError.code ?? null,
+        error: claimError.message,
       });
-      failedItems.push({
-        id: row.id,
-        error: 'No se pudo actualizar el estado de la solicitud.',
-      });
-      continue;
+      return {
+        status: 500,
+        body: {
+          ok: false,
+          error:
+            claimError.code === '23514'
+              ? 'Falta actualizar la restricción de estado en Supabase (ejecuta supabase/migration_production_block2.sql).'
+              : 'No se pudo reservar el lote de solicitudes pendientes.',
+        },
+      };
     }
 
-    processedItems.push({
-      id: row.id,
-      customerName: row.customer_name,
-      customerPhone: row.customer_phone,
-      reviewLink,
-      messagePreview: messageBody,
-      deliveryMode: delivery.mode,
+    const claimedIds = new Set((claimedRows ?? []).map((r) => r.id));
+    const rowsToSend = candidateRows.filter((row) => claimedIds.has(row.id));
+
+    await runInChunks(rowsToSend, CONCURRENCY_LIMIT, async (row) => {
+      const reviewLink = buildReviewLink(origin, row.id);
+      const messageBody = buildReminderMessage(
+        business.message_template ?? '',
+        {
+          customerName: row.customer_name,
+          businessName: business.business_name,
+          reviewLink,
+        }
+      );
+
+      const delivery = await sendWhatsAppOrSimulate(
+        row.customer_phone,
+        messageBody,
+        {
+          source,
+          requestId: row.id,
+          templateParams: {
+            customerName: row.customer_name,
+            businessName: business.business_name,
+            reviewLink,
+          },
+        }
+      );
+
+      if (!delivery.ok) {
+        const errMsg = delivery.error ?? 'Error al enviar mensaje.';
+        console.error('[Reminders] Falló el envío en lote manual; liberando reserva a pending', {
+          source,
+          requestId: row.id,
+          retryable: delivery.retryable ?? true,
+          error: errMsg,
+        });
+
+        const { error: revertError } = await supabase
+          .from('review_requests')
+          .update({ status: 'pending' })
+          .eq('id', row.id)
+          .eq('business_id', business.id)
+          .eq('status', 'processing');
+
+        if (revertError) {
+          console.error('[Reminders] No se pudo revertir estado processing a pending', {
+            source,
+            requestId: row.id,
+            error: revertError.message,
+          });
+        }
+
+        failedItems.push({
+          id: row.id,
+          error: errMsg,
+        });
+        return;
+      }
+
+      const { error: updateError } = await supabase
+        .from('review_requests')
+        .update({ status: 'sent' })
+        .eq('id', row.id)
+        .eq('business_id', business.id)
+        .eq('status', 'processing');
+
+      if (updateError) {
+        console.error('[Reminders] Error al actualizar estado a sent en Supabase', {
+          source,
+          requestId: row.id,
+          error: updateError.message,
+        });
+        failedItems.push({
+          id: row.id,
+          error: 'No se pudo actualizar el estado de la solicitud.',
+        });
+        return;
+      }
+
+      processedItems.push({
+        id: row.id,
+        customerName: row.customer_name,
+        customerPhone: row.customer_phone,
+        reviewLink,
+        messagePreview: messageBody,
+        deliveryMode: delivery.mode,
+      });
     });
   }
 
@@ -373,7 +544,7 @@ export async function processUserPendingReminders(
   console.info('[Reminders] Finalizó procesamiento manual por usuario', {
     source,
     businessId: business.id,
-    mode: whatsAppStatus.isConfigured ? 'whatsapp_cloud' : 'simulated',
+    mode: executionMode,
     processed: processedItems.length,
     failed: failedItems.length,
     pendingFutureCount,
@@ -384,7 +555,7 @@ export async function processUserPendingReminders(
     status: 200,
     body: {
       ok: true,
-      mode: whatsAppStatus.isConfigured ? 'whatsapp_cloud' : 'simulated',
+      mode: executionMode,
       processed: processedItems.length,
       failed: failedItems.length,
       pendingFutureCount,

@@ -38,6 +38,11 @@ const STATUS_META: Record<
     textClass: 'text-amber-600 dark:text-amber-400',
     Icon: Clock,
   },
+  processing: {
+    label: 'Enviando...',
+    textClass: 'text-amber-600 dark:text-amber-400',
+    Icon: Clock,
+  },
   sent: {
     label: 'Enviada',
     textClass: 'text-emerald-600 dark:text-emerald-400',
@@ -125,10 +130,17 @@ export default function ReviewRequestsTable({
   const filteredRequests = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
     return requests.filter((item) => {
-      if (statusFilter === 'pending' && item.status !== 'pending') {
+      if (
+        statusFilter === 'pending' &&
+        item.status !== 'pending' &&
+        item.status !== 'processing'
+      ) {
         return false;
       }
-      if (statusFilter === 'sent' && item.status === 'pending') {
+      if (
+        statusFilter === 'sent' &&
+        (item.status === 'pending' || item.status === 'processing')
+      ) {
         return false;
       }
       if (!query) {

@@ -32,7 +32,7 @@ create table if not exists public.review_requests (
   business_id uuid not null references public.businesses(id) on delete cascade,
   customer_name text not null,
   customer_phone text not null,
-  status text not null default 'pending' check (status in ('pending', 'sent', 'clicked', 'completed')),
+  status text not null default 'pending' check (status in ('pending', 'processing', 'sent', 'clicked', 'completed')),
   scheduled_for timestamptz not null default now(),
   created_at timestamptz not null default now()
 );

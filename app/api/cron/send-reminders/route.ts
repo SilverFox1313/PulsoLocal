@@ -4,6 +4,7 @@ import {
   processUserPendingReminders,
   type ProcessedReminderItem,
 } from '@/lib/messaging/process-pending-reminders';
+import { getPublicOrigin } from '@/lib/supabase/cookie-options';
 
 export type { ProcessedReminderItem };
 
@@ -28,7 +29,7 @@ async function handleSendReminders(
   request: NextRequest,
   options: { includeFuture?: boolean; method?: string } = {}
 ) {
-  const origin = new URL(request.url).origin;
+  const origin = getPublicOrigin(request);
   const sourceBase = `${options.method ?? request.method}:/api/cron/send-reminders`;
 
   if (isAuthorizedCron(request)) {

@@ -4,6 +4,7 @@ import {
   processGlobalPendingReminders,
   processUserPendingReminders,
 } from '@/lib/messaging/process-pending-reminders';
+import { getPublicOrigin } from '@/lib/supabase/cookie-options';
 
 export const dynamic = 'force-dynamic';
 
@@ -33,7 +34,7 @@ function isValidCronRequest(request: NextRequest, cronSecret: string): boolean {
 }
 
 export async function GET(request: NextRequest) {
-  const origin = new URL(request.url).origin;
+  const origin = getPublicOrigin(request);
   const cronSecret = process.env.CRON_SECRET?.trim();
   const isProduction =
     process.env.NODE_ENV === 'production' ||

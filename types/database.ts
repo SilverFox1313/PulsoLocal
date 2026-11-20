@@ -7,6 +7,7 @@ export type SubscriptionStatus =
 
 export type ReviewRequestStatus =
   | 'pending'
+  | 'processing'
   | 'sent'
   | 'clicked'
   | 'completed';

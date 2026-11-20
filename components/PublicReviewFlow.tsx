@@ -38,6 +38,19 @@ const RATING_LABELS: Record<number, string> = {
   5: 'Excelente experiencia',
 };
 
+function isSafeHttpUrl(url: string | null | undefined): url is string {
+  if (!url) return false;
+  const trimmed = url.trim();
+  if (!/^https?:\/\//i.test(trimmed)) return false;
+
+  try {
+    const parsed = new URL(trimmed);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
 export default function PublicReviewFlow({
   data,
   isOwner = false,
@@ -58,24 +71,29 @@ export default function PublicReviewFlow({
   const [submittingComment, setSubmittingComment] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const safeGoogleReviewUrl = isSafeHttpUrl(googleReviewUrl)
+    ? googleReviewUrl.trim()
+    : null;
+
   useEffect(() => {
-    if (step !== 'redirect_google' || !googleReviewUrl) {
+    if (step !== 'redirect_google' || !safeGoogleReviewUrl || countdown <= 0) {
       return;
     }
 
-    const interval = window.setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          window.clearInterval(interval);
-          window.location.assign(googleReviewUrl);
-          return 0;
-        }
-        return prev - 1;
-      });
+    const timer = window.setTimeout(() => {
+      setCountdown((prev) => Math.max(0, prev - 1));
     }, 1000);
 
-    return () => window.clearInterval(interval);
-  }, [step, googleReviewUrl]);
+    return () => window.clearTimeout(timer);
+  }, [step, safeGoogleReviewUrl, countdown]);
+
+  useEffect(() => {
+    if (step !== 'redirect_google' || !safeGoogleReviewUrl || countdown > 0) {
+      return;
+    }
+
+    window.location.assign(safeGoogleReviewUrl);
+  }, [step, safeGoogleReviewUrl, countdown]);
 
   async function handleSelectRating(rating: number) {
     if (submittingRating || ownerBlocked) return;
@@ -166,14 +184,14 @@ export default function PublicReviewFlow({
           nosotros.
         </p>
 
-        {googleReviewUrl && (
+        {safeGoogleReviewUrl && (
           <div className="mt-7 border-t border-slate-200 pt-6 dark:border-white/[0.04]">
             <p className="text-sm leading-relaxed text-slate-600 dark:text-zinc-300">
               Si además deseas dejar una reseña pública en Google, puedes
               hacerlo aquí:
             </p>
             <a
-              href={googleReviewUrl}
+              href={safeGoogleReviewUrl}
               rel="noopener noreferrer"
               className="mt-4 inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 px-5 text-sm font-semibold text-zinc-900 shadow-md shadow-amber-500/20 transition-all hover:from-amber-400 hover:to-orange-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/60 dark:text-white"
             >
@@ -211,10 +229,10 @@ export default function PublicReviewFlow({
           reseña pública ayuda a que más personas nos conozcan.
         </p>
 
-        {googleReviewUrl ? (
+        {safeGoogleReviewUrl ? (
           <div className="mt-8 space-y-4">
             <a
-              href={googleReviewUrl}
+              href={safeGoogleReviewUrl}
               rel="noopener noreferrer"
               className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 px-5 text-sm font-semibold text-zinc-900 shadow-md shadow-amber-500/20 transition-all hover:from-amber-400 hover:to-orange-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/60 dark:text-white"
             >
@@ -342,14 +360,14 @@ export default function PublicReviewFlow({
           caso de manera interna para ofrecerte un mejor servicio.
         </p>
 
-        {googleReviewUrl && (
+        {safeGoogleReviewUrl && (
           <div className="mt-7 border-t border-slate-200 pt-6 dark:border-white/[0.04]">
             <p className="text-sm leading-relaxed text-slate-600 dark:text-zinc-300">
               Si además deseas dejar una reseña pública en Google, puedes
               hacerlo aquí:
             </p>
             <a
-              href={googleReviewUrl}
+              href={safeGoogleReviewUrl}
               rel="noopener noreferrer"
               className="mt-4 inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 px-5 text-sm font-semibold text-zinc-900 shadow-md shadow-amber-500/20 transition-all hover:from-amber-400 hover:to-orange-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/60 dark:text-white"
             >

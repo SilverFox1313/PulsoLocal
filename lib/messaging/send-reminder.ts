@@ -6,13 +6,57 @@ export interface TemplateParams {
   reviewLink: string;
 }
 
-export function buildReviewLink(origin: string, requestId: string): string {
-  const configuredBase = process.env.APP_URL?.trim();
-  const base =
-    configuredBase && configuredBase.startsWith('http')
-      ? configuredBase.replace(/\/+$/, '')
-      : origin.replace(/\/+$/, '');
+function cleanEnvValue(value: string | undefined): string {
+  if (!value) {
+    return '';
+  }
+  return value.trim().replace(/^['"]+|['"]+$/g, '').trim();
+}
 
+function isLocalOrBindOrigin(urlString: string): boolean {
+  try {
+    const { hostname } = new URL(urlString);
+    return (
+      hostname === 'localhost' ||
+      hostname === '127.0.0.1' ||
+      hostname === '0.0.0.0' ||
+      hostname === '::1'
+    );
+  } catch {
+    return true;
+  }
+}
+
+function resolvePublicBaseUrl(origin: string): string {
+  const configuredAppUrl = cleanEnvValue(process.env.APP_URL);
+  if (configuredAppUrl && /^https?:\/\//i.test(configuredAppUrl)) {
+    return configuredAppUrl.replace(/\/+$/, '');
+  }
+
+  const cleanOrigin = origin.trim().replace(/\/+$/, '');
+  if (
+    cleanOrigin &&
+    /^https?:\/\//i.test(cleanOrigin) &&
+    !isLocalOrBindOrigin(cleanOrigin)
+  ) {
+    return cleanOrigin;
+  }
+
+  const vercelProdUrl = cleanEnvValue(process.env.VERCEL_PROJECT_PRODUCTION_URL);
+  if (vercelProdUrl) {
+    return `https://${vercelProdUrl.replace(/^https?:\/\//i, '').replace(/\/+$/, '')}`;
+  }
+
+  const vercelUrl = cleanEnvValue(process.env.VERCEL_URL);
+  if (vercelUrl) {
+    return `https://${vercelUrl.replace(/^https?:\/\//i, '').replace(/\/+$/, '')}`;
+  }
+
+  return cleanOrigin;
+}
+
+export function buildReviewLink(origin: string, requestId: string): string {
+  const base = resolvePublicBaseUrl(origin);
   return `${base}/r/${requestId}`;
 }
 
@@ -41,13 +85,6 @@ export function buildReminderMessage(
   }
 
   return message;
-}
-
-function cleanEnvValue(value: string | undefined): string {
-  if (!value) {
-    return '';
-  }
-  return value.trim().replace(/^['"]+|['"]+$/g, '').trim();
 }
 
 /**
@@ -83,16 +120,26 @@ export function isWhatsAppCloudConfigured(): boolean {
   return getWhatsAppEnvStatus().isConfigured;
 }
 
+export function canSimulateWhatsAppInCurrentEnv(): boolean {
+  const isProduction = process.env.NODE_ENV === 'production';
+  const allowSimulated =
+    cleanEnvValue(process.env.ALLOW_SIMULATED_WHATSAPP).toLowerCase() === 'true';
+
+  return !isProduction || allowSimulated;
+}
+
 export interface DeliveryResult {
   ok: boolean;
   mode: 'whatsapp_cloud' | 'simulated';
   externalId?: string;
+  retryable?: boolean;
   error?: string;
 }
 
 export interface SendWhatsAppContext {
   source?: string;
   requestId?: string;
+  templateParams?: TemplateParams;
 }
 
 interface MetaGraphErrorPayload {
@@ -104,6 +151,15 @@ interface MetaGraphErrorPayload {
   error_data?: {
     details?: string;
   };
+}
+
+function sanitizeTemplateParam(value: string, fallback = '-'): string {
+  const cleaned = value
+    .replace(/[\r\n\t]+/g, ' ')
+    .replace(/ {2,}/g, ' ')
+    .trim();
+
+  return cleaned.length > 0 ? cleaned : fallback;
 }
 
 function formatMetaErrorMessage(
@@ -124,15 +180,39 @@ function formatMetaErrorMessage(
   }
 
   if (code === 131047) {
-    return `[Meta 131047] Han pasado más de 24 horas desde el último mensaje del cliente. Envía primero un mensaje desde ese WhatsApp al número de pruebas para abrir la ventana de 24 h.`;
+    return `[Meta 131047] Han pasado más de 24 horas desde el último mensaje del cliente. Configura una plantilla aprobada (WHATSAPP_TEMPLATE_NAME) para iniciar conversaciones fuera de la ventana de 24 h.`;
   }
 
   if (code === 131026) {
     return `[Meta 131026] No se pudo entregar el mensaje: verifica que el número destino tenga WhatsApp activo y código de país correcto.`;
   }
 
+  if (code === 132001) {
+    return `[Meta 132001] La plantilla configurada (WHATSAPP_TEMPLATE_NAME / WHATSAPP_TEMPLATE_LANG) no existe o aún no ha sido aprobada en Meta.`;
+  }
+
+  if (code === 132000 || code === 132012) {
+    return `[Meta ${code}] Los parámetros enviados no coinciden con la estructura aprobada de la plantilla en Meta.`;
+  }
+
   const base = code ? `[Meta ${code}] ${rawMessage}` : rawMessage;
   return details ? `${base} (${details})` : base;
+}
+
+function isRetryableMetaFailure(
+  httpStatus: number,
+  metaCode?: number
+): boolean {
+  if (httpStatus >= 500 || httpStatus === 429 || httpStatus === 408) {
+    return true;
+  }
+
+  // Errores de configuración / ventana que pueden reintentarse tras ajustar credenciales o reglas
+  if (metaCode === 190 || metaCode === 131030 || metaCode === 131047) {
+    return true;
+  }
+
+  return false;
 }
 
 export async function sendWhatsAppOrSimulate(
@@ -144,6 +224,10 @@ export async function sendWhatsAppOrSimulate(
   const requestId = context.requestId ?? null;
   const phoneNumberId = cleanEnvValue(process.env.WHATSAPP_PHONE_NUMBER_ID);
   const accessToken = cleanEnvValue(process.env.WHATSAPP_ACCESS_TOKEN);
+  const templateName = cleanEnvValue(process.env.WHATSAPP_TEMPLATE_NAME);
+  const templateLang =
+    cleanEnvValue(process.env.WHATSAPP_TEMPLATE_LANG) || 'es';
+  const simulationAllowed = canSimulateWhatsAppInCurrentEnv();
 
   console.info('[WhatsApp Cloud API] Verificación previa de credenciales', {
     source,
@@ -151,16 +235,35 @@ export async function sendWhatsAppOrSimulate(
     hasAccessToken: Boolean(accessToken),
     accessTokenLength: accessToken.length,
     phoneNumberId: phoneNumberId || null,
+    templateName: templateName || null,
+    templateLang: templateName ? templateLang : null,
+    simulationAllowed,
   });
 
   if (!phoneNumberId && !accessToken) {
-    console.warn(
-      '[WhatsApp Cloud API] Faltan WHATSAPP_PHONE_NUMBER_ID y WHATSAPP_ACCESS_TOKEN; ejecutando en modo simulado (no se envió a Meta).',
-      { source, requestId }
-    );
+    if (simulationAllowed) {
+      console.warn(
+        '[WhatsApp Cloud API] Faltan WHATSAPP_PHONE_NUMBER_ID y WHATSAPP_ACCESS_TOKEN; ejecutando en modo simulado (entorno no productivo o ALLOW_SIMULATED_WHATSAPP=true).',
+        { source, requestId }
+      );
+      return {
+        ok: true,
+        mode: 'simulated',
+      };
+    }
+
+    const prodMissingError =
+      'Faltan WHATSAPP_PHONE_NUMBER_ID y WHATSAPP_ACCESS_TOKEN en producción. El modo simulado está deshabilitado.';
+    console.error('[WhatsApp Cloud API] Credenciales faltantes en producción', {
+      source,
+      requestId,
+      error: prodMissingError,
+    });
     return {
-      ok: true,
-      mode: 'simulated',
+      ok: false,
+      mode: 'whatsapp_cloud',
+      retryable: true,
+      error: prodMissingError,
     };
   }
 
@@ -180,6 +283,7 @@ export async function sendWhatsAppOrSimulate(
     return {
       ok: false,
       mode: 'whatsapp_cloud',
+      retryable: true,
       error: missingError,
     };
   }
@@ -197,12 +301,13 @@ export async function sendWhatsAppOrSimulate(
     return {
       ok: false,
       mode: 'whatsapp_cloud',
+      retryable: false,
       error: phoneError,
     };
   }
 
   const cleanBody = body.trim();
-  if (!cleanBody) {
+  if (!templateName && !cleanBody) {
     const bodyError = 'El cuerpo del mensaje de WhatsApp no puede estar vacío.';
     console.error('[WhatsApp Cloud API] Cuerpo de mensaje vacío', {
       source,
@@ -213,7 +318,55 @@ export async function sendWhatsAppOrSimulate(
     return {
       ok: false,
       mode: 'whatsapp_cloud',
+      retryable: false,
       error: bodyError,
+    };
+  }
+
+  let messagePayload: Record<string, unknown>;
+
+  if (templateName) {
+    const params = context.templateParams;
+    const bodyParameters = params
+      ? [
+          { type: 'text', text: sanitizeTemplateParam(params.customerName) },
+          { type: 'text', text: sanitizeTemplateParam(params.businessName) },
+          { type: 'text', text: sanitizeTemplateParam(params.reviewLink) },
+        ]
+      : [{ type: 'text', text: sanitizeTemplateParam(cleanBody) }];
+
+    messagePayload = {
+      messaging_product: 'whatsapp',
+      recipient_type: 'individual',
+      to: cleanRecipient,
+      type: 'template',
+      template: {
+        name: templateName,
+        language: {
+          code: templateLang,
+        },
+        components: [
+          {
+            type: 'body',
+            parameters: bodyParameters,
+          },
+        ],
+      },
+    };
+  } else {
+    console.warn(
+      '[WhatsApp Cloud API] WHATSAPP_TEMPLATE_NAME no está configurado; usando fallback type: "text" (Meta rechaza texto libre fuera de la ventana de 24 h).',
+      { source, requestId }
+    );
+    messagePayload = {
+      messaging_product: 'whatsapp',
+      recipient_type: 'individual',
+      to: cleanRecipient,
+      type: 'text',
+      text: {
+        preview_url: true,
+        body: cleanBody,
+      },
     };
   }
 
@@ -228,6 +381,8 @@ export async function sendWhatsAppOrSimulate(
       endpoint,
       phoneNumberId,
       recipient: cleanRecipient,
+      messageType: templateName ? 'template' : 'text',
+      templateName: templateName || null,
     });
 
     const response = await fetch(endpoint, {
@@ -236,16 +391,8 @@ export async function sendWhatsAppOrSimulate(
         Authorization: `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        messaging_product: 'whatsapp',
-        recipient_type: 'individual',
-        to: cleanRecipient,
-        type: 'text',
-        text: {
-          preview_url: true,
-          body: cleanBody,
-        },
-      }),
+      body: JSON.stringify(messagePayload),
+      signal: AbortSignal.timeout(8000),
     });
 
     const rawText = await response.text();
@@ -264,10 +411,16 @@ export async function sendWhatsAppOrSimulate(
     }
 
     if (!response.ok) {
+      const retryable = isRetryableMetaFailure(
+        response.status,
+        data.error?.code
+      );
+
       console.error('[WhatsApp Cloud API] Respuesta de error de Meta', {
         source,
         requestId,
         status: response.status,
+        retryable,
         recipient: cleanRecipient,
         phoneNumberId,
         metaError: data.error
@@ -286,6 +439,7 @@ export async function sendWhatsAppOrSimulate(
       return {
         ok: false,
         mode: 'whatsapp_cloud',
+        retryable,
         error: formatMetaErrorMessage(data.error, response.status),
       };
     }
@@ -306,14 +460,19 @@ export async function sendWhatsAppOrSimulate(
       externalId: data.messages?.[0]?.id,
     };
   } catch (err) {
-    const errorMessage =
-      err instanceof Error
-        ? err.message
-        : 'Error de red al intentar enviar el mensaje mediante WhatsApp Cloud API.';
+    const isTimeout =
+      err instanceof Error &&
+      (err.name === 'TimeoutError' || err.name === 'AbortError');
+    const errorMessage = isTimeout
+      ? 'Tiempo de espera agotado (8 s) al contactar a Meta WhatsApp Cloud API.'
+      : err instanceof Error
+      ? err.message
+      : 'Error de red al intentar enviar el mensaje mediante WhatsApp Cloud API.';
 
     console.error('[WhatsApp Cloud API] Error de red o excepción inesperada', {
       source,
       requestId,
+      isTimeout,
       recipient: cleanRecipient,
       phoneNumberId,
       error: errorMessage,
@@ -323,6 +482,7 @@ export async function sendWhatsAppOrSimulate(
     return {
       ok: false,
       mode: 'whatsapp_cloud',
+      retryable: true,
       error: errorMessage,
     };
   }
