@@ -10,9 +10,70 @@ const UUID_REGEX =
 export interface SubmitPublicRatingResult {
   success?: boolean;
   alreadySubmitted?: boolean;
+  ownerBlocked?: boolean;
   redirectedToGoogle?: boolean;
   googleReviewUrl?: string | null;
   error?: string;
+}
+
+const OWNER_FORBIDDEN_ERROR =
+  '403 Forbidden: El propietario del negocio no puede calificar solicitudes de clientes.';
+
+async function isRequestOwnedByCurrentUser(
+  requestId: string
+): Promise<boolean> {
+  const supabase = await createClient();
+  if (!supabase) {
+    return false;
+  }
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return false;
+  }
+
+  const adminClient = createAdminClient();
+  if (adminClient) {
+    const { data: reqRow } = await adminClient
+      .from('review_requests')
+      .select('business_id')
+      .eq('id', requestId)
+      .maybeSingle();
+
+    if (!reqRow) {
+      return false;
+    }
+
+    const { data: bizRow } = await adminClient
+      .from('businesses')
+      .select('user_id')
+      .eq('id', reqRow.business_id)
+      .maybeSingle();
+
+    return Boolean(bizRow && bizRow.user_id === user.id);
+  }
+
+  const { data: reqRow } = await supabase
+    .from('review_requests')
+    .select('business_id')
+    .eq('id', requestId)
+    .maybeSingle();
+
+  if (!reqRow) {
+    return false;
+  }
+
+  const { data: bizRow } = await supabase
+    .from('businesses')
+    .select('id')
+    .eq('id', reqRow.business_id)
+    .eq('user_id', user.id)
+    .maybeSingle();
+
+  return Boolean(bizRow);
 }
 
 export async function submitPublicRatingAction(
@@ -25,6 +86,13 @@ export async function submitPublicRatingAction(
 
   if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
     return { error: 'Selecciona una calificación entre 1 y 5 estrellas.' };
+  }
+
+  if (await isRequestOwnedByCurrentUser(requestId)) {
+    return {
+      ownerBlocked: true,
+      error: OWNER_FORBIDDEN_ERROR,
+    };
   }
 
   const adminClient = createAdminClient();
@@ -118,6 +186,13 @@ export async function submitPublicRatingAction(
     return { alreadySubmitted: true };
   }
 
+  if (payload?.error === 'owner_forbidden') {
+    return {
+      ownerBlocked: true,
+      error: OWNER_FORBIDDEN_ERROR,
+    };
+  }
+
   if (payload?.error === 'not_found' || !payload?.success) {
     return { error: 'No se encontró la solicitud de reseña.' };
   }
@@ -143,6 +218,10 @@ export async function savePrivateFeedbackCommentAction(
   const cleanComment = comment.trim();
   if (cleanComment.length > 2000) {
     return { error: 'El comentario no puede superar los 2000 caracteres.' };
+  }
+
+  if (await isRequestOwnedByCurrentUser(requestId)) {
+    return { error: OWNER_FORBIDDEN_ERROR };
   }
 
   const adminClient = createAdminClient();

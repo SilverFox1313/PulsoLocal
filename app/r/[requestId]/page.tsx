@@ -81,17 +81,53 @@ async function fetchPublicReviewRequest(
   return { data: data as PublicReviewRequestData };
 }
 
+async function checkIsBusinessOwner(businessId: string): Promise<boolean> {
+  const supabase = await createClient();
+  if (!supabase) {
+    return false;
+  }
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return false;
+  }
+
+  const adminClient = createAdminClient();
+  if (adminClient) {
+    const { data: bizRow } = await adminClient
+      .from('businesses')
+      .select('user_id')
+      .eq('id', businessId)
+      .maybeSingle();
+
+    return Boolean(bizRow && bizRow.user_id === user.id);
+  }
+
+  const { data: ownedBiz } = await supabase
+    .from('businesses')
+    .select('id')
+    .eq('id', businessId)
+    .eq('user_id', user.id)
+    .maybeSingle();
+
+  return Boolean(ownedBiz);
+}
+
 export default async function PublicReviewPage({
   params,
 }: PublicReviewPageProps) {
   const { requestId } = await params;
   const { data, error } = await fetchPublicReviewRequest(requestId);
+  const isOwner = data ? await checkIsBusinessOwner(data.business_id) : false;
 
   return (
     <div className="flex min-h-screen flex-col bg-slate-50 px-4 py-12 text-slate-900 transition-colors duration-200 dark:bg-black dark:text-zinc-100">
       <main className="flex flex-1 items-center justify-center">
         {data ? (
-          <PublicReviewFlow data={data} />
+          <PublicReviewFlow data={data} isOwner={isOwner} />
         ) : (
           <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm dark:border-transparent dark:bg-[#1E1E24] dark:shadow-2xl dark:shadow-black/60">
             <h1 className="text-xl font-semibold tracking-tight text-slate-900 dark:text-zinc-50">

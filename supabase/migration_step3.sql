@@ -72,6 +72,7 @@ begin
     rr.id,
     rr.business_id,
     rr.status,
+    b.user_id as owner_user_id,
     b.google_review_url
   into v_request
   from public.review_requests rr
@@ -81,6 +82,10 @@ begin
 
   if not found then
     return jsonb_build_object('error', 'not_found');
+  end if;
+
+  if auth.uid() is not null and v_request.owner_user_id = auth.uid() then
+    return jsonb_build_object('error', 'owner_forbidden');
   end if;
 
   if v_request.status = 'completed' or exists (
@@ -135,6 +140,16 @@ declare
   v_updated_id uuid;
 begin
   v_clean_comment := nullif(trim(coalesce(p_comment, '')), '');
+
+  if auth.uid() is not null and exists (
+    select 1
+    from public.review_requests rr
+    inner join public.businesses b on b.id = rr.business_id
+    where rr.id = p_request_id
+      and b.user_id = auth.uid()
+  ) then
+    return jsonb_build_object('error', 'owner_forbidden');
+  end if;
 
   update public.feedback
   set comment = v_clean_comment

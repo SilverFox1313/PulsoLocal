@@ -6,6 +6,7 @@ import {
   CheckCircle2,
   ExternalLink,
   HeartHandshake,
+  Info,
   Loader2,
   Send,
   Star,
@@ -19,6 +20,7 @@ import type { PublicReviewRequestData } from '@/types/database';
 
 interface PublicReviewFlowProps {
   data: PublicReviewRequestData;
+  isOwner?: boolean;
 }
 
 type FlowStep =
@@ -36,10 +38,14 @@ const RATING_LABELS: Record<number, string> = {
   5: 'Excelente experiencia',
 };
 
-export default function PublicReviewFlow({ data }: PublicReviewFlowProps) {
+export default function PublicReviewFlow({
+  data,
+  isOwner = false,
+}: PublicReviewFlowProps) {
   const [step, setStep] = useState<FlowStep>(
     data.already_submitted ? 'already_submitted' : 'rate'
   );
+  const [ownerBlocked, setOwnerBlocked] = useState(isOwner);
   const [hoveredRating, setHoveredRating] = useState<number>(0);
   const [selectedRating, setSelectedRating] = useState<number>(0);
   const [googleReviewUrl, setGoogleReviewUrl] = useState<string | null>(
@@ -72,7 +78,7 @@ export default function PublicReviewFlow({ data }: PublicReviewFlowProps) {
   }, [step, googleReviewUrl]);
 
   async function handleSelectRating(rating: number) {
-    if (submittingRating) return;
+    if (submittingRating || ownerBlocked) return;
     setError(null);
     setSelectedRating(rating);
     setSubmittingRating(true);
@@ -83,6 +89,14 @@ export default function PublicReviewFlow({ data }: PublicReviewFlowProps) {
 
     if (result.alreadySubmitted) {
       setStep('already_submitted');
+      return;
+    }
+
+    if (result.ownerBlocked) {
+      setOwnerBlocked(true);
+      setError(result.error ?? null);
+      setSelectedRating(0);
+      setHoveredRating(0);
       return;
     }
 
@@ -368,6 +382,22 @@ export default function PublicReviewFlow({ data }: PublicReviewFlowProps) {
         segundo.
       </p>
 
+      {ownerBlocked && (
+        <div
+          role="status"
+          className="mt-5 flex items-start gap-2.5 rounded-lg border border-amber-300/80 bg-amber-50/90 px-3.5 py-3 text-left text-xs leading-relaxed text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200"
+        >
+          <Info
+            className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400"
+            aria-hidden="true"
+          />
+          <span>
+            Estás viendo este enlace con tu sesión de propietario. Las
+            calificaciones solo pueden ser enviadas por el cliente.
+          </span>
+        </div>
+      )}
+
       {error && (
         <div
           role="alert"
@@ -388,7 +418,7 @@ export default function PublicReviewFlow({ data }: PublicReviewFlowProps) {
         className="mt-8 flex items-center justify-center gap-2 sm:gap-3"
       >
         {[1, 2, 3, 4, 5].map((star) => {
-          const isActive = star <= activeStarPreview;
+          const isActive = !ownerBlocked && star <= activeStarPreview;
           return (
             <button
               key={star}
@@ -398,17 +428,27 @@ export default function PublicReviewFlow({ data }: PublicReviewFlowProps) {
               aria-label={`Calificar con ${star} ${
                 star === 1 ? 'estrella' : 'estrellas'
               }`}
-              disabled={submittingRating}
-              onMouseEnter={() => setHoveredRating(star)}
-              onFocus={() => setHoveredRating(star)}
+              disabled={submittingRating || ownerBlocked}
+              onMouseEnter={() => {
+                if (!ownerBlocked) setHoveredRating(star);
+              }}
+              onFocus={() => {
+                if (!ownerBlocked) setHoveredRating(star);
+              }}
               onBlur={() => setHoveredRating(0)}
               onClick={() => handleSelectRating(star)}
-              className="group flex h-12 w-12 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 transition-all duration-150 hover:scale-105 hover:border-amber-500/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/60 disabled:cursor-not-allowed disabled:opacity-60 sm:h-14 sm:w-14 dark:border-transparent dark:bg-[#27272E] dark:shadow-sm dark:shadow-black/40 hover:dark:bg-[#32323A]"
+              className={`group flex h-12 w-12 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/60 disabled:cursor-not-allowed disabled:opacity-50 sm:h-14 sm:w-14 dark:border-transparent dark:bg-[#27272E] dark:shadow-sm dark:shadow-black/40 ${
+                ownerBlocked
+                  ? ''
+                  : 'hover:scale-105 hover:border-amber-500/60 hover:dark:bg-[#32323A]'
+              }`}
             >
               <Star
                 className={`h-6 w-6 transition-colors sm:h-7 sm:w-7 ${
                   isActive
                     ? 'fill-amber-500 text-amber-500 dark:fill-amber-400 dark:text-amber-400'
+                    : ownerBlocked
+                    ? 'text-slate-300 dark:text-zinc-600'
                     : 'text-slate-300 group-hover:text-slate-400 dark:text-zinc-500 dark:group-hover:text-zinc-300'
                 }`}
                 aria-hidden="true"
@@ -419,7 +459,11 @@ export default function PublicReviewFlow({ data }: PublicReviewFlowProps) {
       </div>
 
       <div className="mt-5 min-h-[24px]">
-        {submittingRating ? (
+        {ownerBlocked ? (
+          <p className="text-xs font-medium text-slate-500 dark:text-zinc-400">
+            Vista de propietario · Votación deshabilitada
+          </p>
+        ) : submittingRating ? (
           <p className="inline-flex items-center gap-2 text-xs text-slate-500 dark:text-zinc-300">
             <Loader2
               className="h-3.5 w-3.5 animate-spin text-amber-500 dark:text-amber-400"
