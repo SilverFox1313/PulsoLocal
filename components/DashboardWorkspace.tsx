@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import BusinessSettingsForm from '@/components/BusinessSettingsForm';
+import CronCountdownIndicator from '@/components/CronCountdownIndicator';
 import PrivateFeedbackList from '@/components/PrivateFeedbackList';
 import ReviewRequestForm from '@/components/ReviewRequestForm';
 import ReviewRequestsTable from '@/components/ReviewRequestsTable';
@@ -792,7 +793,7 @@ export default function DashboardWorkspace({
           />
 
           <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-xs transition-colors duration-300 ease-in-out dark:border-transparent dark:bg-[#1E1E24] dark:shadow-2xl dark:shadow-black/60">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
               <div>
                 <h2 className="text-base font-semibold tracking-tight text-slate-900 dark:text-zinc-50">
                   Automatización de envíos
@@ -806,16 +807,13 @@ export default function DashboardWorkspace({
                           : 'solicitudes pendientes'
                       } esperando su hora programada.`}
                 </p>
-                <p className="mt-1.5 inline-flex items-center gap-1.5 text-xs text-slate-500 dark:text-zinc-400">
-                  <Clock
-                    className="h-3.5 w-3.5 shrink-0 text-amber-600 dark:text-amber-400"
-                    aria-hidden="true"
-                  />
-                  <span>
-                    Envío automático diario · Usa el botón manual para enviar al
-                    instante.
-                  </span>
+                <p className="mt-1.5 text-xs text-slate-500 dark:text-zinc-400">
+                  Envío automático diario · Usa el botón manual para enviar al
+                  instante.
                 </p>
+                <div>
+                  <CronCountdownIndicator hasPendingRequests={pendingCount > 0} />
+                </div>
               </div>
 
               <button
