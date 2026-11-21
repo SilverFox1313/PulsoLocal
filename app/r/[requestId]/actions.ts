@@ -142,10 +142,24 @@ export async function submitPublicRatingAction(
       };
     }
 
-    await adminClient
+    const { data: updatedRequest, error: statusUpdateError } = await adminClient
       .from('review_requests')
       .update({ status: 'completed' })
-      .eq('id', requestId);
+      .eq('id', requestId)
+      .select('id')
+      .maybeSingle();
+
+    if (statusUpdateError || !updatedRequest) {
+      console.error(
+        '[PublicReview] Error al actualizar el estado de la solicitud a completed:',
+        statusUpdateError?.message ?? 'Fila no encontrada'
+      );
+      await adminClient.from('feedback').delete().eq('request_id', requestId);
+      return {
+        error:
+          'No se pudo completar el registro de tu calificación. Inténtalo nuevamente.',
+      };
+    }
 
     revalidatePath('/dashboard');
     revalidatePath(`/r/${requestId}`);
@@ -159,7 +173,7 @@ export async function submitPublicRatingAction(
 
   const supabase = await createClient();
   if (!supabase) {
-    return { error: 'La conexión con la base de datos no está disponible.' };
+    return { error: 'La conexión con el servicio no está disponible.' };
   }
 
   const { data, error } = await supabase.rpc('submit_public_feedback', {
@@ -169,9 +183,10 @@ export async function submitPublicRatingAction(
   });
 
   if (error) {
+    console.error('[PublicReview] Error RPC submit_public_feedback:', error.message);
     return {
       error:
-        'No se pudo registrar tu calificación. Asegúrate de haber ejecutado la migración SQL del Paso 3 en Supabase.',
+        'No se pudo registrar tu calificación en este momento. Inténtalo de nuevo en unos segundos.',
     };
   }
 
@@ -220,6 +235,10 @@ export async function savePrivateFeedbackCommentAction(
     return { error: 'El comentario no puede superar los 2000 caracteres.' };
   }
 
+  if (!cleanComment) {
+    return { error: 'Escribe un comentario antes de enviarlo.' };
+  }
+
   if (await isRequestOwnedByCurrentUser(requestId)) {
     return { error: OWNER_FORBIDDEN_ERROR };
   }
@@ -227,11 +246,14 @@ export async function savePrivateFeedbackCommentAction(
   const adminClient = createAdminClient();
 
   if (adminClient) {
-    const { error } = await adminClient
+    const { data: updatedFeedback, error } = await adminClient
       .from('feedback')
-      .update({ comment: cleanComment.length > 0 ? cleanComment : null })
+      .update({ comment: cleanComment })
       .eq('request_id', requestId)
-      .lte('rating', 3);
+      .lte('rating', 3)
+      .is('comment', null)
+      .select('id')
+      .maybeSingle();
 
     if (error) {
       return {
@@ -239,13 +261,32 @@ export async function savePrivateFeedbackCommentAction(
       };
     }
 
+    if (!updatedFeedback) {
+      const { data: existingFeedback } = await adminClient
+        .from('feedback')
+        .select('id, rating, comment')
+        .eq('request_id', requestId)
+        .maybeSingle();
+
+      if (existingFeedback && existingFeedback.comment !== null) {
+        return {
+          error: 'Tu comentario privado ya fue enviado anteriormente.',
+        };
+      }
+
+      return {
+        error: 'No se encontró la calificación para agregar un comentario.',
+      };
+    }
+
     revalidatePath('/dashboard');
+    revalidatePath(`/r/${requestId}`);
     return { success: true };
   }
 
   const supabase = await createClient();
   if (!supabase) {
-    return { error: 'La conexión con la base de datos no está disponible.' };
+    return { error: 'La conexión con el servicio no está disponible.' };
   }
 
   const { data, error } = await supabase.rpc(
@@ -265,10 +306,19 @@ export async function savePrivateFeedbackCommentAction(
     return { error: OWNER_FORBIDDEN_ERROR };
   }
 
+  if (payload?.error === 'already_commented') {
+    return { error: 'Tu comentario privado ya fue enviado anteriormente.' };
+  }
+
+  if (payload?.error === 'empty_comment') {
+    return { error: 'Escribe un comentario antes de enviarlo.' };
+  }
+
   if (!payload?.success) {
-    return { error: 'No se encontró la calificación para actualizar.' };
+    return { error: 'No se encontró la calificación para agregar un comentario.' };
   }
 
   revalidatePath('/dashboard');
+  revalidatePath(`/r/${requestId}`);
   return { success: true };
 }

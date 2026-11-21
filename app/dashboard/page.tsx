@@ -65,7 +65,7 @@ export default async function DashboardPage() {
 
     if (createError) {
       loadError =
-        'No se encontró tu negocio y no pudo crearse automáticamente. Verifica las tablas y políticas RLS en Supabase.';
+        'No se pudo inicializar el perfil de tu negocio en este momento. Recarga la página o contacta a soporte si el problema continúa.';
     } else {
       business = createdBusiness as Business;
     }

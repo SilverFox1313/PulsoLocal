@@ -51,6 +51,8 @@ export interface PublicReviewRequestData {
   business_name: string;
   google_review_url: string | null;
   already_submitted: boolean;
+  submitted_rating?: number | null;
+  needs_private_comment?: boolean;
 }
 
 export interface PrivateFeedbackItem {

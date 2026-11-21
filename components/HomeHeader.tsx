@@ -20,7 +20,7 @@ export default function HomeHeader({
   const isAuthPage = variant === 'login' || variant === 'signup';
 
   return (
-    <header className="sticky top-0 z-50 bg-transparent backdrop-blur-md shadow-sm transition-colors duration-300 ease-in-out dark:bg-transparent dark:shadow-[0_4px_20px_rgba(0,0,0,0.6)]">
+    <header className="sticky top-0 z-50 border-b border-slate-200/70 bg-white/80 backdrop-blur-md shadow-sm transition-colors duration-300 ease-in-out dark:border-white/[0.06] dark:bg-black/80 dark:shadow-[0_4px_20px_rgba(0,0,0,0.6)]">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-4">
         <Link
           href="/"
@@ -71,7 +71,7 @@ export default function HomeHeader({
                 loadingText="Cargando..."
                 className="inline-flex h-9 items-center justify-center rounded-lg bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 px-4 text-sm font-semibold text-zinc-900 shadow-lg shadow-amber-500/25 transition-all hover:from-amber-400 hover:to-orange-500 dark:text-white whitespace-nowrap shrink-0"
               >
-                {isAuthenticated ? 'Ir al panel' : 'Registrarse'}
+                {isAuthenticated ? 'Ir al panel' : 'Crear cuenta'}
               </ActionLink>
             </>
           )}
@@ -120,7 +120,7 @@ export default function HomeHeader({
                   loadingText="Cargando..."
                   className="inline-flex h-11 w-full items-center justify-center rounded-lg bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 px-4 text-sm font-semibold text-zinc-900 shadow-md transition-all hover:from-amber-400 hover:to-orange-500 dark:text-white"
                 >
-                  {variant === 'login' ? 'Registrarse' : 'Iniciar sesión'}
+                  {variant === 'login' ? 'Crear cuenta' : 'Iniciar sesión'}
                 </ActionLink>
               </>
             ) : (

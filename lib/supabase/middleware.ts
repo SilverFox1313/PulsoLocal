@@ -11,6 +11,10 @@ export async function updateSession(request: NextRequest) {
   const { url, anonKey, isConfigured } = getSupabaseEnv();
   const pathname = request.nextUrl.pathname;
 
+  if (pathname.startsWith('/api/cron')) {
+    return supabaseResponse;
+  }
+
   if (!isConfigured) {
     if (pathname.startsWith('/dashboard')) {
       const loginUrl = request.nextUrl.clone();

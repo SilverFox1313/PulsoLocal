@@ -120,6 +120,12 @@ export function normalizePhoneToE164(
     }
 
     if (
+      defaultDialCode === 'custom' &&
+      localDigits.length >= 11 &&
+      localDigits.length <= 15
+    ) {
+      finalDigits = localDigits;
+    } else if (
       defaultDigits === '1' &&
       localDigits.length === 11 &&
       localDigits.startsWith('1')

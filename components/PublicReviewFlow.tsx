@@ -55,12 +55,23 @@ export default function PublicReviewFlow({
   data,
   isOwner = false,
 }: PublicReviewFlowProps) {
+  const shouldResumePrivateComment =
+    !isOwner && Boolean(data.needs_private_comment);
+
   const [step, setStep] = useState<FlowStep>(
-    data.already_submitted ? 'already_submitted' : 'rate'
+    shouldResumePrivateComment
+      ? 'private_comment'
+      : data.already_submitted
+      ? 'already_submitted'
+      : 'rate'
   );
   const [ownerBlocked, setOwnerBlocked] = useState(isOwner);
   const [hoveredRating, setHoveredRating] = useState<number>(0);
-  const [selectedRating, setSelectedRating] = useState<number>(0);
+  const [selectedRating, setSelectedRating] = useState<number>(
+    shouldResumePrivateComment && typeof data.submitted_rating === 'number'
+      ? data.submitted_rating
+      : 0
+  );
   const [googleReviewUrl, setGoogleReviewUrl] = useState<string | null>(
     data.google_review_url
   );

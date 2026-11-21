@@ -781,9 +781,8 @@ export default function DashboardWorkspace({
 
       {!business ? (
         <section className="rounded-xl border border-slate-200 bg-white p-8 text-sm text-slate-600 shadow-xs dark:border-transparent dark:bg-[#1E1E24] dark:text-zinc-300 dark:shadow-2xl dark:shadow-black/60">
-          No se encontró el perfil del negocio en Supabase. Verifica que hayas
-          ejecutado el script SQL de creación de tablas y políticas RLS en tu
-          proyecto.
+          No pudimos cargar el perfil de tu negocio en este momento. Recarga la
+          página o contacta a soporte si el problema continúa.
         </section>
       ) : activeTab === 'requests' ? (
         <div className="space-y-8">
@@ -856,16 +855,14 @@ export default function DashboardWorkspace({
                   <p className="font-semibold">
                     {whatsAppEnvStatus.hasPhoneNumberId ||
                     whatsAppEnvStatus.hasAccessToken
-                      ? 'Configuración incompleta de WhatsApp Cloud API'
-                      : 'WhatsApp Cloud API en modo simulado'}
+                      ? 'Conexión con WhatsApp incompleta'
+                      : 'Envíos por WhatsApp en modo de prueba'}
                   </p>
                   <p className="mt-0.5 text-xs text-amber-800 dark:text-amber-200/90">
                     {!whatsAppEnvStatus.hasPhoneNumberId &&
                     !whatsAppEnvStatus.hasAccessToken
-                      ? 'Configura WHATSAPP_PHONE_NUMBER_ID y WHATSAPP_ACCESS_TOKEN en tus variables de entorno para enviar mensajes reales mediante la WhatsApp Cloud API de Meta.'
-                      : !whatsAppEnvStatus.hasPhoneNumberId
-                        ? 'Falta agregar WHATSAPP_PHONE_NUMBER_ID en tus variables de entorno para enviar mensajes por WhatsApp Cloud API.'
-                        : 'Falta agregar WHATSAPP_ACCESS_TOKEN en tus variables de entorno para enviar mensajes por WhatsApp Cloud API.'}
+                      ? 'Los mensajes se registrarán en modo de prueba sin enviarse por WhatsApp hasta completar la conexión con la cuenta empresarial.'
+                      : 'Faltan credenciales de WhatsApp por completar en el servidor. Contacta al administrador para activar los envíos reales.'}
                   </p>
                 </div>
               </div>
@@ -909,8 +906,8 @@ export default function DashboardWorkspace({
                         ·{' '}
                         <span className="text-slate-600 dark:text-zinc-300">
                           {dispatchSummary.mode === 'whatsapp_cloud'
-                            ? 'Enviado por WhatsApp Cloud API'
-                            : 'Modo simulado (sin WhatsApp Cloud API)'}
+                            ? 'Enviado por WhatsApp'
+                            : 'Registrado en modo de prueba'}
                         </span>
                       </p>
                       {dispatchSummary.failed > 0 && (
@@ -921,8 +918,8 @@ export default function DashboardWorkspace({
                           <p className="font-semibold">
                             {dispatchSummary.failed}{' '}
                             {dispatchSummary.failed === 1
-                              ? 'envío falló con WhatsApp Cloud API:'
-                              : 'envíos fallaron con WhatsApp Cloud API:'}
+                              ? 'envío no pudo completarse por WhatsApp:'
+                              : 'envíos no pudieron completarse por WhatsApp:'}
                           </p>
                           {dispatchSummary.errors &&
                             dispatchSummary.errors.length > 0 && (

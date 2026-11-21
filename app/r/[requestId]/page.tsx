@@ -39,7 +39,7 @@ async function fetchPublicReviewRequest(
         .maybeSingle(),
       adminClient
         .from('feedback')
-        .select('id')
+        .select('id, rating, comment')
         .eq('request_id', requestId)
         .maybeSingle(),
     ]);
@@ -47,6 +47,10 @@ async function fetchPublicReviewRequest(
     if (!businessRow) {
       return { data: null, error: 'not_found' };
     }
+
+    const needsPrivateComment = Boolean(
+      feedbackRow && feedbackRow.rating <= 3 && feedbackRow.comment === null
+    );
 
     return {
       data: {
@@ -57,6 +61,8 @@ async function fetchPublicReviewRequest(
         business_name: businessRow.business_name,
         google_review_url: businessRow.google_review_url,
         already_submitted: reqRow.status === 'completed' || Boolean(feedbackRow),
+        submitted_rating: feedbackRow?.rating ?? null,
+        needs_private_comment: needsPrivateComment,
       },
     };
   }
@@ -141,7 +147,7 @@ export default async function PublicReviewPage({
               {error === 'invalid_id'
                 ? 'El identificador de esta invitación no tiene un formato válido.'
                 : error === 'rpc_error'
-                ? 'Verifica que las funciones públicas del Paso 3 estén ejecutadas en Supabase.'
+                ? 'No pudimos cargar esta invitación en este momento. Intenta recargar la página en unos segundos.'
                 : 'Es posible que este enlace haya expirado o no exista.'}
             </p>
           </div>

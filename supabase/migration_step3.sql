@@ -24,12 +24,12 @@ begin
     b.id as business_id,
     b.business_name,
     b.google_review_url,
-    exists (
-      select 1 from public.feedback f where f.request_id = rr.id
-    ) as has_feedback
+    f.rating as feedback_rating,
+    f.comment as feedback_comment
   into v_row
   from public.review_requests rr
   inner join public.businesses b on b.id = rr.business_id
+  left join public.feedback f on f.request_id = rr.id
   where rr.id = p_request_id;
 
   if not found then
@@ -43,7 +43,13 @@ begin
     'business_id', v_row.business_id,
     'business_name', v_row.business_name,
     'google_review_url', v_row.google_review_url,
-    'already_submitted', (v_row.status = 'completed' or v_row.has_feedback)
+    'already_submitted', (v_row.status = 'completed' or v_row.feedback_rating is not null),
+    'submitted_rating', v_row.feedback_rating,
+    'needs_private_comment', (
+      v_row.feedback_rating is not null
+      and v_row.feedback_rating <= 3
+      and v_row.feedback_comment is null
+    )
   );
 end;
 $$;
@@ -138,8 +144,12 @@ as $$
 declare
   v_clean_comment text;
   v_updated_id uuid;
+  v_existing_comment text;
 begin
   v_clean_comment := nullif(trim(coalesce(p_comment, '')), '');
+  if v_clean_comment is null then
+    return jsonb_build_object('error', 'empty_comment');
+  end if;
 
   if auth.uid() is not null and exists (
     select 1
@@ -155,9 +165,19 @@ begin
   set comment = v_clean_comment
   where request_id = p_request_id
     and rating <= 3
+    and comment is null
   returning id into v_updated_id;
 
   if v_updated_id is null then
+    select f.comment
+    into v_existing_comment
+    from public.feedback f
+    where f.request_id = p_request_id;
+
+    if found and v_existing_comment is not null then
+      return jsonb_build_object('error', 'already_commented');
+    end if;
+
     return jsonb_build_object('error', 'not_found');
   end if;
 
