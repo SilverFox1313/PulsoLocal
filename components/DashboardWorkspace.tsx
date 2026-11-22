@@ -595,8 +595,8 @@ export default function DashboardWorkspace({
                 payload.processed === 1 ? 'enviada' : 'enviadas'
               } por WhatsApp`
             : `${countLabel} ${
-                payload.processed === 1 ? 'procesada' : 'procesadas'
-              } (modo simulado)`,
+                payload.processed === 1 ? 'registrada' : 'registradas'
+              } en modo de prueba`,
           { id: toastId }
         );
       } else if (payload.processed > 0 && payload.failed > 0) {
@@ -607,7 +607,7 @@ export default function DashboardWorkspace({
       } else if (payload.processed === 0 && payload.failed > 0) {
         toast.error(
           payload.errors?.[0]?.error ||
-            'Error al enviar mensajes mediante WhatsApp Cloud API.',
+            'No se pudieron enviar los mensajes por WhatsApp.',
           { id: toastId }
         );
       } else {
@@ -952,7 +952,7 @@ export default function DashboardWorkspace({
                         onClick={() => runSendReminders(true)}
                         className="inline-flex h-9 items-center justify-center rounded-lg border border-slate-300 bg-slate-100 px-3.5 text-xs font-medium text-slate-800 transition-colors hover:border-slate-400 hover:bg-slate-200 disabled:opacity-60 dark:border-none dark:bg-[#27272E] dark:text-zinc-100 dark:shadow-md dark:shadow-black/40 hover:dark:bg-[#32323A] whitespace-nowrap shrink-0"
                       >
-                        Forzar envío ahora (prueba)
+                        Enviar programadas ahora
                       </button>
                     )}
                 </div>

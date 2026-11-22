@@ -1,3 +1,4 @@
+import { timingSafeEqual } from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import {
   processGlobalPendingReminders,
@@ -9,6 +10,17 @@ import { getPublicOrigin } from '@/lib/supabase/cookie-options';
 export type { ProcessedReminderItem };
 
 export const dynamic = 'force-dynamic';
+
+function safeCompareSecret(provided: string, expected: string): boolean {
+  const providedBuf = Buffer.from(provided, 'utf8');
+  const expectedBuf = Buffer.from(expected, 'utf8');
+
+  if (providedBuf.length !== expectedBuf.length) {
+    return false;
+  }
+
+  return timingSafeEqual(providedBuf, expectedBuf);
+}
 
 function isAuthorizedCron(request: NextRequest): boolean {
   const cronSecret = process.env.CRON_SECRET?.trim();
@@ -22,7 +34,10 @@ function isAuthorizedCron(request: NextRequest): boolean {
     : '';
   const customHeader = request.headers.get('x-cron-secret')?.trim() ?? '';
 
-  return bearerToken === cronSecret || customHeader === cronSecret;
+  return (
+    (Boolean(bearerToken) && safeCompareSecret(bearerToken, cronSecret)) ||
+    (Boolean(customHeader) && safeCompareSecret(customHeader, cronSecret))
+  );
 }
 
 async function handleSendReminders(

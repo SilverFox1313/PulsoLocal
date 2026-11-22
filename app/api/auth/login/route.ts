@@ -12,8 +12,7 @@ export async function POST(request: NextRequest) {
   if (!isConfigured) {
     return NextResponse.json(
       {
-        error:
-          'Configura NEXT_PUBLIC_SUPABASE_URL y NEXT_PUBLIC_SUPABASE_ANON_KEY en .env.local.',
+        error: 'El servicio de autenticación no está disponible en este momento.',
       },
       { status: 500 }
     );

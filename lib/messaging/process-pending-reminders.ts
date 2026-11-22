@@ -10,6 +10,7 @@ import { createClient } from '@/lib/supabase/server';
 
 const BATCH_SIZE = 10;
 const CONCURRENCY_LIMIT = 4;
+const STALE_PROCESSING_MS = 5 * 60_000;
 
 interface PendingRequestWithBusiness {
   id: string;
@@ -98,12 +99,37 @@ export async function processGlobalPendingReminders(
       body: {
         ok: false,
         error:
-          'SUPABASE_SERVICE_ROLE_KEY es requerida para ejecuciones cron globales.',
+          'Configuración de servidor incompleta para ejecutar el envío automático global.',
       },
     };
   }
 
-  const nowIso = new Date().toISOString();
+  const nowMs = Date.now();
+  const nowIso = new Date(nowMs).toISOString();
+  const staleBeforeIso = new Date(nowMs - STALE_PROCESSING_MS).toISOString();
+
+  // Rescatar solicitudes atascadas en 'processing' por más de 5 minutos (p. ej., timeout o caída del proceso)
+  const { data: rescuedRows, error: rescueError } = await adminClient
+    .from('review_requests')
+    .update({ status: 'pending', processing_started_at: null })
+    .eq('status', 'processing')
+    .or(
+      `processing_started_at.lte.${staleBeforeIso},processing_started_at.is.null`
+    )
+    .select('id');
+
+  if (rescueError) {
+    console.error('[Reminders] Error al rescatar solicitudes atascadas en processing', {
+      source,
+      error: rescueError.message,
+    });
+  } else if (rescuedRows && rescuedRows.length > 0) {
+    console.warn('[Reminders] Solicitudes atascadas en processing rescatadas a pending', {
+      source,
+      rescuedCount: rescuedRows.length,
+      staleBeforeIso,
+    });
+  }
 
   const { data: dueRequests, error: fetchError } = await adminClient
     .from('review_requests')
@@ -157,7 +183,7 @@ export async function processGlobalPendingReminders(
   const candidateIds = candidateRows.map((r) => r.id);
   const { data: claimedRows, error: claimError } = await adminClient
     .from('review_requests')
-    .update({ status: 'processing' })
+    .update({ status: 'processing', processing_started_at: nowIso })
     .in('id', candidateIds)
     .eq('status', 'pending')
     .select('id');
@@ -172,10 +198,7 @@ export async function processGlobalPendingReminders(
       status: 500,
       body: {
         ok: false,
-        error:
-          claimError.code === '23514'
-            ? 'Falta actualizar la restricción de estado en Supabase (ejecuta supabase/migration_production_block2.sql).'
-            : 'No se pudo reservar el lote de solicitudes pendientes.',
+        error: 'No se pudo reservar el lote de solicitudes pendientes.',
       },
     };
   }
@@ -230,7 +253,7 @@ export async function processGlobalPendingReminders(
 
       const { error: revertError } = await adminClient
         .from('review_requests')
-        .update({ status: 'pending' })
+        .update({ status: 'pending', processing_started_at: null })
         .eq('id', row.id)
         .eq('status', 'processing');
 
@@ -251,7 +274,7 @@ export async function processGlobalPendingReminders(
 
     const { error: updateError } = await adminClient
       .from('review_requests')
-      .update({ status: 'sent' })
+      .update({ status: 'sent', processing_started_at: null })
       .eq('id', row.id)
       .eq('status', 'processing');
 
@@ -329,7 +352,7 @@ export async function processUserPendingReminders(
       status: 500,
       body: {
         ok: false,
-        error: 'La conexión con Supabase no está configurada.',
+        error: 'El servicio de base de datos no está disponible en este momento.',
       },
     };
   }
@@ -344,8 +367,7 @@ export async function processUserPendingReminders(
       status: 401,
       body: {
         ok: false,
-        error:
-          'No autorizado. Inicia sesión o proporciona un CRON_SECRET válido.',
+        error: 'No autorizado. Inicia sesión nuevamente para continuar.',
       },
     };
   }
@@ -366,7 +388,35 @@ export async function processUserPendingReminders(
     };
   }
 
-  const nowIso = new Date().toISOString();
+  const nowMs = Date.now();
+  const nowIso = new Date(nowMs).toISOString();
+  const staleBeforeIso = new Date(nowMs - STALE_PROCESSING_MS).toISOString();
+
+  // Rescatar solicitudes del negocio atascadas en 'processing' por más de 5 minutos
+  const { data: rescuedUserRows, error: rescueUserError } = await supabase
+    .from('review_requests')
+    .update({ status: 'pending', processing_started_at: null })
+    .eq('business_id', business.id)
+    .eq('status', 'processing')
+    .or(
+      `processing_started_at.lte.${staleBeforeIso},processing_started_at.is.null`
+    )
+    .select('id');
+
+  if (rescueUserError) {
+    console.error('[Reminders] Error al rescatar solicitudes manuales atascadas en processing', {
+      source,
+      businessId: business.id,
+      error: rescueUserError.message,
+    });
+  } else if (rescuedUserRows && rescuedUserRows.length > 0) {
+    console.warn('[Reminders] Solicitudes manuales atascadas en processing rescatadas a pending', {
+      source,
+      businessId: business.id,
+      rescuedCount: rescuedUserRows.length,
+      staleBeforeIso,
+    });
+  }
 
   let query = supabase
     .from('review_requests')
@@ -414,7 +464,7 @@ export async function processUserPendingReminders(
     const candidateIds = candidateRows.map((r) => r.id);
     const { data: claimedRows, error: claimError } = await supabase
       .from('review_requests')
-      .update({ status: 'processing' })
+      .update({ status: 'processing', processing_started_at: nowIso })
       .in('id', candidateIds)
       .eq('business_id', business.id)
       .eq('status', 'pending')
@@ -431,10 +481,7 @@ export async function processUserPendingReminders(
         status: 500,
         body: {
           ok: false,
-          error:
-            claimError.code === '23514'
-              ? 'Falta actualizar la restricción de estado en Supabase (ejecuta supabase/migration_production_block2.sql).'
-              : 'No se pudo reservar el lote de solicitudes pendientes.',
+          error: 'No se pudo reservar el lote de solicitudes pendientes.',
         },
       };
     }
@@ -478,7 +525,7 @@ export async function processUserPendingReminders(
 
         const { error: revertError } = await supabase
           .from('review_requests')
-          .update({ status: 'pending' })
+          .update({ status: 'pending', processing_started_at: null })
           .eq('id', row.id)
           .eq('business_id', business.id)
           .eq('status', 'processing');
@@ -500,7 +547,7 @@ export async function processUserPendingReminders(
 
       const { error: updateError } = await supabase
         .from('review_requests')
-        .update({ status: 'sent' })
+        .update({ status: 'sent', processing_started_at: null })
         .eq('id', row.id)
         .eq('business_id', business.id)
         .eq('status', 'processing');

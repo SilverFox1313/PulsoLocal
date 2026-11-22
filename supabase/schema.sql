@@ -33,12 +33,16 @@ create table if not exists public.review_requests (
   customer_name text not null,
   customer_phone text not null,
   status text not null default 'pending' check (status in ('pending', 'processing', 'sent', 'clicked', 'completed')),
+  processing_started_at timestamptz,
   scheduled_for timestamptz not null default now(),
   created_at timestamptz not null default now()
 );
 
 create index if not exists idx_review_requests_business_id on public.review_requests(business_id);
 create index if not exists idx_review_requests_status_scheduled on public.review_requests(status, scheduled_for);
+create index if not exists idx_review_requests_processing_stuck
+  on public.review_requests(processing_started_at)
+  where status = 'processing';
 
 -- ----------------------------------------------------------------------------
 -- 3. TABLA: feedback

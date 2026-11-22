@@ -29,7 +29,12 @@ function isLocalOrBindOrigin(urlString: string): boolean {
 
 function resolvePublicBaseUrl(origin: string): string {
   const configuredAppUrl = cleanEnvValue(process.env.APP_URL);
-  if (configuredAppUrl && /^https?:\/\//i.test(configuredAppUrl)) {
+  if (
+    configuredAppUrl &&
+    /^https?:\/\//i.test(configuredAppUrl) &&
+    (process.env.NODE_ENV !== 'production' ||
+      !isLocalOrBindOrigin(configuredAppUrl))
+  ) {
     return configuredAppUrl.replace(/\/+$/, '');
   }
 
@@ -155,9 +160,10 @@ interface MetaGraphErrorPayload {
 
 function sanitizeTemplateParam(value: string, fallback = '-'): string {
   const cleaned = value
-    .replace(/[\r\n\t]+/g, ' ')
+    .replace(/[\r\n\t\u00A0\u200B-\u200D\uFEFF]+/g, ' ')
     .replace(/ {2,}/g, ' ')
-    .trim();
+    .trim()
+    .slice(0, 1024);
 
   return cleaned.length > 0 ? cleaned : fallback;
 }
@@ -168,34 +174,34 @@ function formatMetaErrorMessage(
 ): string {
   const code = err?.code;
   const rawMessage =
-    err?.message || `WhatsApp Cloud API respondió con estado HTTP ${httpStatus}.`;
+    err?.message || `El servicio de WhatsApp respondió con estado ${httpStatus}.`;
   const details = err?.error_data?.details;
 
   if (code === 190) {
-    return `[Meta 190] El token de acceso (WHATSAPP_ACCESS_TOKEN) expiró o es inválido. Genera uno nuevo en Meta Developers.`;
+    return 'La conexión con WhatsApp Empresarial expiró o no es válida. Renueva la autorización en el servidor.';
   }
 
   if (code === 131030) {
-    return `[Meta 131030] El número destino no está autorizado en la lista de pruebas de tu app de Meta Developers. Agrégalo en "Para" (Manage phone number list) e inténtalo de nuevo.`;
+    return 'El número de destino no está habilitado para recibir mensajes desde esta cuenta de WhatsApp Empresarial.';
   }
 
   if (code === 131047) {
-    return `[Meta 131047] Han pasado más de 24 horas desde el último mensaje del cliente. Configura una plantilla aprobada (WHATSAPP_TEMPLATE_NAME) para iniciar conversaciones fuera de la ventana de 24 h.`;
+    return 'No fue posible iniciar la conversación fuera de la ventana de 24 h. Verifica que la plantilla aprobada de WhatsApp esté activa.';
   }
 
   if (code === 131026) {
-    return `[Meta 131026] No se pudo entregar el mensaje: verifica que el número destino tenga WhatsApp activo y código de país correcto.`;
+    return 'No se pudo entregar el mensaje: verifica que el número destino tenga WhatsApp activo y código de país correcto.';
   }
 
   if (code === 132001) {
-    return `[Meta 132001] La plantilla configurada (WHATSAPP_TEMPLATE_NAME / WHATSAPP_TEMPLATE_LANG) no existe o aún no ha sido aprobada en Meta.`;
+    return 'La plantilla de WhatsApp configurada no existe o aún no ha sido aprobada.';
   }
 
   if (code === 132000 || code === 132012) {
-    return `[Meta ${code}] Los parámetros enviados no coinciden con la estructura aprobada de la plantilla en Meta.`;
+    return 'Los datos enviados no coinciden con las variables de la plantilla aprobada de WhatsApp.';
   }
 
-  const base = code ? `[Meta ${code}] ${rawMessage}` : rawMessage;
+  const base = code ? `No se pudo enviar por WhatsApp (código ${code}): ${rawMessage}` : rawMessage;
   return details ? `${base} (${details})` : base;
 }
 
@@ -252,46 +258,45 @@ export async function sendWhatsAppOrSimulate(
       };
     }
 
-    const prodMissingError =
-      'Faltan WHATSAPP_PHONE_NUMBER_ID y WHATSAPP_ACCESS_TOKEN en producción. El modo simulado está deshabilitado.';
-    console.error('[WhatsApp Cloud API] Credenciales faltantes en producción', {
+    console.error('[WhatsApp Cloud API] Credenciales faltantes en producción (WHATSAPP_PHONE_NUMBER_ID / WHATSAPP_ACCESS_TOKEN)', {
       source,
       requestId,
-      error: prodMissingError,
     });
     return {
       ok: false,
       mode: 'whatsapp_cloud',
       retryable: true,
-      error: prodMissingError,
+      error:
+        'La conexión con WhatsApp Empresarial aún no está configurada en el servidor.',
     };
   }
 
   if (!phoneNumberId || !accessToken) {
-    const missingError = !phoneNumberId
-      ? 'Falta configurar WHATSAPP_PHONE_NUMBER_ID en las variables de entorno.'
-      : 'Falta configurar WHATSAPP_ACCESS_TOKEN en las variables de entorno.';
+    const serverReason = !phoneNumberId
+      ? 'Falta WHATSAPP_PHONE_NUMBER_ID'
+      : 'Falta WHATSAPP_ACCESS_TOKEN';
 
     console.error('[WhatsApp Cloud API] Error de credenciales incompletas', {
       source,
       requestId,
       hasAccessToken: Boolean(accessToken),
       phoneNumberId: phoneNumberId || null,
-      error: missingError,
+      error: serverReason,
     });
 
     return {
       ok: false,
       mode: 'whatsapp_cloud',
       retryable: true,
-      error: missingError,
+      error:
+        'La conexión con WhatsApp Empresarial está incompleta en el servidor.',
     };
   }
 
   const cleanRecipient = normalizeWhatsAppRecipient(toPhone);
   if (!cleanRecipient) {
     const phoneError =
-      'El número del cliente no es válido para WhatsApp Cloud API (incluye código de país, ej. +18097155343).';
+      'El número del cliente no es válido para WhatsApp (incluye el código de país, ej. +18095550199).';
     console.error('[WhatsApp Cloud API] Número de destinatario inválido', {
       source,
       requestId,
@@ -464,10 +469,10 @@ export async function sendWhatsAppOrSimulate(
       err instanceof Error &&
       (err.name === 'TimeoutError' || err.name === 'AbortError');
     const errorMessage = isTimeout
-      ? 'Tiempo de espera agotado (8 s) al contactar a Meta WhatsApp Cloud API.'
+      ? 'Tiempo de espera agotado al contactar a WhatsApp. Se reintentará automáticamente.'
       : err instanceof Error
       ? err.message
-      : 'Error de red al intentar enviar el mensaje mediante WhatsApp Cloud API.';
+      : 'Error de red al intentar enviar el mensaje por WhatsApp.';
 
     console.error('[WhatsApp Cloud API] Error de red o excepción inesperada', {
       source,
