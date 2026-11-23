@@ -17,6 +17,9 @@ export interface Business {
   user_id: string;
   business_name: string;
   google_review_url: string | null;
+  normalized_google_review_url?: string | null;
+  canonical_email?: string | null;
+  trial_restricted_reason?: string | null;
   message_template: string;
   delay_minutes: number;
   subscription_status: SubscriptionStatus;

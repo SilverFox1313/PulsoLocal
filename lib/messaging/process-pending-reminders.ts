@@ -5,10 +5,17 @@ import {
   getWhatsAppEnvStatus,
   sendWhatsAppOrSimulate,
 } from '@/lib/messaging/send-reminder';
+import {
+  evaluateTrialStatus,
+  isTrialExpiredByDate,
+  TRIAL_MAX_REQUESTS,
+} from '@/lib/subscription/trial';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
+import type { Business, SubscriptionStatus } from '@/types/database';
 
 const BATCH_SIZE = 10;
+const GLOBAL_CANDIDATE_POOL = BATCH_SIZE * 5;
 const CONCURRENCY_LIMIT = 4;
 const STALE_PROCESSING_MS = 5 * 60_000;
 
@@ -22,10 +29,14 @@ interface PendingRequestWithBusiness {
     | {
         business_name: string;
         message_template: string;
+        subscription_status: SubscriptionStatus;
+        created_at: string;
       }
     | Array<{
         business_name: string;
         message_template: string;
+        subscription_status: SubscriptionStatus;
+        created_at: string;
       }>
     | null;
 }
@@ -134,12 +145,12 @@ export async function processGlobalPendingReminders(
   const { data: dueRequests, error: fetchError } = await adminClient
     .from('review_requests')
     .select(
-      'id, business_id, customer_name, customer_phone, scheduled_for, businesses(business_name, message_template)'
+      'id, business_id, customer_name, customer_phone, scheduled_for, businesses(business_name, message_template, subscription_status, created_at)'
     )
     .eq('status', 'pending')
     .lte('scheduled_for', nowIso)
     .order('scheduled_for', { ascending: true })
-    .limit(BATCH_SIZE);
+    .limit(GLOBAL_CANDIDATE_POOL);
 
   if (fetchError) {
     console.error('[Reminders] Error al consultar solicitudes pendientes globales', {
@@ -155,15 +166,16 @@ export async function processGlobalPendingReminders(
     };
   }
 
-  const candidateRows = (dueRequests ?? []) as PendingRequestWithBusiness[];
+  const rawCandidateRows = (dueRequests ?? []) as PendingRequestWithBusiness[];
   console.info('[Reminders] Solicitudes pendientes vencidas encontradas', {
     source,
-    count: candidateRows.length,
+    count: rawCandidateRows.length,
+    poolLimit: GLOBAL_CANDIDATE_POOL,
     batchLimit: BATCH_SIZE,
     nowIso,
   });
 
-  if (candidateRows.length === 0) {
+  if (rawCandidateRows.length === 0) {
     return {
       status: 200,
       body: {
@@ -174,6 +186,114 @@ export async function processGlobalPendingReminders(
         pendingFutureCount: 0,
         items: [],
         errors: [],
+        executedAt: nowIso,
+      },
+    };
+  }
+
+  // Verificar elegibilidad de plan/Trial por negocio sin permitir que cuentas bloqueadas detengan cuentas 'active'
+  const businessAllowance = new Map<
+    string,
+    { remainingSends: number; blockError: string | null }
+  >();
+  const candidateRows: PendingRequestWithBusiness[] = [];
+  const blockedErrors: Array<{ id: string; error: string }> = [];
+
+  for (const row of rawCandidateRows) {
+    if (candidateRows.length >= BATCH_SIZE) {
+      break;
+    }
+
+    const biz = Array.isArray(row.businesses)
+      ? row.businesses[0]
+      : row.businesses;
+
+    if (!biz) {
+      blockedErrors.push({
+        id: row.id,
+        error: 'Negocio asociado no encontrado.',
+      });
+      continue;
+    }
+
+    if (biz.subscription_status === 'active') {
+      candidateRows.push(row);
+      continue;
+    }
+
+    let allowance = businessAllowance.get(row.business_id);
+    if (!allowance) {
+      if (biz.subscription_status !== 'trialing') {
+        allowance = {
+          remainingSends: 0,
+          blockError:
+            'Suscripción inactiva o restringida. Activa un plan para enviar mensajes por WhatsApp.',
+        };
+      } else if (isTrialExpiredByDate(biz.created_at, nowMs)) {
+        allowance = {
+          remainingSends: 0,
+          blockError:
+            'Tu período de prueba de 7 días ha finalizado. Activa un plan para continuar enviando por WhatsApp.',
+        };
+      } else {
+        const { count: dispatchedCount, error: countErr } = await adminClient
+          .from('review_requests')
+          .select('id', { count: 'exact', head: true })
+          .eq('business_id', row.business_id)
+          .in('status', ['processing', 'sent', 'clicked', 'completed']);
+
+        if (countErr) {
+          allowance = {
+            remainingSends: 0,
+            blockError:
+              'No se pudo validar el límite de envíos del Plan Trial.',
+          };
+        } else {
+          const remaining = Math.max(
+            0,
+            TRIAL_MAX_REQUESTS - (dispatchedCount ?? 0)
+          );
+          allowance = {
+            remainingSends: remaining,
+            blockError:
+              remaining === 0
+                ? `Has alcanzado el límite de ${TRIAL_MAX_REQUESTS} envíos del Plan Trial. Activa un plan para continuar.`
+                : null,
+          };
+        }
+      }
+      businessAllowance.set(row.business_id, allowance);
+    }
+
+    if (allowance.remainingSends <= 0) {
+      blockedErrors.push({
+        id: row.id,
+        error:
+          allowance.blockError ??
+          'Límite del Plan Trial alcanzado. Activa un plan para continuar.',
+      });
+      continue;
+    }
+
+    allowance.remainingSends -= 1;
+    candidateRows.push(row);
+  }
+
+  if (candidateRows.length === 0) {
+    console.warn('[Reminders] Lote global omitido por restricciones de Trial/plan', {
+      source,
+      blockedCount: blockedErrors.length,
+    });
+    return {
+      status: 200,
+      body: {
+        ok: true,
+        mode: executionMode,
+        processed: 0,
+        failed: blockedErrors.length,
+        pendingFutureCount: 0,
+        items: [],
+        errors: blockedErrors,
         executedAt: nowIso,
       },
     };
@@ -301,12 +421,14 @@ export async function processGlobalPendingReminders(
     });
   });
 
+  const allErrors = [...failedItems, ...blockedErrors];
+
   console.info('[Reminders] Finalizó procesamiento global de pendientes', {
     source,
     mode: executionMode,
     processed: processedItems.length,
-    failed: failedItems.length,
-    errors: failedItems,
+    failed: allErrors.length,
+    errors: allErrors,
   });
 
   return {
@@ -315,10 +437,10 @@ export async function processGlobalPendingReminders(
       ok: true,
       mode: executionMode,
       processed: processedItems.length,
-      failed: failedItems.length,
+      failed: allErrors.length,
       pendingFutureCount: 0,
       items: processedItems,
-      errors: failedItems,
+      errors: allErrors,
       executedAt: nowIso,
     },
   };
@@ -374,7 +496,7 @@ export async function processUserPendingReminders(
 
   const { data: business, error: bizError } = await supabase
     .from('businesses')
-    .select('id, business_name, message_template')
+    .select('*')
     .eq('user_id', user.id)
     .single();
 
@@ -388,15 +510,74 @@ export async function processUserPendingReminders(
     };
   }
 
+  const typedBusiness = business as Business;
   const nowMs = Date.now();
   const nowIso = new Date(nowMs).toISOString();
   const staleBeforeIso = new Date(nowMs - STALE_PROCESSING_MS).toISOString();
+
+  // Validación estricta de límites del Plan Trial (sin restricciones para subscription_status === 'active')
+  let maxTrialSendsAllowed = BATCH_SIZE;
+  if (typedBusiness.subscription_status !== 'active') {
+    const [totalRes, dispatchedRes] = await Promise.all([
+      supabase
+        .from('review_requests')
+        .select('id', { count: 'exact', head: true })
+        .eq('business_id', typedBusiness.id),
+      supabase
+        .from('review_requests')
+        .select('id', { count: 'exact', head: true })
+        .eq('business_id', typedBusiness.id)
+        .in('status', ['processing', 'sent', 'clicked', 'completed']),
+    ]);
+
+    if (totalRes.error || dispatchedRes.error) {
+      return {
+        status: 500,
+        body: {
+          ok: false,
+          error: 'No se pudo verificar el límite de envíos de tu plan.',
+        },
+      };
+    }
+
+    const trialEval = evaluateTrialStatus(
+      typedBusiness,
+      {
+        totalRequestsCount: totalRes.count ?? 0,
+        dispatchedRequestsCount: dispatchedRes.count ?? 0,
+      },
+      nowMs
+    );
+
+    if (trialEval.isSendingBlocked) {
+      console.warn('[Reminders] Envío manual bloqueado por límite/estado de Trial', {
+        source,
+        businessId: typedBusiness.id,
+        blockReason: trialEval.blockReason,
+        status: typedBusiness.subscription_status,
+      });
+      return {
+        status: 403,
+        body: {
+          ok: false,
+          error:
+            trialEval.sendingErrorMessage ??
+            'Tu plan actual no permite enviar mensajes por WhatsApp.',
+        },
+      };
+    }
+
+    maxTrialSendsAllowed = Math.max(
+      0,
+      TRIAL_MAX_REQUESTS - (dispatchedRes.count ?? 0)
+    );
+  }
 
   // Rescatar solicitudes del negocio atascadas en 'processing' por más de 5 minutos
   const { data: rescuedUserRows, error: rescueUserError } = await supabase
     .from('review_requests')
     .update({ status: 'pending', processing_started_at: null })
-    .eq('business_id', business.id)
+    .eq('business_id', typedBusiness.id)
     .eq('status', 'processing')
     .or(
       `processing_started_at.lte.${staleBeforeIso},processing_started_at.is.null`
@@ -406,13 +587,13 @@ export async function processUserPendingReminders(
   if (rescueUserError) {
     console.error('[Reminders] Error al rescatar solicitudes manuales atascadas en processing', {
       source,
-      businessId: business.id,
+      businessId: typedBusiness.id,
       error: rescueUserError.message,
     });
   } else if (rescuedUserRows && rescuedUserRows.length > 0) {
     console.warn('[Reminders] Solicitudes manuales atascadas en processing rescatadas a pending', {
       source,
-      businessId: business.id,
+      businessId: typedBusiness.id,
       rescuedCount: rescuedUserRows.length,
       staleBeforeIso,
     });
@@ -421,7 +602,7 @@ export async function processUserPendingReminders(
   let query = supabase
     .from('review_requests')
     .select('id, business_id, customer_name, customer_phone, scheduled_for')
-    .eq('business_id', business.id)
+    .eq('business_id', typedBusiness.id)
     .eq('status', 'pending')
     .order('scheduled_for', { ascending: true })
     .limit(BATCH_SIZE);
@@ -435,7 +616,7 @@ export async function processUserPendingReminders(
   if (pendingError) {
     console.error('[Reminders] Error al consultar solicitudes pendientes del usuario', {
       source,
-      businessId: business.id,
+      businessId: typedBusiness.id,
       error: pendingError.message,
     });
     return {
@@ -447,17 +628,32 @@ export async function processUserPendingReminders(
     };
   }
 
-  const candidateRows = pendingRows ?? [];
+  const allPendingRows = pendingRows ?? [];
+  const candidateRows =
+    typedBusiness.subscription_status === 'active'
+      ? allPendingRows
+      : allPendingRows.slice(0, maxTrialSendsAllowed);
+  const blockedOverflowRows =
+    typedBusiness.subscription_status === 'active'
+      ? []
+      : allPendingRows.slice(maxTrialSendsAllowed);
+
   console.info('[Reminders] Solicitudes pendientes del usuario encontradas', {
     source,
-    businessId: business.id,
+    businessId: typedBusiness.id,
     count: candidateRows.length,
+    blockedByTrialCap: blockedOverflowRows.length,
     batchLimit: BATCH_SIZE,
     nowIso,
   });
 
   const processedItems: ProcessedReminderItem[] = [];
-  const failedItems: Array<{ id: string; error: string }> = [];
+  const failedItems: Array<{ id: string; error: string }> = blockedOverflowRows.map(
+    (row) => ({
+      id: row.id,
+      error: `Has alcanzado el límite de ${TRIAL_MAX_REQUESTS} envíos por WhatsApp del Plan Trial.`,
+    })
+  );
 
   if (candidateRows.length > 0) {
     // Reserva atómica antes de llamar a Meta

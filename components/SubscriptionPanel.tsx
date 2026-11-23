@@ -1,6 +1,11 @@
 'use client';
 
 import { CheckCircle2, Clock, CreditCard, ShieldCheck } from 'lucide-react';
+import {
+  getRemainingTrialDays,
+  TRIAL_DURATION_DAYS,
+  TRIAL_MAX_REQUESTS,
+} from '@/lib/subscription/trial';
 import type { Business, SubscriptionStatus } from '@/types/database';
 
 interface SubscriptionPanelProps {
@@ -10,19 +15,11 @@ interface SubscriptionPanelProps {
   onUpdated?: (updated: Business) => void;
 }
 
-const TRIAL_DAYS = 7;
-const MS_PER_DAY = 86_400_000;
-
-function getRemainingTrialDays(createdAtIso: string): number {
-  const createdMs = new Date(createdAtIso).getTime();
-  if (Number.isNaN(createdMs)) return TRIAL_DAYS;
-  const elapsedDays = Math.floor(Math.max(0, Date.now() - createdMs) / MS_PER_DAY);
-  return Math.max(0, TRIAL_DAYS - elapsedDays);
-}
-
 function getStatusSummary(
   status: SubscriptionStatus,
-  remainingDays: number
+  remainingDays: number,
+  totalRequestsCount: number,
+  trialRestrictedReason?: string | null
 ): { label: string; detail: string; isActive: boolean } {
   switch (status) {
     case 'active':
@@ -32,17 +29,21 @@ function getStatusSummary(
           'Todas las funciones de envío automático por WhatsApp, hasta 300 envíos de reseña al mes y gestión de opiniones están habilitadas.',
         isActive: true,
       };
-    case 'trialing':
+    case 'trialing': {
+      const limitReached = totalRequestsCount >= TRIAL_MAX_REQUESTS;
       return {
         label: `Plan Trial — ${remainingDays} ${
           remainingDays === 1 ? 'día restante' : 'días restantes'
         }`,
         detail:
-          remainingDays > 0
-            ? 'Estás utilizando el periodo de prueba gratuito de 7 días. Elige el Plan Básico o Plan Pro en cualquier momento para mantener el servicio sin interrupciones.'
-            : 'Tu periodo de prueba de 7 días ha finalizado. Selecciona el Plan Básico o Plan Pro para continuar enviando solicitudes automáticas.',
+          remainingDays <= 0
+            ? `Tu periodo de prueba de ${TRIAL_DURATION_DAYS} días ha finalizado. Selecciona el Plan Básico o Plan Pro para continuar creando solicitudes y enviando por WhatsApp.`
+            : limitReached
+              ? `Alcanzaste el límite de ${TRIAL_MAX_REQUESTS} solicitudes del Plan Trial. Selecciona el Plan Básico o Plan Pro para continuar enviando solicitudes.`
+              : `Estás utilizando el periodo de prueba gratuito de ${TRIAL_DURATION_DAYS} días (hasta ${TRIAL_MAX_REQUESTS} solicitudes incluidas). Elige el Plan Básico o Plan Pro en cualquier momento para mantener el servicio sin interrupciones.`,
         isActive: false,
       };
+    }
     case 'past_due':
       return {
         label: 'Pago pendiente',
@@ -54,8 +55,9 @@ function getStatusSummary(
     case 'inactive':
     default:
       return {
-        label: 'Plan Inactivo',
+        label: trialRestrictedReason ? 'Trial no disponible' : 'Plan Inactivo',
         detail:
+          trialRestrictedReason ||
           'Tu suscripción no se encuentra activa en este momento. Selecciona un plan para reanudar los envíos automáticos.',
         isActive: false,
       };
@@ -68,7 +70,12 @@ export default function SubscriptionPanel({
   totalRequestsCount,
 }: SubscriptionPanelProps) {
   const remainingDays = getRemainingTrialDays(business.created_at);
-  const summary = getStatusSummary(business.subscription_status, remainingDays);
+  const summary = getStatusSummary(
+    business.subscription_status,
+    remainingDays,
+    totalRequestsCount,
+    business.trial_restricted_reason
+  );
 
   return (
     <div className="space-y-8">
@@ -113,7 +120,7 @@ export default function SubscriptionPanel({
               {totalRequestsCount}{' '}
               {business.subscription_status === 'active'
                 ? '/ 300 este mes'
-                : '/ 25 incluidas en Trial'}
+                : `/ ${TRIAL_MAX_REQUESTS} incluidas en Trial`}
             </p>
           </div>
           <div>

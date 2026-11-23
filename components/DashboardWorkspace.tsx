@@ -23,6 +23,11 @@ import PrivateFeedbackList from '@/components/PrivateFeedbackList';
 import ReviewRequestForm from '@/components/ReviewRequestForm';
 import ReviewRequestsTable from '@/components/ReviewRequestsTable';
 import SubscriptionPanel from '@/components/SubscriptionPanel';
+import {
+  evaluateTrialStatus,
+  getRemainingTrialDays,
+  TRIAL_MAX_REQUESTS,
+} from '@/lib/subscription/trial';
 import { createClient } from '@/lib/supabase/client';
 import type {
   Business,
@@ -70,15 +75,14 @@ function getHeaderPlanLabel(business: Business): string {
     return 'Plan Pro Activo';
   }
   if (business.subscription_status === 'trialing') {
-    const createdMs = new Date(business.created_at).getTime();
-    const elapsedDays = Number.isNaN(createdMs)
-      ? 0
-      : Math.floor(Math.max(0, Date.now() - createdMs) / 86_400_000);
-    const remaining = Math.max(0, 7 - elapsedDays);
+    const remaining = getRemainingTrialDays(business.created_at);
     return `Plan Trial (${remaining} d restantes)`;
   }
   if (business.subscription_status === 'past_due') {
     return 'Pago pendiente';
+  }
+  if (business.trial_restricted_reason) {
+    return 'Trial no disponible';
   }
   return 'Plan inactivo';
 }
@@ -784,10 +788,49 @@ export default function DashboardWorkspace({
           No pudimos cargar el perfil de tu negocio en este momento. Recarga la
           página o contacta a soporte si el problema continúa.
         </section>
-      ) : activeTab === 'requests' ? (
+      ) : activeTab === 'requests' ? (() => {
+        const dispatchedCount = requests.filter(
+          (item) => item.status !== 'pending'
+        ).length;
+        const trialEval = evaluateTrialStatus(business, {
+          totalRequestsCount: requests.length,
+          dispatchedRequestsCount: dispatchedCount,
+        });
+        const trialBannerMessage =
+          trialEval.creationErrorMessage ?? trialEval.sendingErrorMessage;
+
+        return (
         <div className="space-y-8">
+          {trialBannerMessage && (
+            <div
+              role="alert"
+              className="flex flex-col gap-3 rounded-xl border border-red-500/30 bg-red-50/90 px-5 py-4 sm:flex-row sm:items-center sm:justify-between dark:border-red-500/35 dark:bg-red-950/30"
+            >
+              <div className="flex items-start gap-2.5 text-sm text-red-800 dark:text-red-200">
+                <AlertTriangle
+                  className="mt-0.5 h-4 w-4 shrink-0 text-red-600 dark:text-red-400"
+                  aria-hidden="true"
+                />
+                <span>{trialBannerMessage}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActiveTab('subscription')}
+                className="inline-flex h-9 items-center justify-center rounded-lg border border-red-500/30 bg-white px-3.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50 dark:border-red-400/30 dark:bg-[#27272E] dark:text-red-200 hover:dark:bg-[#32323A] whitespace-nowrap shrink-0"
+              >
+                Ver planes
+              </button>
+            </div>
+          )}
+
           <ReviewRequestForm
             delayMinutes={business.delay_minutes}
+            blockedReason={trialEval.creationErrorMessage}
+            trialUsageLabel={
+              trialEval.isTrial
+                ? `${requests.length} / ${TRIAL_MAX_REQUESTS} incluidas en Trial`
+                : null
+            }
             onCreated={handleRequestCreated}
           />
 
@@ -817,7 +860,7 @@ export default function DashboardWorkspace({
 
               <button
                 type="button"
-                disabled={dispatching}
+                disabled={dispatching || trialEval.isSendingBlocked}
                 onClick={() => runSendReminders(false)}
                 className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-orange-500 bg-transparent px-5 text-sm font-semibold shadow-xs transition-all hover:bg-orange-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/60 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-zinc-900 disabled:cursor-not-allowed disabled:opacity-50 whitespace-nowrap shrink-0"
               >
@@ -841,6 +884,19 @@ export default function DashboardWorkspace({
                 )}
               </button>
             </div>
+
+            {trialEval.sendingErrorMessage && (
+              <div
+                role="alert"
+                className="mt-4 flex items-start gap-2.5 rounded-lg border border-amber-300 bg-amber-50/80 px-4 py-3 text-sm text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-100"
+              >
+                <AlertCircle
+                  className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400"
+                  aria-hidden="true"
+                />
+                <span>{trialEval.sendingErrorMessage}</span>
+              </div>
+            )}
 
             {!whatsAppEnvStatus.isConfigured && (
               <div
@@ -1051,7 +1107,8 @@ export default function DashboardWorkspace({
             onRequestDeleted={handleRequestDeleted}
           />
         </div>
-      ) : activeTab === 'feedback' ? (
+        );
+      })() : activeTab === 'feedback' ? (
         <PrivateFeedbackList items={feedbackItems} />
       ) : activeTab === 'settings' ? (
         <BusinessSettingsForm

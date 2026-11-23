@@ -94,12 +94,6 @@ export default function BusinessSettingsForm({
 
     setSaving(false);
 
-    if (result.error) {
-      setError(result.error);
-      toast.error(result.error);
-      return;
-    }
-
     if (result.business) {
       onUpdated(result.business);
       setBusinessName(result.business.business_name);
@@ -108,6 +102,15 @@ export default function BusinessSettingsForm({
         normalizeTemplateVariables(result.business.message_template)
       );
       setDelayMinutes(String(result.business.delay_minutes));
+    }
+
+    if (result.error) {
+      setError(result.error);
+      toast.error(result.error);
+      return;
+    }
+
+    if (result.business) {
       setSavedMessage('Cambios guardados correctamente.');
       toast.success('Configuración del negocio guardada');
     }

@@ -13,7 +13,7 @@ import {
 import { motion } from 'motion/react';
 import ActionLink from '@/components/ActionLink';
 import { emitNavDone, emitNavStart } from '@/components/NavigationProgress';
-import { createClient } from '@/lib/supabase/client';
+import { analyzeEmailForTrialAbuse } from '@/lib/subscription/trial';
 
 interface AuthFormProps {
   mode: 'login' | 'signup';
@@ -73,6 +73,12 @@ export default function AuthForm({
   const [verificationSentTo, setVerificationSentTo] = useState<string | null>(
     null
   );
+  const [signupTrialNotice, setSignupTrialNotice] = useState<string | null>(
+    null
+  );
+
+  const emailAnalysis = isSignup ? analyzeEmailForTrialAbuse(email) : null;
+  const showsSubaddressingNotice = Boolean(emailAnalysis?.hasSubaddressing);
 
   function unlockSubmission() {
     isSubmittingRef.current = false;
@@ -122,31 +128,51 @@ export default function AuthForm({
 
     try {
       if (isSignup) {
-        const supabase = createClient();
-        const { data, error: signUpError } = await supabase.auth.signUp({
-          email: trimmedEmail,
-          password,
-          options: {
-            data: {
-              business_name: trimmedBusiness,
-            },
-            emailRedirectTo: `${window.location.origin}/auth/callback`,
+        const response = await fetch('/api/auth/signup', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
           },
+          body: JSON.stringify({
+            businessName: trimmedBusiness,
+            email: trimmedEmail,
+            password,
+          }),
         });
 
-        if (signUpError) {
-          setError(mapSupabaseError(signUpError.message));
+        const payload = (await response.json().catch(() => ({}))) as {
+          ok?: boolean;
+          hasSession?: boolean;
+          trialRestricted?: boolean;
+          trialRestrictedReason?: string | null;
+          error?: string;
+        };
+
+        if (!response.ok || !payload.ok) {
+          setError(
+            mapSupabaseError(
+              payload.error || 'No se pudo crear la cuenta. Inténtalo de nuevo.'
+            )
+          );
           unlockSubmission();
           return;
         }
 
-        if (data.session) {
+        if (payload.hasSession) {
           router.refresh();
           window.location.assign('/dashboard');
           return;
         }
 
         emitNavDone();
+        isSubmittingRef.current = false;
+        setIsSubmitting(false);
+        setSignupTrialNotice(
+          payload.trialRestricted
+            ? (payload.trialRestrictedReason ??
+                'El acceso automático al Trial gratuito está restringido para este correo.')
+            : null
+        );
         setVerificationSentTo(trimmedEmail);
         return;
       }
@@ -211,6 +237,15 @@ export default function AuthForm({
           </span>
           . Una vez confirmado, tu espacio de negocio estará listo automáticamente.
         </p>
+
+        {signupTrialNotice && (
+          <div
+            role="status"
+            className="mt-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3.5 py-2.5 text-xs leading-relaxed text-amber-800 dark:text-amber-200"
+          >
+            {signupTrialNotice}
+          </div>
+        )}
 
         <div className="mt-6 border-t border-slate-200 pt-5 dark:border-white/[0.04]">
           <ActionLink
@@ -317,6 +352,11 @@ export default function AuthForm({
               placeholder="tu@negocio.com"
               className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3.5 text-sm text-slate-900 placeholder:text-slate-400 transition-colors focus:border-amber-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30 disabled:cursor-not-allowed disabled:opacity-60 dark:border-transparent dark:bg-[#27272E] dark:text-zinc-100 dark:shadow-sm dark:shadow-black/40 dark:placeholder:text-zinc-400 dark:focus:bg-[#32323A] dark:focus:border-amber-500/60"
             />
+            {showsSubaddressingNotice && (
+              <p className="mt-1.5 text-xs text-amber-700 dark:text-amber-300">
+                Los correos con alias (&ldquo;+&rdquo;) pueden registrarse, pero no reciben el Plan Trial gratuito automático. Usa tu correo principal si es tu primer negocio.
+              </p>
+            )}
           </div>
 
           <div>

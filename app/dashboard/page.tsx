@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import DashboardHeader from '@/components/DashboardHeader';
 import DashboardWorkspace from '@/components/DashboardWorkspace';
 import { getWhatsAppEnvStatus } from '@/lib/messaging/send-reminder';
+import { analyzeEmailForTrialAbuse } from '@/lib/subscription/trial';
 import { createClient } from '@/lib/supabase/server';
 import type {
   Business,
@@ -34,9 +35,7 @@ export default async function DashboardPage() {
 
   const { data: existingBusiness, error: businessError } = await supabase
     .from('businesses')
-    .select(
-      'id, user_id, business_name, google_review_url, message_template, delay_minutes, subscription_status, created_at'
-    )
+    .select('*')
     .eq('user_id', user.id)
     .maybeSingle();
 
@@ -52,15 +51,19 @@ export default async function DashboardPage() {
         ? user.user_metadata.business_name.trim()
         : 'Mi Negocio';
 
+    const emailCheck = analyzeEmailForTrialAbuse(user.email ?? '');
+    const initialStatus = emailCheck?.hasSubaddressing
+      ? 'inactive'
+      : 'trialing';
+
     const { data: createdBusiness, error: createError } = await supabase
       .from('businesses')
       .insert({
         user_id: user.id,
         business_name: metadataName,
+        subscription_status: initialStatus,
       })
-      .select(
-        'id, user_id, business_name, google_review_url, message_template, delay_minutes, subscription_status, created_at'
-      )
+      .select('*')
       .single();
 
     if (createError) {

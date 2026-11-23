@@ -13,11 +13,15 @@ import type { ReviewRequest } from '@/types/database';
 
 interface ReviewRequestFormProps {
   delayMinutes: number;
+  blockedReason?: string | null;
+  trialUsageLabel?: string | null;
   onCreated: (request: ReviewRequest) => void;
 }
 
 export default function ReviewRequestForm({
   delayMinutes,
+  blockedReason = null,
+  trialUsageLabel = null,
   onCreated,
 }: ReviewRequestFormProps) {
   const [customerName, setCustomerName] = useState('');
@@ -56,6 +60,12 @@ export default function ReviewRequestForm({
     event.preventDefault();
     setError(null);
     setSuccessMessage(null);
+
+    if (blockedReason) {
+      setError(blockedReason);
+      toast.error(blockedReason);
+      return;
+    }
 
     const trimmedName = customerName.trim();
     const trimmedPhone = customerPhone.trim();
@@ -113,13 +123,33 @@ export default function ReviewRequestForm({
           </p>
         </div>
 
-        <p className="text-xs text-slate-500 tabular-nums dark:text-zinc-300">
-          Tiempo de envío:{' '}
-          <span className="font-mono text-slate-800 dark:text-zinc-200">
-            {delayMinutes === 0 ? 'Inmediato (0 min)' : `${delayMinutes} min`}
-          </span>
-        </p>
+        <div className="flex flex-col items-start gap-1 text-xs text-slate-500 tabular-nums sm:items-end dark:text-zinc-300">
+          <p>
+            Tiempo de envío:{' '}
+            <span className="font-mono text-slate-800 dark:text-zinc-200">
+              {delayMinutes === 0 ? 'Inmediato (0 min)' : `${delayMinutes} min`}
+            </span>
+          </p>
+          {trialUsageLabel && (
+            <p className="font-medium text-amber-700 dark:text-amber-300">
+              {trialUsageLabel}
+            </p>
+          )}
+        </div>
       </div>
+
+      {blockedReason && (
+        <div
+          role="alert"
+          className="mt-5 flex items-start gap-2.5 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-900 dark:text-amber-100"
+        >
+          <AlertCircle
+            className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400"
+            aria-hidden="true"
+          />
+          <span>{blockedReason}</span>
+        </div>
+      )}
 
       {error && (
         <div
@@ -164,7 +194,7 @@ export default function ReviewRequestForm({
             name="customerName"
             type="text"
             required
-            disabled={submitting}
+            disabled={submitting || Boolean(blockedReason)}
             value={customerName}
             onChange={(e) => {
               setSuccessMessage(null);
@@ -186,7 +216,7 @@ export default function ReviewRequestForm({
             <select
               id="customer-phone-country"
               aria-label="Código de país"
-              disabled={submitting}
+              disabled={submitting || Boolean(blockedReason)}
               value={dialCode}
               onChange={(e) => {
                 setError(null);
@@ -210,7 +240,7 @@ export default function ReviewRequestForm({
               name="customerPhone"
               type="tel"
               required
-              disabled={submitting}
+              disabled={submitting || Boolean(blockedReason)}
               value={customerPhone}
               onChange={(e) => handlePhoneInputChange(e.target.value)}
               placeholder={selectedDialOption.placeholder}
@@ -222,7 +252,7 @@ export default function ReviewRequestForm({
         <div className="md:col-span-3">
           <button
             type="submit"
-            disabled={submitting}
+            disabled={submitting || Boolean(blockedReason)}
             className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-orange-500 bg-transparent px-4 text-sm font-semibold shadow-xs transition-all hover:bg-orange-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/60 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-zinc-900 disabled:cursor-not-allowed disabled:opacity-50 whitespace-nowrap shrink-0"
           >
             {submitting ? (

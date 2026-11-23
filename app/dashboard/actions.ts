@@ -3,6 +3,11 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { normalizePhoneToE164 } from '@/lib/messaging/phone';
+import {
+  evaluateTrialStatus,
+  normalizeGoogleReviewUrl,
+} from '@/lib/subscription/trial';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
 import type { Business, ReviewRequest } from '@/types/database';
 
@@ -93,6 +98,18 @@ export async function updateBusinessSettingsAction(
     };
   }
 
+  const { data: currentBusiness } = await supabase
+    .from('businesses')
+    .select('*')
+    .eq('user_id', user.id)
+    .maybeSingle();
+
+  const previousStatus = currentBusiness?.subscription_status ?? 'trialing';
+  const normalizedUrl =
+    googleReviewUrl.length > 0
+      ? normalizeGoogleReviewUrl(googleReviewUrl)
+      : null;
+
   const { data, error } = await supabase
     .from('businesses')
     .update({
@@ -102,9 +119,7 @@ export async function updateBusinessSettingsAction(
       delay_minutes: delayMinutes,
     })
     .eq('user_id', user.id)
-    .select(
-      'id, user_id, business_name, google_review_url, message_template, delay_minutes, subscription_status, created_at'
-    )
+    .select('*')
     .single();
 
   if (error || !data) {
@@ -115,8 +130,103 @@ export async function updateBusinessSettingsAction(
     };
   }
 
+  let finalBusiness = data as Business;
+  let duplicateUrlRestrictionMsg: string | null = null;
+
+  // Caso 1: El trigger de PostgreSQL restringió el Trial automáticamente al detectar URL reutilizada
+  if (
+    previousStatus === 'trialing' &&
+    finalBusiness.subscription_status === 'inactive'
+  ) {
+    duplicateUrlRestrictionMsg =
+      finalBusiness.trial_restricted_reason ||
+      'Este enlace de Google Reviews ya utilizó una prueba gratuita anteriormente. Activa un plan de pago para continuar.';
+  }
+
+  // Caso 2: Refuerzo en backend con adminClient (útil también antes de ejecutar la migración SQL)
+  if (
+    previousStatus !== 'active' &&
+    finalBusiness.subscription_status === 'trialing' &&
+    normalizedUrl
+  ) {
+    const adminClient = createAdminClient();
+    if (adminClient) {
+      let hasDuplicateUrl = false;
+
+      const { data: claimMatches, error: claimErr } = await adminClient
+        .from('trial_claims')
+        .select('id, business_id')
+        .eq('claim_type', 'google_review_url')
+        .eq('claim_value', normalizedUrl)
+        .neq('business_id', finalBusiness.id)
+        .limit(1);
+
+      if (!claimErr && claimMatches && claimMatches.length > 0) {
+        hasDuplicateUrl = true;
+      } else {
+        const { data: otherBusinesses } = await adminClient
+          .from('businesses')
+          .select('id, google_review_url')
+          .neq('id', finalBusiness.id)
+          .not('google_review_url', 'is', null);
+
+        if (otherBusinesses) {
+          hasDuplicateUrl = otherBusinesses.some(
+            (other) =>
+              normalizeGoogleReviewUrl(other.google_review_url) ===
+              normalizedUrl
+          );
+        }
+      }
+
+      if (hasDuplicateUrl) {
+        const restrictionReason =
+          'Este enlace de Google Reviews ya utilizó una prueba gratuita anteriormente. Activa un plan de pago para continuar.';
+
+        const { data: restrictedBiz, error: restrictErr } = await adminClient
+          .from('businesses')
+          .update({
+            subscription_status: 'inactive',
+            trial_restricted_reason: restrictionReason,
+            normalized_google_review_url: normalizedUrl,
+          })
+          .eq('id', finalBusiness.id)
+          .select('*')
+          .single();
+
+        if (!restrictErr && restrictedBiz) {
+          finalBusiness = restrictedBiz as Business;
+        } else {
+          const { data: fallbackRestricted } = await adminClient
+            .from('businesses')
+            .update({ subscription_status: 'inactive' })
+            .eq('id', finalBusiness.id)
+            .select('*')
+            .single();
+
+          if (fallbackRestricted) {
+            finalBusiness = {
+              ...(fallbackRestricted as Business),
+              trial_restricted_reason: restrictionReason,
+            };
+          }
+        }
+
+        duplicateUrlRestrictionMsg = restrictionReason;
+      }
+    }
+  }
+
   revalidatePath('/dashboard');
-  return { business: data as Business };
+
+  if (duplicateUrlRestrictionMsg) {
+    return {
+      business: finalBusiness,
+      error: duplicateUrlRestrictionMsg,
+    };
+  }
+
+  return { business: finalBusiness };
 }
 
 export interface CreateReviewRequestInput {
@@ -160,7 +270,7 @@ export async function createReviewRequestAction(
 
   const { data: business, error: businessError } = await supabase
     .from('businesses')
-    .select('id, delay_minutes')
+    .select('*')
     .eq('user_id', user.id)
     .single();
 
@@ -171,7 +281,36 @@ export async function createReviewRequestAction(
     };
   }
 
-  const delayMinutes = Math.max(0, Number(business.delay_minutes ?? 60));
+  const typedBusiness = business as Business;
+
+  // Los negocios con subscription_status === 'active' operan sin restricciones de Trial
+  if (typedBusiness.subscription_status !== 'active') {
+    const { count: existingRequestsCount, error: countError } = await supabase
+      .from('review_requests')
+      .select('id', { count: 'exact', head: true })
+      .eq('business_id', typedBusiness.id);
+
+    if (countError) {
+      return {
+        error:
+          'No se pudo verificar el límite de solicitudes de tu plan. Inténtalo nuevamente.',
+      };
+    }
+
+    const trialEval = evaluateTrialStatus(typedBusiness, {
+      totalRequestsCount: existingRequestsCount ?? 0,
+    });
+
+    if (trialEval.isCreationBlocked) {
+      return {
+        error:
+          trialEval.creationErrorMessage ??
+          'Tu plan actual no permite crear más solicitudes en este momento.',
+      };
+    }
+  }
+
+  const delayMinutes = Math.max(0, Number(typedBusiness.delay_minutes ?? 60));
   const scheduledFor =
     delayMinutes === 0
       ? new Date(Date.now() - 1000).toISOString()
