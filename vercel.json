@@ -1,8 +1,10 @@
 {
-  "crons": [
-    {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "schedules": {
+    "enviar-pendientes": {
       "path": "/api/cron/enviar-pendientes",
-      "schedule": "0 12 * * *"
+      "schedule": "0 14 * * *",
+      "requestMethod": "GET"
     }
-  ]
+  }
 }

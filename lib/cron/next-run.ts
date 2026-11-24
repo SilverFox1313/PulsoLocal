@@ -3,21 +3,39 @@ import vercelConfig from '@/vercel.json';
 interface CronEntry {
   path?: string;
   schedule?: string;
+  requestMethod?: string;
 }
 
-const DEFAULT_CRON_SCHEDULE = '0 12 * * *';
+interface VercelConfigShape {
+  schedules?: Record<string, CronEntry>;
+  crons?: CronEntry[];
+}
+
+const DEFAULT_CRON_SCHEDULE = '0 14 * * *';
 const TARGET_CRON_PATH = '/api/cron/enviar-pendientes';
 
 export function getConfiguredCronSchedule(): string {
-  const crons = Array.isArray((vercelConfig as { crons?: CronEntry[] }).crons)
-    ? (vercelConfig as { crons: CronEntry[] }).crons
-    : [];
+  const config = vercelConfig as VercelConfigShape;
 
-  const target =
+  if (config.schedules && typeof config.schedules === 'object') {
+    const scheduleEntries = Object.values(config.schedules);
+    const targetSchedule =
+      config.schedules['enviar-pendientes'] ??
+      scheduleEntries.find((entry) => entry.path === TARGET_CRON_PATH) ??
+      scheduleEntries[0];
+
+    const scheduleExpr = targetSchedule?.schedule?.trim();
+    if (scheduleExpr) {
+      return scheduleExpr;
+    }
+  }
+
+  const crons = Array.isArray(config.crons) ? config.crons : [];
+  const targetCron =
     crons.find((entry) => entry.path === TARGET_CRON_PATH) ?? crons[0];
 
-  const schedule = target?.schedule?.trim();
-  return schedule || DEFAULT_CRON_SCHEDULE;
+  const legacySchedule = targetCron?.schedule?.trim();
+  return legacySchedule || DEFAULT_CRON_SCHEDULE;
 }
 
 function parseCronField(
