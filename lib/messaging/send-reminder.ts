@@ -158,6 +158,17 @@ interface MetaGraphErrorPayload {
   };
 }
 
+function maskPhoneForLog(raw: string): string {
+  const digits = raw.replace(/\D/g, '');
+  if (!digits) {
+    return '***';
+  }
+  if (digits.length <= 4) {
+    return `***${digits}`;
+  }
+  return `***${digits.slice(-4)}`;
+}
+
 function sanitizeTemplateParam(value: string, fallback = '-'): string {
   const cleaned = value
     .replace(/[\r\n\t\u00A0\u200B-\u200D\uFEFF]+/g, ' ')
@@ -239,7 +250,6 @@ export async function sendWhatsAppOrSimulate(
     source,
     requestId,
     hasAccessToken: Boolean(accessToken),
-    accessTokenLength: accessToken.length,
     phoneNumberId: phoneNumberId || null,
     templateName: templateName || null,
     templateLang: templateName ? templateLang : null,
@@ -300,7 +310,7 @@ export async function sendWhatsAppOrSimulate(
     console.error('[WhatsApp Cloud API] Número de destinatario inválido', {
       source,
       requestId,
-      rawPhone: toPhone,
+      recipient: maskPhoneForLog(toPhone),
       error: phoneError,
     });
     return {
@@ -311,13 +321,14 @@ export async function sendWhatsAppOrSimulate(
     };
   }
 
+  const maskedRecipient = maskPhoneForLog(cleanRecipient);
   const cleanBody = body.trim();
   if (!templateName && !cleanBody) {
     const bodyError = 'El cuerpo del mensaje de WhatsApp no puede estar vacío.';
     console.error('[WhatsApp Cloud API] Cuerpo de mensaje vacío', {
       source,
       requestId,
-      recipient: cleanRecipient,
+      recipient: maskedRecipient,
       error: bodyError,
     });
     return {
@@ -385,7 +396,7 @@ export async function sendWhatsAppOrSimulate(
       requestId,
       endpoint,
       phoneNumberId,
-      recipient: cleanRecipient,
+      recipient: maskedRecipient,
       messageType: templateName ? 'template' : 'text',
       templateName: templateName || null,
     });
@@ -426,7 +437,7 @@ export async function sendWhatsAppOrSimulate(
         requestId,
         status: response.status,
         retryable,
-        recipient: cleanRecipient,
+        recipient: maskedRecipient,
         phoneNumberId,
         metaError: data.error
           ? {
@@ -438,7 +449,6 @@ export async function sendWhatsAppOrSimulate(
               error_data: data.error.error_data ?? null,
             }
           : null,
-        data,
       });
 
       return {
@@ -453,10 +463,9 @@ export async function sendWhatsAppOrSimulate(
       source,
       requestId,
       status: response.status,
-      recipient: cleanRecipient,
+      recipient: maskedRecipient,
       phoneNumberId,
       messageId: data.messages?.[0]?.id ?? null,
-      data,
     });
 
     return {
@@ -478,10 +487,12 @@ export async function sendWhatsAppOrSimulate(
       source,
       requestId,
       isTimeout,
-      recipient: cleanRecipient,
+      recipient: maskedRecipient,
       phoneNumberId,
       error: errorMessage,
-      stack: err instanceof Error ? err.stack : undefined,
+      ...(process.env.NODE_ENV !== 'production' && err instanceof Error
+        ? { stack: err.stack }
+        : {}),
     });
 
     return {

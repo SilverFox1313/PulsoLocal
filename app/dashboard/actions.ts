@@ -9,6 +9,7 @@ import {
 } from '@/lib/subscription/trial';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
+import { isValidUuid } from '@/lib/validation/uuid';
 import type { Business, ReviewRequest } from '@/types/database';
 
 export async function signOutAction(): Promise<{ error?: string }> {
@@ -164,18 +165,15 @@ export async function updateBusinessSettingsAction(
       if (!claimErr && claimMatches && claimMatches.length > 0) {
         hasDuplicateUrl = true;
       } else {
-        const { data: otherBusinesses } = await adminClient
+        const { data: bizMatches } = await adminClient
           .from('businesses')
-          .select('id, google_review_url')
+          .select('id')
+          .eq('normalized_google_review_url', normalizedUrl)
           .neq('id', finalBusiness.id)
-          .not('google_review_url', 'is', null);
+          .limit(1);
 
-        if (otherBusinesses) {
-          hasDuplicateUrl = otherBusinesses.some(
-            (other) =>
-              normalizeGoogleReviewUrl(other.google_review_url) ===
-              normalizedUrl
-          );
+        if (bizMatches && bizMatches.length > 0) {
+          hasDuplicateUrl = true;
         }
       }
 
@@ -350,9 +348,6 @@ export interface UpdateReviewRequestInput {
   sendNow?: boolean;
 }
 
-const UUID_REGEX =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
 export async function updateReviewRequestAction(
   input: UpdateReviewRequestInput
 ): Promise<{ request?: ReviewRequest; error?: string }> {
@@ -372,7 +367,7 @@ export async function updateReviewRequestAction(
   }
 
   const requestId = input.requestId.trim();
-  if (!UUID_REGEX.test(requestId)) {
+  if (!isValidUuid(requestId)) {
     return { error: 'Identificador de solicitud inválido.' };
   }
 
@@ -469,7 +464,7 @@ export async function deleteReviewRequestAction(
   }
 
   const requestId = requestIdInput.trim();
-  if (!UUID_REGEX.test(requestId)) {
+  if (!isValidUuid(requestId)) {
     return { error: 'Identificador de solicitud inválido.' };
   }
 
