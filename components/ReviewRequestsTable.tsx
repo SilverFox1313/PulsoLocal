@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import {
+  AlertCircle,
   Check,
   CheckCircle2,
   ChevronLeft,
@@ -57,6 +58,11 @@ const STATUS_META: Record<
     label: 'Completada',
     textClass: 'text-emerald-700 dark:text-emerald-300',
     Icon: CheckCircle2,
+  },
+  failed: {
+    label: 'Fallida',
+    textClass: 'text-red-600 dark:text-red-400',
+    Icon: AlertCircle,
   },
 };
 
@@ -139,7 +145,9 @@ export default function ReviewRequestsTable({
       }
       if (
         statusFilter === 'sent' &&
-        (item.status === 'pending' || item.status === 'processing')
+        (item.status === 'pending' ||
+          item.status === 'processing' ||
+          item.status === 'failed')
       ) {
         return false;
       }

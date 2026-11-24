@@ -10,7 +10,8 @@ export type ReviewRequestStatus =
   | 'processing'
   | 'sent'
   | 'clicked'
-  | 'completed';
+  | 'completed'
+  | 'failed';
 
 export interface Business {
   id: string;
@@ -32,6 +33,10 @@ export interface ReviewRequest {
   customer_name: string;
   customer_phone: string;
   status: ReviewRequestStatus;
+  whatsapp_message_id?: string | null;
+  sent_at?: string | null;
+  last_error?: string | null;
+  attempts?: number;
   scheduled_for: string;
   created_at: string;
 }

@@ -790,7 +790,7 @@ export default function DashboardWorkspace({
         </section>
       ) : activeTab === 'requests' ? (() => {
         const dispatchedCount = requests.filter(
-          (item) => item.status !== 'pending'
+          (item) => item.status !== 'pending' && item.status !== 'failed'
         ).length;
         const trialEval = evaluateTrialStatus(business, {
           totalRequestsCount: requests.length,
