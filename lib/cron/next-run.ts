@@ -184,10 +184,10 @@ export function formatLocalScheduleHint(
   targetDate: Date,
   nowDate: Date
 ): string {
-  const timeText = new Intl.DateTimeFormat('es', {
-    hour: '2-digit',
+  const timeText = new Intl.DateTimeFormat('en-US', {
+    hour: 'numeric',
     minute: '2-digit',
-    hour12: false,
+    hour12: true,
   }).format(targetDate);
 
   const nowDayKey = `${nowDate.getFullYear()}-${nowDate.getMonth()}-${nowDate.getDate()}`;

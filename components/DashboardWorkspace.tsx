@@ -800,7 +800,7 @@ export default function DashboardWorkspace({
           trialEval.creationErrorMessage ?? trialEval.sendingErrorMessage;
 
         return (
-        <div className="space-y-8">
+        <div className="w-full max-w-full min-w-0 space-y-8">
           {trialBannerMessage && (
             <div
               role="alert"
@@ -878,7 +878,7 @@ export default function DashboardWorkspace({
                   <>
                     <Send className="h-4 w-4 shrink-0 text-orange-500 dark:text-orange-400" aria-hidden="true" />
                     <span className="bg-gradient-to-r from-orange-500 to-amber-500 bg-clip-text text-transparent font-semibold dark:from-orange-400 dark:to-amber-400">
-                      Verificar y Enviar Pendientes
+                      Enviar pendientes ya!
                     </span>
                   </>
                 )}
