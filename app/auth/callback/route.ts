@@ -14,9 +14,23 @@ export async function GET(request: NextRequest) {
   const tokenHash = searchParams.get('token_hash');
   const type = searchParams.get('type') as EmailOtpType | null;
   const next = searchParams.get('next') ?? '/dashboard';
-  const safeNext = next.startsWith('/') ? next : '/dashboard';
+  const safeNext =
+    next.startsWith('/') && !next.startsWith('//') && !next.startsWith('/\\')
+      ? next
+      : '/dashboard';
 
   const publicOrigin = getPublicOrigin(request);
+  let redirectUrl: URL;
+  try {
+    const resolved = new URL(safeNext, publicOrigin);
+    redirectUrl =
+      resolved.origin === publicOrigin
+        ? resolved
+        : new URL('/dashboard', publicOrigin);
+  } catch {
+    redirectUrl = new URL('/dashboard', publicOrigin);
+  }
+
   const isHttps = isHttpsRequest(request.headers, publicOrigin);
   const { url, anonKey, isConfigured } = getSupabaseEnv();
 
@@ -24,7 +38,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(`${publicOrigin}/login?error=auth_callback_failed`);
   }
 
-  const successResponse = NextResponse.redirect(`${publicOrigin}${safeNext}`);
+  const successResponse = NextResponse.redirect(redirectUrl);
 
   const supabase = createServerClient(url, anonKey, {
     cookies: {

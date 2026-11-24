@@ -5,7 +5,10 @@ import {
   processUserPendingReminders,
   type ProcessedReminderItem,
 } from '@/lib/messaging/process-pending-reminders';
-import { getPublicOrigin } from '@/lib/supabase/cookie-options';
+import {
+  getPublicOrigin,
+  isValidSameOriginPost,
+} from '@/lib/supabase/cookie-options';
 
 export type { ProcessedReminderItem };
 
@@ -20,6 +23,12 @@ function safeCompareSecret(provided: string, expected: string): boolean {
   }
 
   return timingSafeEqual(providedBuf, expectedBuf);
+}
+
+function hasCronCredentialAttempt(request: NextRequest): boolean {
+  const authHeader = request.headers.get('authorization')?.trim() ?? '';
+  const customHeader = request.headers.get('x-cron-secret')?.trim() ?? '';
+  return authHeader.length > 0 || customHeader.length > 0;
 }
 
 function isAuthorizedCron(request: NextRequest): boolean {
@@ -40,41 +49,85 @@ function isAuthorizedCron(request: NextRequest): boolean {
   );
 }
 
-async function handleSendReminders(
-  request: NextRequest,
-  options: { includeFuture?: boolean; method?: string } = {}
-) {
-  const origin = getPublicOrigin(request);
-  const sourceBase = `${options.method ?? request.method}:/api/cron/send-reminders`;
+export async function GET(request: NextRequest) {
+  if (!isAuthorizedCron(request)) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: 'No autorizado. Proporciona un CRON_SECRET válido.',
+      },
+      { status: 401 }
+    );
+  }
 
-  if (isAuthorizedCron(request)) {
+  const origin = getPublicOrigin(request);
+  const result = await processGlobalPendingReminders(
+    origin,
+    'GET:/api/cron/send-reminders(cron)'
+  );
+  return NextResponse.json(result.body, { status: result.status });
+}
+
+export async function POST(request: NextRequest) {
+  const origin = getPublicOrigin(request);
+
+  if (hasCronCredentialAttempt(request)) {
+    if (!isAuthorizedCron(request)) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: 'No autorizado. Credenciales de cron inválidas.',
+        },
+        { status: 401 }
+      );
+    }
+
     const result = await processGlobalPendingReminders(
       origin,
-      `${sourceBase}(cron)`
+      'POST:/api/cron/send-reminders(cron)'
     );
     return NextResponse.json(result.body, { status: result.status });
   }
 
-  // Ejecución manual desde el Dashboard del usuario autenticado (protegida por sesión + RLS)
-  const result = await processUserPendingReminders(origin, {
-    includeFuture: options.includeFuture,
-    source: `${sourceBase}(manual)`,
-  });
-  return NextResponse.json(result.body, { status: result.status });
-}
+  const contentType = request.headers.get('content-type')?.toLowerCase() ?? '';
+  if (!contentType.includes('application/json')) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: 'Content-Type debe ser application/json.',
+      },
+      { status: 415 }
+    );
+  }
 
-export async function GET(request: NextRequest) {
-  return handleSendReminders(request, { includeFuture: false });
-}
+  if (!isValidSameOriginPost(request)) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: 'Origen de solicitud no permitido.',
+      },
+      { status: 403 }
+    );
+  }
 
-export async function POST(request: NextRequest) {
   let includeFuture = false;
   try {
     const body = (await request.json()) as { includeFuture?: boolean };
     includeFuture = Boolean(body?.includeFuture);
   } catch {
-    includeFuture = false;
+    return NextResponse.json(
+      {
+        ok: false,
+        error: 'Cuerpo JSON inválido.',
+      },
+      { status: 400 }
+    );
   }
 
-  return handleSendReminders(request, { includeFuture });
+  // Ejecución manual desde el Dashboard del usuario autenticado (protegida por sesión + RLS + Origin)
+  const result = await processUserPendingReminders(origin, {
+    includeFuture,
+    source: 'POST:/api/cron/send-reminders(manual)',
+  });
+  return NextResponse.json(result.body, { status: result.status });
 }

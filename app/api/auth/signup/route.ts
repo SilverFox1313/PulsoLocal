@@ -133,8 +133,11 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  const isNewUser =
+    Array.isArray(data.user?.identities) && data.user.identities.length > 0;
+
   // Refuerzo en backend con adminClient en caso de que el trigger de BD aún no haya sido migrado
-  if (data.user && trialRestrictedReason && adminClient) {
+  if (isNewUser && data.user && trialRestrictedReason && adminClient) {
     const { error: restrictError } = await adminClient
       .from('businesses')
       .update({
@@ -142,21 +145,23 @@ export async function POST(request: NextRequest) {
         trial_restricted_reason: trialRestrictedReason,
         canonical_email: emailAnalysis.canonicalEmail,
       })
-      .eq('user_id', data.user.id);
+      .eq('user_id', data.user.id)
+      .eq('subscription_status', 'trialing');
 
     if (restrictError) {
       await adminClient
         .from('businesses')
         .update({ subscription_status: 'inactive' })
-        .eq('user_id', data.user.id);
+        .eq('user_id', data.user.id)
+        .eq('subscription_status', 'trialing');
     }
   }
 
   const response = NextResponse.json({
     ok: true,
     hasSession: Boolean(data.session),
-    trialRestricted: Boolean(trialRestrictedReason),
-    trialRestrictedReason,
+    trialRestricted: isNewUser ? Boolean(trialRestrictedReason) : false,
+    trialRestrictedReason: isNewUser ? trialRestrictedReason : null,
   });
 
   cookiesToApply.forEach(({ name, value, options }) => {
