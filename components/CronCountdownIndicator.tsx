@@ -40,8 +40,8 @@ export default function CronCountdownIndicator({
   }, []);
 
   const containerClass = hasPendingRequests
-    ? 'mt-2.5 inline-flex flex-wrap items-center gap-2 rounded-lg border border-amber-300/90 bg-amber-50/90 px-3 py-1.5 text-xs text-amber-950 shadow-xs transition-colors dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100'
-    : 'mt-2.5 inline-flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-700 transition-colors dark:border-white/[0.06] dark:bg-[#27272E] dark:text-zinc-200';
+    ? 'mt-2.5 flex w-fit max-w-full items-center gap-2 rounded-lg border border-amber-300/90 bg-amber-50/90 px-3 py-1.5 text-xs text-amber-950 shadow-xs transition-colors dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100'
+    : 'mt-2.5 flex w-fit max-w-full items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-700 transition-colors dark:border-white/[0.06] dark:bg-[#27272E] dark:text-zinc-200';
 
   const iconClass = hasPendingRequests
     ? 'h-3.5 w-3.5 shrink-0 text-amber-600 dark:text-amber-400'
@@ -51,7 +51,7 @@ export default function CronCountdownIndicator({
     return (
       <div className={containerClass}>
         <Clock className={iconClass} aria-hidden="true" />
-        <span className="text-slate-600 dark:text-zinc-300">
+        <span className="min-w-0 leading-snug text-slate-600 dark:text-zinc-300">
           Calculando próximos envíos automáticos...
         </span>
       </div>
@@ -70,7 +70,7 @@ export default function CronCountdownIndicator({
   return (
     <div className={containerClass}>
       <Clock className={iconClass} aria-hidden="true" />
-      <span className="tabular-nums">
+      <span className="min-w-0 leading-snug tabular-nums">
         Próximos envíos automáticos en{' '}
         <strong
           className={
