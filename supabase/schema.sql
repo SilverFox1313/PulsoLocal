@@ -640,6 +640,12 @@ begin
     inner join public.businesses b on b.id = rr.business_id
     where rr.status = 'pending'
       and rr.scheduled_for <= p_now
+      and exists (
+        select 1
+        from auth.users u
+        where u.id = b.user_id
+          and u.email_confirmed_at is not null
+      )
       and (
         b.subscription_status = 'active'
         or (
@@ -661,9 +667,17 @@ begin
     into v_biz_status, v_biz_created_at
     from public.businesses b
     where b.id = v_row.business_id
+      and exists (
+        select 1
+        from auth.users u
+        where u.id = b.user_id
+          and u.email_confirmed_at is not null
+      )
     for update;
 
-    if v_biz_status = 'active' then
+    if not found then
+      v_eligible := false;
+    elsif v_biz_status = 'active' then
       v_eligible := true;
     elsif v_biz_status = 'trialing' and v_biz_created_at > p_now - interval '7 days' then
       select count(*)::integer
@@ -748,6 +762,16 @@ begin
     ) then
       raise exception 'No autorizado para procesar solicitudes de este negocio.';
     end if;
+  end if;
+
+  if not exists (
+    select 1
+    from public.businesses b
+    inner join auth.users u on u.id = b.user_id
+    where b.id = p_business_id
+      and u.email_confirmed_at is not null
+  ) then
+    raise exception 'Debes confirmar tu correo electrónico antes de enviar solicitudes por WhatsApp.';
   end if;
 
   select b.subscription_status, b.created_at, b.trial_restricted_reason

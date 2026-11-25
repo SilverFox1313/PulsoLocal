@@ -166,8 +166,8 @@ export default function ReviewRequestForm({
     const trimmedName = customerName.trim();
     const trimmedPhone = customerPhone.trim();
 
-    if (trimmedName.length < 2) {
-      const msg = 'Ingresa el nombre completo del cliente.';
+    if (trimmedName.length < 2 || trimmedName.length > 50) {
+      const msg = 'El nombre del cliente debe tener entre 2 y 50 caracteres.';
       setError(msg);
       toast.error(msg);
       return;
@@ -295,6 +295,7 @@ export default function ReviewRequestForm({
             name="customerName"
             type="text"
             required
+            maxLength={50}
             disabled={submitting || Boolean(blockedReason)}
             value={customerName}
             onChange={(e) => {

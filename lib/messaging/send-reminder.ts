@@ -1,4 +1,9 @@
 import { normalizePhoneToE164 } from '@/lib/messaging/phone';
+import {
+  isValidPublicReviewLink,
+  MAX_TEMPLATE_NAME_LENGTH,
+  sanitizeWhatsAppTemplateVariable,
+} from '@/lib/validation/messaging-safety';
 
 export interface TemplateParams {
   customerName: string;
@@ -144,7 +149,7 @@ export interface DeliveryResult {
 export interface SendWhatsAppContext {
   source?: string;
   requestId?: string;
-  templateParams?: TemplateParams;
+  templateParams: TemplateParams;
 }
 
 interface MetaGraphErrorPayload {
@@ -167,16 +172,6 @@ function maskPhoneForLog(raw: string): string {
     return `***${digits}`;
   }
   return `***${digits.slice(-4)}`;
-}
-
-function sanitizeTemplateParam(value: string, fallback = '-'): string {
-  const cleaned = value
-    .replace(/[\r\n\t\u00A0\u200B-\u200D\uFEFF]+/g, ' ')
-    .replace(/ {2,}/g, ' ')
-    .trim()
-    .slice(0, 1024);
-
-  return cleaned.length > 0 ? cleaned : fallback;
 }
 
 function formatMetaErrorMessage(
@@ -234,8 +229,7 @@ function isRetryableMetaFailure(
 
 export async function sendWhatsAppOrSimulate(
   toPhone: string,
-  body: string,
-  context: SendWhatsAppContext = {}
+  context: SendWhatsAppContext
 ): Promise<DeliveryResult> {
   const source = context.source ?? 'unknown';
   const requestId = context.requestId ?? null;
@@ -303,6 +297,20 @@ export async function sendWhatsAppOrSimulate(
     };
   }
 
+  if (!templateName) {
+    console.error(
+      '[WhatsApp Cloud API] Falta WHATSAPP_TEMPLATE_NAME; los envíos de texto libre por WhatsApp están deshabilitados.',
+      { source, requestId }
+    );
+    return {
+      ok: false,
+      mode: 'whatsapp_cloud',
+      retryable: true,
+      error:
+        'Falta configurar la plantilla aprobada de WhatsApp (WHATSAPP_TEMPLATE_NAME) en el servidor.',
+    };
+  }
+
   const cleanRecipient = normalizeWhatsAppRecipient(toPhone);
   if (!cleanRecipient) {
     const phoneError =
@@ -322,83 +330,72 @@ export async function sendWhatsAppOrSimulate(
   }
 
   const maskedRecipient = maskPhoneForLog(cleanRecipient);
-  const cleanBody = body.trim();
-  if (!templateName && !cleanBody) {
-    const bodyError = 'El cuerpo del mensaje de WhatsApp no puede estar vacío.';
-    console.error('[WhatsApp Cloud API] Cuerpo de mensaje vacío', {
+  const params = context.templateParams;
+  if (!params || !isValidPublicReviewLink(params.reviewLink, context.requestId)) {
+    const linkError =
+      'El enlace público de reseña no tiene un formato válido para la plantilla de WhatsApp.';
+    console.error('[WhatsApp Cloud API] Parámetros o enlace inválido para plantilla', {
       source,
       requestId,
       recipient: maskedRecipient,
-      error: bodyError,
+      error: linkError,
     });
     return {
       ok: false,
       mode: 'whatsapp_cloud',
       retryable: false,
-      error: bodyError,
+      error: linkError,
     };
   }
 
-  let messagePayload: Record<string, unknown>;
+  const safeCustomerName = sanitizeWhatsAppTemplateVariable(
+    params.customerName,
+    'Cliente',
+    MAX_TEMPLATE_NAME_LENGTH
+  );
+  const safeBusinessName = sanitizeWhatsAppTemplateVariable(
+    params.businessName,
+    'Nuestro Negocio',
+    MAX_TEMPLATE_NAME_LENGTH
+  );
+  const safeReviewLink = params.reviewLink.trim();
 
-  if (templateName) {
-    const params = context.templateParams;
-    const bodyParameters = params
-      ? [
-          { type: 'text', text: sanitizeTemplateParam(params.customerName) },
-          { type: 'text', text: sanitizeTemplateParam(params.businessName) },
-          { type: 'text', text: sanitizeTemplateParam(params.reviewLink) },
-        ]
-      : [{ type: 'text', text: sanitizeTemplateParam(cleanBody) }];
-
-    messagePayload = {
-      messaging_product: 'whatsapp',
-      recipient_type: 'individual',
-      to: cleanRecipient,
-      type: 'template',
-      template: {
-        name: templateName,
-        language: {
-          code: templateLang,
+  const messagePayload = {
+    messaging_product: 'whatsapp',
+    recipient_type: 'individual',
+    to: cleanRecipient,
+    type: 'template',
+    template: {
+      name: templateName,
+      language: {
+        code: templateLang,
+      },
+      components: [
+        {
+          type: 'body',
+          parameters: [
+            { type: 'text', text: safeCustomerName },
+            { type: 'text', text: safeBusinessName },
+            { type: 'text', text: safeReviewLink },
+          ],
         },
-        components: [
-          {
-            type: 'body',
-            parameters: bodyParameters,
-          },
-        ],
-      },
-    };
-  } else {
-    console.warn(
-      '[WhatsApp Cloud API] WHATSAPP_TEMPLATE_NAME no está configurado; usando fallback type: "text" (Meta rechaza texto libre fuera de la ventana de 24 h).',
-      { source, requestId }
-    );
-    messagePayload = {
-      messaging_product: 'whatsapp',
-      recipient_type: 'individual',
-      to: cleanRecipient,
-      type: 'text',
-      text: {
-        preview_url: true,
-        body: cleanBody,
-      },
-    };
-  }
+      ],
+    },
+  };
 
   try {
     const endpoint = `https://graph.facebook.com/v20.0/${encodeURIComponent(
       phoneNumberId
     )}/messages`;
 
-    console.info('[WhatsApp Cloud API] Enviando petición a Meta', {
+    console.info('[WhatsApp Cloud API] Enviando plantilla aprobada a Meta', {
       source,
       requestId,
       endpoint,
       phoneNumberId,
       recipient: maskedRecipient,
-      messageType: templateName ? 'template' : 'text',
-      templateName: templateName || null,
+      messageType: 'template',
+      templateName,
     });
 
     const response = await fetch(endpoint, {

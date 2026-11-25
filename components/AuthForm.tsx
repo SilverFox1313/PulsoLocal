@@ -102,8 +102,8 @@ export default function AuthForm({
     const trimmedEmail = email.trim();
     const trimmedBusiness = businessName.trim();
 
-    if (isSignup && trimmedBusiness.length < 2) {
-      setError('Ingresa el nombre de tu negocio (mínimo 2 caracteres).');
+    if (isSignup && (trimmedBusiness.length < 2 || trimmedBusiness.length > 50)) {
+      setError('El nombre del negocio debe tener entre 2 y 50 caracteres.');
       return;
     }
 
@@ -324,6 +324,7 @@ export default function AuthForm({
                 type="text"
                 autoComplete="organization"
                 required
+                maxLength={50}
                 disabled={isSubmitting}
                 value={businessName}
                 onChange={(e) => setBusinessName(e.target.value)}

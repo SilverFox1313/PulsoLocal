@@ -1,5 +1,9 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextRequest, NextResponse } from 'next/server';
+import {
+  checkSlidingWindowRateLimit,
+  getRequestClientIp,
+} from '@/lib/security/rate-limit';
 import { analyzeEmailForTrialAbuse } from '@/lib/subscription/trial';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getSupabaseEnv } from '@/lib/supabase/config';
@@ -9,6 +13,7 @@ import {
   isHttpsRequest,
   isValidSameOriginPost,
 } from '@/lib/supabase/cookie-options';
+import { validateAndSanitizeTemplateName } from '@/lib/validation/messaging-safety';
 
 export async function POST(request: NextRequest) {
   const contentType = request.headers.get('content-type') ?? '';
@@ -37,6 +42,24 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  const clientIp = getRequestClientIp(request.headers);
+  const ipRateLimit = checkSlidingWindowRateLimit(`signup:ip:${clientIp}`, {
+    maxRequests: 5,
+    windowMs: 15 * 60_000,
+  });
+  if (!ipRateLimit.allowed) {
+    return NextResponse.json(
+      {
+        error:
+          'Demasiados intentos de registro desde esta conexión. Espera unos minutos e inténtalo de nuevo.',
+      },
+      {
+        status: 429,
+        headers: { 'Retry-After': String(ipRateLimit.retryAfterSeconds) },
+      }
+    );
+  }
+
   let body: { businessName?: string; email?: string; password?: string };
   try {
     body = (await request.json()) as {
@@ -51,25 +74,46 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const businessName = body.businessName?.trim() ?? '';
-  const rawEmail = body.email?.trim() ?? '';
-  const password = body.password ?? '';
-
-  if (businessName.length < 2 || businessName.length > 120) {
+  const businessNameCheck = validateAndSanitizeTemplateName(
+    body.businessName ?? '',
+    'nombre del negocio'
+  );
+  if (!businessNameCheck.ok) {
     return NextResponse.json(
-      {
-        error:
-          'El nombre del negocio debe tener entre 2 y 120 caracteres.',
-      },
+      { error: businessNameCheck.error },
       { status: 400 }
     );
   }
+
+  const businessName = businessNameCheck.value;
+  const rawEmail = body.email?.trim() ?? '';
+  const password = body.password ?? '';
 
   const emailAnalysis = analyzeEmailForTrialAbuse(rawEmail);
   if (!emailAnalysis) {
     return NextResponse.json(
       { error: 'Ingresa un correo electrónico válido.' },
       { status: 400 }
+    );
+  }
+
+  const emailRateLimit = checkSlidingWindowRateLimit(
+    `signup:email:${emailAnalysis.canonicalEmail}`,
+    {
+      maxRequests: 3,
+      windowMs: 15 * 60_000,
+    }
+  );
+  if (!emailRateLimit.allowed) {
+    return NextResponse.json(
+      {
+        error:
+          'Demasiados intentos de registro con este correo. Espera unos minutos antes de volver a intentarlo.',
+      },
+      {
+        status: 429,
+        headers: { 'Retry-After': String(emailRateLimit.retryAfterSeconds) },
+      }
     );
   }
 

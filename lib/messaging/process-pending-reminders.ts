@@ -5,6 +5,7 @@ import {
   getWhatsAppEnvStatus,
   sendWhatsAppOrSimulate,
 } from '@/lib/messaging/send-reminder';
+import { checkSlidingWindowRateLimit } from '@/lib/security/rate-limit';
 import {
   evaluateTrialStatus,
   isTrialExpiredByDate,
@@ -12,6 +13,10 @@ import {
 } from '@/lib/subscription/trial';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
+import {
+  MAX_TEMPLATE_NAME_LENGTH,
+  sanitizeWhatsAppTemplateVariable,
+} from '@/lib/validation/messaging-safety';
 import type { Business, SubscriptionStatus } from '@/types/database';
 
 const BATCH_SIZE = 10;
@@ -446,6 +451,38 @@ async function markRequestAsFailedOrPending(
   return undefined;
 }
 
+async function isBusinessOwnerEmailConfirmed(
+  adminClient: AdminOrServerClient,
+  businessId: string,
+  cache: Map<string, boolean>
+): Promise<boolean> {
+  const cached = cache.get(businessId);
+  if (typeof cached === 'boolean') {
+    return cached;
+  }
+
+  const { data: bizRow, error: bizError } = await adminClient
+    .from('businesses')
+    .select('user_id')
+    .eq('id', businessId)
+    .maybeSingle();
+
+  if (bizError || !bizRow?.user_id) {
+    return false;
+  }
+
+  const { data: userRes, error: userErr } =
+    await adminClient.auth.admin.getUserById(bizRow.user_id);
+
+  if (userErr || !userRes?.user) {
+    return false;
+  }
+
+  const confirmed = Boolean(userRes.user.email_confirmed_at);
+  cache.set(businessId, confirmed);
+  return confirmed;
+}
+
 export async function processGlobalPendingReminders(
   origin: string,
   source = 'cron:global'
@@ -684,29 +721,59 @@ export async function processGlobalPendingReminders(
 
   const processedItems: ProcessedReminderItem[] = [];
   const failedItems: FailedReminderItem[] = [];
+  const ownerConfirmedCache = new Map<string, boolean>();
 
   await runInChunks(rowsToSend, CONCURRENCY_LIMIT, async (row) => {
-    const businessName = row.business_name || 'Nuestro Negocio';
+    const isOwnerConfirmed = await isBusinessOwnerEmailConfirmed(
+      adminClient,
+      row.business_id,
+      ownerConfirmedCache
+    );
+
+    if (!isOwnerConfirmed) {
+      const unconfirmedMsg =
+        'La cuenta propietaria aún no ha confirmado su correo electrónico.';
+      const resultingStatus = await markRequestAsFailedOrPending(
+        adminClient,
+        row.id,
+        true,
+        unconfirmedMsg,
+        source
+      );
+      failedItems.push({
+        id: row.id,
+        error: unconfirmedMsg,
+        ...(resultingStatus ? { status: resultingStatus } : {}),
+      });
+      return;
+    }
+
+    const safeBusinessName = sanitizeWhatsAppTemplateVariable(
+      row.business_name ?? '',
+      'Nuestro Negocio',
+      MAX_TEMPLATE_NAME_LENGTH
+    );
+    const safeCustomerName = sanitizeWhatsAppTemplateVariable(
+      row.customer_name ?? '',
+      'Cliente',
+      MAX_TEMPLATE_NAME_LENGTH
+    );
     const reviewLink = buildReviewLink(origin, row.id);
-    const messageBody = buildReminderMessage(row.message_template ?? '', {
-      customerName: row.customer_name,
-      businessName,
+    const messagePreview = buildReminderMessage(row.message_template ?? '', {
+      customerName: safeCustomerName,
+      businessName: safeBusinessName,
       reviewLink,
     });
 
-    const delivery = await sendWhatsAppOrSimulate(
-      row.customer_phone,
-      messageBody,
-      {
-        source,
-        requestId: row.id,
-        templateParams: {
-          customerName: row.customer_name,
-          businessName,
-          reviewLink,
-        },
-      }
-    );
+    const delivery = await sendWhatsAppOrSimulate(row.customer_phone, {
+      source,
+      requestId: row.id,
+      templateParams: {
+        customerName: safeCustomerName,
+        businessName: safeBusinessName,
+        reviewLink,
+      },
+    });
 
     if (!delivery.ok) {
       const errMsg = delivery.error ?? 'Error al enviar mensaje.';
@@ -752,10 +819,10 @@ export async function processGlobalPendingReminders(
 
     processedItems.push({
       id: row.id,
-      customerName: row.customer_name,
+      customerName: safeCustomerName,
       customerPhone: row.customer_phone,
       reviewLink,
-      messagePreview: messageBody,
+      messagePreview,
       deliveryMode: delivery.mode,
     });
   });
@@ -848,6 +915,35 @@ export async function processUserPendingReminders(
       body: {
         ok: false,
         error: 'No autorizado. Inicia sesión nuevamente para continuar.',
+      },
+    };
+  }
+
+  if (!user.email_confirmed_at) {
+    return {
+      status: 403,
+      body: {
+        ok: false,
+        error:
+          'Debes confirmar tu correo electrónico antes de enviar solicitudes por WhatsApp.',
+      },
+    };
+  }
+
+  const sendRateLimit = checkSlidingWindowRateLimit(
+    `manual-send:user:${user.id}`,
+    {
+      maxRequests: 6,
+      windowMs: 60_000,
+    }
+  );
+  if (!sendRateLimit.allowed) {
+    return {
+      status: 429,
+      body: {
+        ok: false,
+        error:
+          'Has realizado demasiados envíos seguidos. Espera unos segundos antes de volver a intentarlo.',
       },
     };
   }
@@ -1060,30 +1156,37 @@ export async function processUserPendingReminders(
   const processedItems: ProcessedReminderItem[] = [];
 
   if (rowsToSend.length > 0) {
+    const safeBusinessName = sanitizeWhatsAppTemplateVariable(
+      business.business_name ?? '',
+      'Nuestro Negocio',
+      MAX_TEMPLATE_NAME_LENGTH
+    );
+
     await runInChunks(rowsToSend, CONCURRENCY_LIMIT, async (row) => {
+      const safeCustomerName = sanitizeWhatsAppTemplateVariable(
+        row.customer_name ?? '',
+        'Cliente',
+        MAX_TEMPLATE_NAME_LENGTH
+      );
       const reviewLink = buildReviewLink(origin, row.id);
-      const messageBody = buildReminderMessage(
+      const messagePreview = buildReminderMessage(
         business.message_template ?? '',
         {
-          customerName: row.customer_name,
-          businessName: business.business_name,
+          customerName: safeCustomerName,
+          businessName: safeBusinessName,
           reviewLink,
         }
       );
 
-      const delivery = await sendWhatsAppOrSimulate(
-        row.customer_phone,
-        messageBody,
-        {
-          source,
-          requestId: row.id,
-          templateParams: {
-            customerName: row.customer_name,
-            businessName: business.business_name,
-            reviewLink,
-          },
-        }
-      );
+      const delivery = await sendWhatsAppOrSimulate(row.customer_phone, {
+        source,
+        requestId: row.id,
+        templateParams: {
+          customerName: safeCustomerName,
+          businessName: safeBusinessName,
+          reviewLink,
+        },
+      });
 
       if (!delivery.ok) {
         const errMsg = delivery.error ?? 'Error al enviar mensaje.';
@@ -1131,10 +1234,10 @@ export async function processUserPendingReminders(
 
       processedItems.push({
         id: row.id,
-        customerName: row.customer_name,
+        customerName: safeCustomerName,
         customerPhone: row.customer_phone,
         reviewLink,
-        messagePreview: messageBody,
+        messagePreview,
         deliveryMode: delivery.mode,
       });
     });

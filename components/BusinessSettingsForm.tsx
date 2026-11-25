@@ -168,6 +168,7 @@ export default function BusinessSettingsForm({
               name="businessName"
               type="text"
               required
+              maxLength={50}
               disabled={saving}
               value={businessName}
               onChange={(e) => {
@@ -248,7 +249,7 @@ export default function BusinessSettingsForm({
               htmlFor="settings-message-template"
               className="block text-sm font-medium text-slate-700 dark:text-zinc-300"
             >
-              Mensaje de invitación por WhatsApp
+              Plantilla para mensaje manual (copia rápida)
             </label>
             <div className="flex flex-wrap items-center gap-1.5">
               {TEMPLATE_VARIABLES.map((item) => (
@@ -280,9 +281,16 @@ export default function BusinessSettingsForm({
             className="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-3 text-sm leading-relaxed text-slate-900 placeholder:text-slate-400 transition-colors focus:border-amber-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30 disabled:cursor-not-allowed disabled:opacity-60 dark:border-transparent dark:bg-[#27272E] dark:text-zinc-100 dark:shadow-sm dark:shadow-black/40 dark:placeholder:text-zinc-400 dark:focus:bg-[#32323A] dark:focus:border-amber-500/60"
           />
 
+          <p className="mt-1.5 text-xs text-slate-500 dark:text-zinc-400">
+            Se usa únicamente al copiar mensajes manualmente desde el panel. Los
+            envíos automáticos por WhatsApp utilizan siempre la plantilla oficial
+            aprobada con el nombre del cliente, el nombre del negocio y el enlace
+            de reseña.
+          </p>
+
           <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-transparent dark:bg-[#27272E] dark:shadow-inner">
             <p className="text-xs font-medium text-slate-500 dark:text-zinc-400">
-              Vista previa con datos de ejemplo
+              Vista previa de copia manual
             </p>
             <p className="mt-1.5 text-sm leading-relaxed text-slate-700 dark:text-zinc-200">
               {renderPreview() || 'Escribe un mensaje para previsualizarlo.'}

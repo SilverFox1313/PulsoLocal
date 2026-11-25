@@ -9,6 +9,10 @@ import {
   getPublicOrigin,
   isValidSameOriginPost,
 } from '@/lib/supabase/cookie-options';
+import {
+  checkSlidingWindowRateLimit,
+  getRequestClientIp,
+} from '@/lib/security/rate-limit';
 
 export type { ProcessedReminderItem };
 
@@ -107,6 +111,28 @@ export async function POST(request: NextRequest) {
         error: 'Origen de solicitud no permitido.',
       },
       { status: 403 }
+    );
+  }
+
+  const clientIp = getRequestClientIp(request.headers);
+  const ipRateLimit = checkSlidingWindowRateLimit(
+    `manual-send:ip:${clientIp}`,
+    {
+      maxRequests: 15,
+      windowMs: 60_000,
+    }
+  );
+  if (!ipRateLimit.allowed) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error:
+          'Demasiadas solicitudes de envío en poco tiempo. Espera unos segundos e inténtalo nuevamente.',
+      },
+      {
+        status: 429,
+        headers: { 'Retry-After': String(ipRateLimit.retryAfterSeconds) },
+      }
     );
   }
 

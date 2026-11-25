@@ -1,5 +1,9 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextRequest, NextResponse } from 'next/server';
+import {
+  checkSlidingWindowRateLimit,
+  getRequestClientIp,
+} from '@/lib/security/rate-limit';
 import { getSupabaseEnv } from '@/lib/supabase/config';
 import {
   adaptCookieOptions,
@@ -31,6 +35,24 @@ export async function POST(request: NextRequest) {
         error: 'El servicio de autenticación no está disponible en este momento.',
       },
       { status: 500 }
+    );
+  }
+
+  const clientIp = getRequestClientIp(request.headers);
+  const ipRateLimit = checkSlidingWindowRateLimit(`login:ip:${clientIp}`, {
+    maxRequests: 12,
+    windowMs: 10 * 60_000,
+  });
+  if (!ipRateLimit.allowed) {
+    return NextResponse.json(
+      {
+        error:
+          'Demasiados intentos de inicio de sesión. Espera unos minutos e inténtalo de nuevo.',
+      },
+      {
+        status: 429,
+        headers: { 'Retry-After': String(ipRateLimit.retryAfterSeconds) },
+      }
     );
   }
 

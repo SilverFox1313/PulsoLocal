@@ -16,8 +16,10 @@ import {
   evaluateTrialStatus,
   normalizeGoogleReviewUrl,
 } from '@/lib/subscription/trial';
+import { checkSlidingWindowRateLimit } from '@/lib/security/rate-limit';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
+import { validateAndSanitizeTemplateName } from '@/lib/validation/messaging-safety';
 import { isValidUuid } from '@/lib/validation/uuid';
 import type {
   Business,
@@ -68,16 +70,18 @@ export async function updateBusinessSettingsAction(
     return { error: 'Tu sesión expiró. Vuelve a iniciar sesión.' };
   }
 
-  const businessName = input.businessName.trim();
+  const businessNameCheck = validateAndSanitizeTemplateName(
+    input.businessName ?? '',
+    'nombre del negocio'
+  );
+  if (!businessNameCheck.ok) {
+    return { error: businessNameCheck.error };
+  }
+
+  const businessName = businessNameCheck.value;
   const googleReviewUrl = input.googleReviewUrl.trim();
   const messageTemplate = input.messageTemplate.trim();
   const delayMinutes = Number(input.delayMinutes);
-
-  if (businessName.length < 2 || businessName.length > 120) {
-    return {
-      error: 'El nombre del negocio debe tener entre 2 y 120 caracteres.',
-    };
-  }
 
   if (googleReviewUrl.length > 0) {
     try {
@@ -503,19 +507,42 @@ export async function createReviewRequestAction(
     return { error: 'Tu sesión expiró. Vuelve a iniciar sesión.' };
   }
 
-  const customerName = input.customerName.trim();
-  const customerPhone = normalizePhoneToE164(input.customerPhone);
-
-  if (customerName.length < 2 || customerName.length > 100) {
+  if (!user.email_confirmed_at) {
     return {
-      error: 'El nombre del cliente debe tener entre 2 y 100 caracteres.',
+      error:
+        'Debes confirmar tu correo electrónico antes de programar o enviar solicitudes de reseña.',
     };
   }
+
+  const customerNameCheck = validateAndSanitizeTemplateName(
+    input.customerName ?? '',
+    'nombre del cliente'
+  );
+  if (!customerNameCheck.ok) {
+    return { error: customerNameCheck.error };
+  }
+
+  const customerName = customerNameCheck.value;
+  const customerPhone = normalizePhoneToE164(input.customerPhone);
 
   if (!customerPhone) {
     return {
       error:
         'Ingresa un número de teléfono válido (entre 7 y 15 dígitos, con código de país).',
+    };
+  }
+
+  const userCreationRate = checkSlidingWindowRateLimit(
+    `create-request:user:${user.id}`,
+    {
+      maxRequests: 10,
+      windowMs: 60_000,
+    }
+  );
+  if (!userCreationRate.allowed) {
+    return {
+      error:
+        'Has creado demasiadas solicitudes en un minuto. Espera unos segundos antes de agregar otra.',
     };
   }
 
@@ -533,6 +560,29 @@ export async function createReviewRequestAction(
   }
 
   const typedBusiness = business as Business;
+
+  // Límite de tasa respaldado en BD (último minuto y última hora) por negocio
+  const oneMinuteAgoIso = new Date(Date.now() - 60_000).toISOString();
+  const oneHourAgoIso = new Date(Date.now() - 3_600_000).toISOString();
+  const [recentMinuteRes, recentHourRes] = await Promise.all([
+    supabase
+      .from('review_requests')
+      .select('id', { count: 'exact', head: true })
+      .eq('business_id', typedBusiness.id)
+      .gte('created_at', oneMinuteAgoIso),
+    supabase
+      .from('review_requests')
+      .select('id', { count: 'exact', head: true })
+      .eq('business_id', typedBusiness.id)
+      .gte('created_at', oneHourAgoIso),
+  ]);
+
+  if ((recentMinuteRes.count ?? 0) >= 10 || (recentHourRes.count ?? 0) >= 60) {
+    return {
+      error:
+        'Has alcanzado el límite temporal de creación de solicitudes. Espera un momento antes de continuar.',
+    };
+  }
 
   // Los negocios con subscription_status === 'active' operan sin restricciones de Trial
   if (typedBusiness.subscription_status !== 'active') {
@@ -619,19 +669,28 @@ export async function updateReviewRequestAction(
     return { error: 'Tu sesión expiró. Vuelve a iniciar sesión.' };
   }
 
+  if (!user.email_confirmed_at) {
+    return {
+      error:
+        'Debes confirmar tu correo electrónico antes de modificar o enviar solicitudes.',
+    };
+  }
+
   const requestId = input.requestId.trim();
   if (!isValidUuid(requestId)) {
     return { error: 'Identificador de solicitud inválido.' };
   }
 
-  const customerName = input.customerName.trim();
-  const customerPhone = normalizePhoneToE164(input.customerPhone);
-
-  if (customerName.length < 2 || customerName.length > 100) {
-    return {
-      error: 'El nombre del cliente debe tener entre 2 y 100 caracteres.',
-    };
+  const customerNameCheck = validateAndSanitizeTemplateName(
+    input.customerName ?? '',
+    'nombre del cliente'
+  );
+  if (!customerNameCheck.ok) {
+    return { error: customerNameCheck.error };
   }
+
+  const customerName = customerNameCheck.value;
+  const customerPhone = normalizePhoneToE164(input.customerPhone);
 
   if (!customerPhone) {
     return {

@@ -116,8 +116,8 @@ export default function EditReviewRequestModal({
     const trimmedName = customerName.trim();
     const trimmedPhone = customerPhone.trim();
 
-    if (trimmedName.length < 2 || trimmedName.length > 100) {
-      setError('El nombre del cliente debe tener entre 2 y 100 caracteres.');
+    if (trimmedName.length < 2 || trimmedName.length > 50) {
+      setError('El nombre del cliente debe tener entre 2 y 50 caracteres.');
       return null;
     }
 
@@ -253,6 +253,7 @@ export default function EditReviewRequestModal({
               id="edit-customer-name"
               type="text"
               required
+              maxLength={50}
               disabled={isSaving}
               value={customerName}
               onChange={(e) => {
