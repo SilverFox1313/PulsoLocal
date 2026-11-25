@@ -49,7 +49,6 @@ export async function signOutAction(): Promise<{ error?: string }> {
 export interface UpdateBusinessSettingsInput {
   businessName: string;
   googleReviewUrl: string;
-  messageTemplate: string;
   delayMinutes: number;
 }
 
@@ -82,7 +81,6 @@ export async function updateBusinessSettingsAction(
   const businessName = businessNameCheck.value;
   const rawGoogleReviewUrl = input.googleReviewUrl.trim();
   let googleReviewUrl: string | null = null;
-  const messageTemplate = input.messageTemplate.trim();
   const delayMinutes = Number(input.delayMinutes);
 
   if (rawGoogleReviewUrl.length > 0) {
@@ -91,12 +89,6 @@ export async function updateBusinessSettingsAction(
       return { error: googleUrlCheck.error };
     }
     googleReviewUrl = googleUrlCheck.value;
-  }
-
-  if (messageTemplate.length < 5) {
-    return {
-      error: 'La plantilla del mensaje debe tener al menos 5 caracteres.',
-    };
   }
 
   if (
@@ -126,7 +118,6 @@ export async function updateBusinessSettingsAction(
     .update({
       business_name: businessName,
       google_review_url: googleReviewUrl,
-      message_template: messageTemplate,
       delay_minutes: delayMinutes,
     })
     .eq('user_id', user.id)

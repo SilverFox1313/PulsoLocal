@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, type FormEvent } from 'react';
-import { AlertCircle, CheckCircle2, Loader2, Save } from 'lucide-react';
+import { Loader2, Save } from 'lucide-react';
 import { toast } from 'sonner';
 import { updateBusinessSettingsAction } from '@/app/dashboard/actions';
 import { validateGoogleReviewUrl } from '@/lib/validation/google-review-url';
@@ -12,19 +12,6 @@ interface BusinessSettingsFormProps {
   onUpdated: (updated: Business) => void;
 }
 
-const TEMPLATE_VARIABLES = [
-  { token: '{nombre}', label: '+ {nombre}' },
-  { token: '{negocio}', label: '+ {negocio}' },
-  { token: '{enlace}', label: '+ {enlace}' },
-];
-
-function normalizeTemplateVariables(template: string): string {
-  return template
-    .replaceAll('{{customer_name}}', '{nombre}')
-    .replaceAll('{{business_name}}', '{negocio}')
-    .replaceAll('{{review_link}}', '{enlace}');
-}
-
 export default function BusinessSettingsForm({
   business,
   onUpdated,
@@ -33,40 +20,13 @@ export default function BusinessSettingsForm({
   const [googleReviewUrl, setGoogleReviewUrl] = useState(
     business.google_review_url ?? ''
   );
-  const [messageTemplate, setMessageTemplate] = useState(() =>
-    normalizeTemplateVariables(business.message_template)
-  );
   const [delayMinutes, setDelayMinutes] = useState(
     String(business.delay_minutes)
   );
-
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [savedMessage, setSavedMessage] = useState<string | null>(null);
-
-  function insertVariable(token: string) {
-    setSavedMessage(null);
-    setMessageTemplate((prev) => {
-      const separator =
-        prev.length === 0 || prev.endsWith(' ') || prev.endsWith('\n')
-          ? ''
-          : ' ';
-      return `${prev}${separator}${token}`;
-    });
-  }
-
-  function renderPreview(): string {
-    const sampleBusiness = businessName.trim() || 'Tu Negocio';
-    return normalizeTemplateVariables(messageTemplate)
-      .replaceAll('{nombre}', 'María')
-      .replaceAll('{negocio}', sampleBusiness)
-      .replaceAll('{enlace}', 'https://pulsolocal.app/r/ejemplo');
-  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setError(null);
-    setSavedMessage(null);
 
     const parsedDelay = Number(delayMinutes);
     if (
@@ -75,10 +35,9 @@ export default function BusinessSettingsForm({
       parsedDelay < 0 ||
       parsedDelay > 10080
     ) {
-      const msg =
-        'Ingresa un tiempo de espera válido en minutos (número entero entre 0 y 10080).';
-      setError(msg);
-      toast.error(msg);
+      toast.error(
+        'Ingresa un tiempo de espera válido en minutos (número entero entre 0 y 10080).'
+      );
       return;
     }
 
@@ -86,7 +45,6 @@ export default function BusinessSettingsForm({
     if (trimmedGoogleUrl.length > 0) {
       const urlCheck = validateGoogleReviewUrl(trimmedGoogleUrl);
       if (!urlCheck.ok) {
-        setError(urlCheck.error);
         toast.error(urlCheck.error);
         return;
       }
@@ -94,12 +52,9 @@ export default function BusinessSettingsForm({
 
     setSaving(true);
 
-    const normalizedTemplate = normalizeTemplateVariables(messageTemplate);
-
     const result = await updateBusinessSettingsAction({
       businessName,
       googleReviewUrl,
-      messageTemplate: normalizedTemplate,
       delayMinutes: parsedDelay,
     });
 
@@ -109,20 +64,15 @@ export default function BusinessSettingsForm({
       onUpdated(result.business);
       setBusinessName(result.business.business_name);
       setGoogleReviewUrl(result.business.google_review_url ?? '');
-      setMessageTemplate(
-        normalizeTemplateVariables(result.business.message_template)
-      );
       setDelayMinutes(String(result.business.delay_minutes));
     }
 
     if (result.error) {
-      setError(result.error);
       toast.error(result.error);
       return;
     }
 
     if (result.business) {
-      setSavedMessage('Cambios guardados correctamente.');
       toast.success('Configuración del negocio guardada');
     }
   }
@@ -134,36 +84,10 @@ export default function BusinessSettingsForm({
           Configuración del negocio
         </h2>
         <p className="mt-1 text-sm text-slate-600 dark:text-zinc-300">
-          Define el nombre visible, tu enlace de Google Maps y la plantilla de
-          invitación para tus clientes.
+          Define el nombre visible, el tiempo de espera y tu enlace directo de
+          Google Maps.
         </p>
       </div>
-
-      {error && (
-        <div
-          role="alert"
-          className="mt-6 flex items-start gap-2.5 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-700 dark:text-red-200"
-        >
-          <AlertCircle
-            className="mt-0.5 h-4 w-4 shrink-0 text-red-600 dark:text-red-400"
-            aria-hidden="true"
-          />
-          <span>{error}</span>
-        </div>
-      )}
-
-      {savedMessage && (
-        <div
-          role="status"
-          className="mt-6 flex items-start gap-2.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-200"
-        >
-          <CheckCircle2
-            className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400"
-            aria-hidden="true"
-          />
-          <span>{savedMessage}</span>
-        </div>
-      )}
 
       <form onSubmit={handleSubmit} className="mt-6 space-y-6" noValidate>
         <div className="grid gap-6 md:grid-cols-2">
@@ -182,10 +106,7 @@ export default function BusinessSettingsForm({
               maxLength={50}
               disabled={saving}
               value={businessName}
-              onChange={(e) => {
-                setSavedMessage(null);
-                setBusinessName(e.target.value);
-              }}
+              onChange={(e) => setBusinessName(e.target.value)}
               placeholder="Ej. Clínica Dental Norte"
               className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3.5 text-sm text-slate-900 placeholder:text-slate-400 transition-colors focus:border-amber-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30 disabled:cursor-not-allowed disabled:opacity-60 dark:border-transparent dark:bg-[#27272E] dark:text-zinc-100 dark:shadow-sm dark:shadow-black/40 dark:placeholder:text-zinc-400 dark:focus:bg-[#32323A] dark:focus:border-amber-500/60"
             />
@@ -208,10 +129,7 @@ export default function BusinessSettingsForm({
               required
               disabled={saving}
               value={delayMinutes}
-              onChange={(e) => {
-                setSavedMessage(null);
-                setDelayMinutes(e.target.value);
-              }}
+              onChange={(e) => setDelayMinutes(e.target.value)}
               className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3.5 font-mono text-sm tabular-nums text-slate-900 placeholder:text-slate-400 transition-colors focus:border-amber-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30 disabled:cursor-not-allowed disabled:opacity-60 dark:border-transparent dark:bg-[#27272E] dark:text-zinc-100 dark:shadow-sm dark:shadow-black/40 dark:placeholder:text-zinc-400 dark:focus:bg-[#32323A] dark:focus:border-amber-500/60"
             />
             <p className="mt-1.5 text-xs text-slate-500 dark:text-zinc-400">
@@ -241,10 +159,7 @@ export default function BusinessSettingsForm({
             type="url"
             disabled={saving}
             value={googleReviewUrl}
-            onChange={(e) => {
-              setSavedMessage(null);
-              setGoogleReviewUrl(e.target.value);
-            }}
+            onChange={(e) => setGoogleReviewUrl(e.target.value)}
             placeholder="https://g.page/r/tu-codigo-de-google/review"
             className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3.5 font-mono text-sm text-slate-900 placeholder:font-sans placeholder:text-slate-400 transition-colors focus:border-amber-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30 disabled:cursor-not-allowed disabled:opacity-60 dark:border-transparent dark:bg-[#27272E] dark:text-zinc-100 dark:shadow-sm dark:shadow-black/40 dark:placeholder:text-zinc-400 dark:focus:bg-[#32323A] dark:focus:border-amber-500/60"
           />
@@ -258,62 +173,7 @@ export default function BusinessSettingsForm({
           </p>
         </div>
 
-        <div>
-          <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2">
-            <label
-              htmlFor="settings-message-template"
-              className="block text-sm font-medium text-slate-700 dark:text-zinc-300"
-            >
-              Plantilla para mensaje manual (copia rápida)
-            </label>
-            <div className="flex flex-wrap items-center gap-1.5">
-              {TEMPLATE_VARIABLES.map((item) => (
-                <button
-                  key={item.token}
-                  type="button"
-                  disabled={saving}
-                  onClick={() => insertVariable(item.token)}
-                  className="rounded-md border border-slate-200 bg-slate-100 px-2.5 py-1 font-mono text-xs text-slate-700 transition-colors hover:border-slate-300 hover:text-amber-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/50 disabled:opacity-50 dark:border-none dark:bg-[#27272E] dark:text-zinc-200 dark:shadow-sm dark:shadow-black/40 hover:dark:bg-[#32323A] dark:hover:text-amber-300 whitespace-nowrap shrink-0"
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <textarea
-            id="settings-message-template"
-            name="messageTemplate"
-            rows={4}
-            required
-            disabled={saving}
-            value={messageTemplate}
-            onChange={(e) => {
-              setSavedMessage(null);
-              setMessageTemplate(e.target.value);
-            }}
-            placeholder="Hola {nombre}, gracias por visitarnos en {negocio}. ¿Cómo calificarías tu experiencia? {enlace}"
-            className="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-3 text-sm leading-relaxed text-slate-900 placeholder:text-slate-400 transition-colors focus:border-amber-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30 disabled:cursor-not-allowed disabled:opacity-60 dark:border-transparent dark:bg-[#27272E] dark:text-zinc-100 dark:shadow-sm dark:shadow-black/40 dark:placeholder:text-zinc-400 dark:focus:bg-[#32323A] dark:focus:border-amber-500/60"
-          />
-
-          <p className="mt-1.5 text-xs text-slate-500 dark:text-zinc-400">
-            Se usa únicamente al copiar mensajes manualmente desde el panel. Los
-            envíos automáticos por WhatsApp utilizan siempre la plantilla oficial
-            aprobada con el nombre del cliente, el nombre del negocio y el enlace
-            de reseña.
-          </p>
-
-          <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-transparent dark:bg-[#27272E] dark:shadow-inner">
-            <p className="text-xs font-medium text-slate-500 dark:text-zinc-400">
-              Vista previa de copia manual
-            </p>
-            <p className="mt-1.5 text-sm leading-relaxed text-slate-700 dark:text-zinc-200">
-              {renderPreview() || 'Escribe un mensaje para previsualizarlo.'}
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center justify-end border-t border-slate-200 pt-5 dark:border-white/[0.04]">
+        <div className="flex items-center justify-end pt-2">
           <button
             type="submit"
             disabled={saving}
@@ -321,14 +181,20 @@ export default function BusinessSettingsForm({
           >
             {saving ? (
               <>
-                <Loader2 className="h-4 w-4 shrink-0 animate-spin text-orange-500 dark:text-orange-400" aria-hidden="true" />
+                <Loader2
+                  className="h-4 w-4 shrink-0 animate-spin text-orange-500 dark:text-orange-400"
+                  aria-hidden="true"
+                />
                 <span className="bg-gradient-to-r from-orange-500 to-amber-500 bg-clip-text text-transparent font-semibold dark:from-orange-400 dark:to-amber-400">
                   Guardando...
                 </span>
               </>
             ) : (
               <>
-                <Save className="h-4 w-4 shrink-0 text-orange-500 dark:text-orange-400" aria-hidden="true" />
+                <Save
+                  className="h-4 w-4 shrink-0 text-orange-500 dark:text-orange-400"
+                  aria-hidden="true"
+                />
                 <span className="bg-gradient-to-r from-orange-500 to-amber-500 bg-clip-text text-transparent font-semibold dark:from-orange-400 dark:to-amber-400">
                   Guardar cambios
                 </span>
