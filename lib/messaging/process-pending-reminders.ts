@@ -78,6 +78,12 @@ export interface ProcessedReminderItem {
   deliveryMode: 'whatsapp_cloud' | 'simulated';
 }
 
+export interface FailedReminderItem {
+  id: string;
+  error: string;
+  status?: 'failed' | 'pending';
+}
+
 export interface ReminderExecutionSuccess {
   ok: true;
   mode: 'whatsapp_cloud' | 'simulated';
@@ -85,7 +91,7 @@ export interface ReminderExecutionSuccess {
   failed: number;
   pendingFutureCount: number;
   items: ProcessedReminderItem[];
-  errors: Array<{ id: string; error: string }>;
+  errors: FailedReminderItem[];
   executedAt: string;
 }
 
@@ -97,7 +103,7 @@ export interface ReminderExecutionFailure {
   failed?: number;
   pendingFutureCount?: number;
   items?: ProcessedReminderItem[];
-  errors?: Array<{ id: string; error: string }>;
+  errors?: FailedReminderItem[];
   executedAt?: string;
 }
 
@@ -346,7 +352,7 @@ async function markRequestAsFailedOrPending(
   errMsg: string,
   source: string,
   businessId?: string
-): Promise<void> {
+): Promise<'failed' | 'pending' | undefined> {
   const targetStatus = retryable ? 'pending' : 'failed';
   const truncatedError = errMsg.slice(0, 500);
 
@@ -366,7 +372,7 @@ async function markRequestAsFailedOrPending(
 
   const { error } = await query;
   if (!error) {
-    return;
+    return targetStatus;
   }
 
   if (isMissingColumnError(error)) {
@@ -385,7 +391,7 @@ async function markRequestAsFailedOrPending(
 
     const { error: fallbackErr } = await withoutLastErr;
     if (!fallbackErr) {
-      return;
+      return targetStatus;
     }
 
     if (!retryable && isCheckConstraintError(fallbackErr)) {
@@ -401,8 +407,8 @@ async function markRequestAsFailedOrPending(
       if (businessId) {
         legacyRevert = legacyRevert.eq('business_id', businessId);
       }
-      await legacyRevert;
-      return;
+      const { error: revertErr } = await legacyRevert;
+      return revertErr ? undefined : 'pending';
     }
 
     console.error('[Reminders] Error al actualizar estado tras fallo de envío', {
@@ -411,7 +417,7 @@ async function markRequestAsFailedOrPending(
       targetStatus,
       error: fallbackErr.message,
     });
-    return;
+    return undefined;
   }
 
   if (!retryable && isCheckConstraintError(error)) {
@@ -427,8 +433,8 @@ async function markRequestAsFailedOrPending(
     if (businessId) {
       legacyRevert = legacyRevert.eq('business_id', businessId);
     }
-    await legacyRevert;
-    return;
+    const { error: revertErr } = await legacyRevert;
+    return revertErr ? undefined : 'pending';
   }
 
   console.error('[Reminders] Error al actualizar estado tras fallo de envío', {
@@ -437,6 +443,7 @@ async function markRequestAsFailedOrPending(
     targetStatus,
     error: error.message,
   });
+  return undefined;
 }
 
 export async function processGlobalPendingReminders(
@@ -481,7 +488,7 @@ export async function processGlobalPendingReminders(
   const staleBeforeIso = new Date(nowMs - STALE_PROCESSING_MS).toISOString();
 
   let rowsToSend: ClaimedGlobalRow[] = [];
-  const blockedErrors: Array<{ id: string; error: string }> = [];
+  const blockedErrors: FailedReminderItem[] = [];
 
   // 1. Intentar reserva atómica en PostgreSQL (evita TOCTOU, inanición de cola y reenvíos duplicados)
   const { data: rpcClaimed, error: rpcError } = await adminClient.rpc(
@@ -617,6 +624,7 @@ export async function processGlobalPendingReminders(
             error:
               allowance.blockError ??
               'Límite del Plan Trial alcanzado. Activa un plan para continuar.',
+            status: 'pending',
           });
           continue;
         }
@@ -634,7 +642,11 @@ export async function processGlobalPendingReminders(
         .maybeSingle();
 
       if (claimErr) {
-        blockedErrors.push({ id: row.id, error: claimErr.message });
+        blockedErrors.push({
+          id: row.id,
+          error: claimErr.message,
+          status: 'pending',
+        });
         continue;
       }
 
@@ -671,7 +683,7 @@ export async function processGlobalPendingReminders(
   }
 
   const processedItems: ProcessedReminderItem[] = [];
-  const failedItems: Array<{ id: string; error: string }> = [];
+  const failedItems: FailedReminderItem[] = [];
 
   await runInChunks(rowsToSend, CONCURRENCY_LIMIT, async (row) => {
     const businessName = row.business_name || 'Nuestro Negocio';
@@ -706,7 +718,7 @@ export async function processGlobalPendingReminders(
         error: errMsg,
       });
 
-      await markRequestAsFailedOrPending(
+      const resultingStatus = await markRequestAsFailedOrPending(
         adminClient,
         row.id,
         retryable,
@@ -717,6 +729,7 @@ export async function processGlobalPendingReminders(
       failedItems.push({
         id: row.id,
         error: errMsg,
+        ...(resultingStatus ? { status: resultingStatus } : {}),
       });
       return;
     }
@@ -921,7 +934,7 @@ export async function processUserPendingReminders(
   }
 
   let rowsToSend: ClaimedUserRow[] = [];
-  const failedItems: Array<{ id: string; error: string }> = [];
+  const failedItems: FailedReminderItem[] = [];
 
   // Reserva atómica vía RPC con FOR UPDATE sobre el negocio (evita TOCTOU con el cron)
   const { data: rpcUserClaimed, error: rpcUserErr } = await supabase.rpc(
@@ -1005,6 +1018,7 @@ export async function processUserPendingReminders(
       failedItems.push({
         id: overflowRow.id,
         error: `Has alcanzado el límite de ${TRIAL_MAX_REQUESTS} envíos por WhatsApp del Plan Trial.`,
+        status: 'pending',
       });
     }
 
@@ -1020,7 +1034,11 @@ export async function processUserPendingReminders(
           .maybeSingle();
 
         if (claimErr) {
-          failedItems.push({ id: row.id, error: claimErr.message });
+          failedItems.push({
+            id: row.id,
+            error: claimErr.message,
+            status: 'pending',
+          });
           break;
         }
 
@@ -1077,7 +1095,7 @@ export async function processUserPendingReminders(
           error: errMsg,
         });
 
-        await markRequestAsFailedOrPending(
+        const resultingStatus = await markRequestAsFailedOrPending(
           writeClient,
           row.id,
           retryable,
@@ -1089,6 +1107,7 @@ export async function processUserPendingReminders(
         failedItems.push({
           id: row.id,
           error: errMsg,
+          ...(resultingStatus ? { status: resultingStatus } : {}),
         });
         return;
       }

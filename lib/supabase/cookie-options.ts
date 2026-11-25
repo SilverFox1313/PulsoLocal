@@ -246,11 +246,7 @@ export function isValidSameOriginPost(request: Request): boolean {
     sanitizeHeaderHost(request.headers.get('x-forwarded-host')) ??
     sanitizeHeaderHost(request.headers.get('host'));
 
-  if (
-    headerHost &&
-    sourceHost === headerHost &&
-    (!isProductionRuntime() || allowedHosts.size === 0)
-  ) {
+  if (headerHost && sourceHost === headerHost && !isProductionRuntime()) {
     return true;
   }
 

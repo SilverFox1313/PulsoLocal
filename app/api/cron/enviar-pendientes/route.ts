@@ -1,9 +1,6 @@
 import { timingSafeEqual } from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
-import {
-  processGlobalPendingReminders,
-  processUserPendingReminders,
-} from '@/lib/messaging/process-pending-reminders';
+import { processGlobalPendingReminders } from '@/lib/messaging/process-pending-reminders';
 import { getPublicOrigin } from '@/lib/supabase/cookie-options';
 
 export const dynamic = 'force-dynamic';
@@ -56,25 +53,14 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // En desarrollo local sin CRON_SECRET, jamás ejecutar el envío global:
-    // únicamente permitir el procesamiento acotado al usuario autenticado si existe sesión.
-    const userResult = await processUserPendingReminders(origin, {
-      includeFuture: false,
-      source: 'GET:/api/cron/enviar-pendientes(dev-session-only)',
-    });
-
-    if (userResult.status === 401) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error:
-            'No autorizado. Define CRON_SECRET o inicia sesión para pruebas locales.',
-        },
-        { status: 401 }
-      );
-    }
-
-    return NextResponse.json(userResult.body, { status: userResult.status });
+    return NextResponse.json(
+      {
+        ok: false,
+        error:
+          'No autorizado. Configura CRON_SECRET y envía el header Authorization Bearer válido.',
+      },
+      { status: 401 }
+    );
   }
 
   if (!isValidCronRequest(request, cronSecret)) {

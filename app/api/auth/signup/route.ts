@@ -7,9 +7,25 @@ import {
   adaptCookieOptions,
   getPublicOrigin,
   isHttpsRequest,
+  isValidSameOriginPost,
 } from '@/lib/supabase/cookie-options';
 
 export async function POST(request: NextRequest) {
+  const contentType = request.headers.get('content-type') ?? '';
+  if (!contentType.toLowerCase().includes('application/json')) {
+    return NextResponse.json(
+      { error: 'Content-Type debe ser application/json.' },
+      { status: 415 }
+    );
+  }
+
+  if (!isValidSameOriginPost(request)) {
+    return NextResponse.json(
+      { error: 'Origen no autorizado.' },
+      { status: 403 }
+    );
+  }
+
   const { url, anonKey, isConfigured } = getSupabaseEnv();
 
   if (!isConfigured) {

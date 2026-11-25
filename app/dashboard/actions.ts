@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import {
   getComparablePhoneKey,
+  getPhoneSearchSuffix,
   normalizePhoneToE164,
 } from '@/lib/messaging/phone';
 import {
@@ -306,19 +307,26 @@ export async function checkCustomerPhoneHistoryAction(
     return emptyResult;
   }
 
-  const { data: rows, error: queryError } = await supabase
+  const phoneSuffix = getPhoneSearchSuffix(targetPhoneKey);
+  let historyQuery = supabase
     .from('review_requests')
     .select('customer_phone, status, created_at, scheduled_for')
     .eq('business_id', business.id)
     .order('created_at', { ascending: false })
-    .limit(1000);
+    .limit(500);
+
+  if (phoneSuffix) {
+    historyQuery = historyQuery.ilike('customer_phone', `%${phoneSuffix}%`);
+  }
+
+  const { data: rows, error: queryError } = await historyQuery;
 
   if (queryError || !rows || rows.length === 0) {
     return emptyResult;
   }
 
   const matchingRows = rows.filter((row) => {
-    const storedKey = getComparablePhoneKey(row.customer_phone ?? '', dialCode);
+    const storedKey = getComparablePhoneKey(row.customer_phone ?? '');
     return Boolean(storedKey && storedKey === targetPhoneKey);
   });
 
@@ -340,6 +348,8 @@ export interface CheckPendingBatchDuplicatesInput {
   businessId?: string;
   includeFuture?: boolean;
 }
+
+const PENDING_BATCH_CHECK_LIMIT = 10;
 
 export async function checkPendingRequestsDuplicateHistoryAction(
   input: CheckPendingBatchDuplicatesInput = {}
@@ -388,19 +398,23 @@ export async function checkPendingRequestsDuplicateHistoryAction(
   const nowIso = new Date(nowMs).toISOString();
   const includeFuture = Boolean(input.includeFuture);
 
-  let pendingProbeQuery = supabase
+  let pendingBatchQuery = supabase
     .from('review_requests')
-    .select('id')
+    .select(
+      'id, business_id, customer_name, customer_phone, status, scheduled_for, created_at'
+    )
     .eq('business_id', business.id)
     .eq('status', 'pending')
     .order('scheduled_for', { ascending: true })
-    .limit(10);
+    .order('created_at', { ascending: true })
+    .limit(PENDING_BATCH_CHECK_LIMIT);
 
   if (!includeFuture) {
-    pendingProbeQuery = pendingProbeQuery.lte('scheduled_for', nowIso);
+    pendingBatchQuery = pendingBatchQuery.lte('scheduled_for', nowIso);
   }
 
-  const { data: pendingProbe, error: probeError } = await pendingProbeQuery;
+  const { data: pendingBatchRows, error: probeError } =
+    await pendingBatchQuery;
   if (probeError) {
     return {
       alerts: [],
@@ -408,49 +422,60 @@ export async function checkPendingRequestsDuplicateHistoryAction(
     };
   }
 
-  if (!pendingProbe || pendingProbe.length === 0) {
+  if (!pendingBatchRows || pendingBatchRows.length === 0) {
     return { alerts: [] };
   }
 
-  const allRows: RequestHistoryRecord[] = [];
-  const PAGE_LIMIT = 1000;
-  const MAX_PAGES = 5;
-
-  for (let page = 0; page < MAX_PAGES; page += 1) {
-    const from = page * PAGE_LIMIT;
-    const to = from + PAGE_LIMIT - 1;
-    const { data: pageRows, error: pageError } = await supabase
-      .from('review_requests')
-      .select(
-        'id, business_id, customer_name, customer_phone, status, scheduled_for, created_at'
-      )
-      .eq('business_id', business.id)
-      .order('created_at', { ascending: false })
-      .range(from, to);
-
-    if (pageError) {
-      return {
-        alerts: [],
-        error: 'No se pudo consultar el historial de envíos del negocio.',
-      };
-    }
-
-    if (!pageRows || pageRows.length === 0) {
-      break;
-    }
-
-    allRows.push(...(pageRows as RequestHistoryRecord[]));
-
-    if (pageRows.length < PAGE_LIMIT) {
-      break;
+  const suffixSet = new Set<string>();
+  for (const row of pendingBatchRows) {
+    const comparableKey = getComparablePhoneKey(row.customer_phone ?? '');
+    const suffix = comparableKey ? getPhoneSearchSuffix(comparableKey) : null;
+    if (suffix) {
+      suffixSet.add(suffix);
     }
   }
 
-  const alerts = findPendingRequestsWithHistory(allRows, {
-    businessId: business.id,
-    onlyDueAsOfMs: includeFuture ? undefined : nowMs,
-    limitPending: 10,
-  });
+  if (suffixSet.size === 0) {
+    return { alerts: [] };
+  }
+
+  const orFilters = Array.from(suffixSet)
+    .map((suffix) => `customer_phone.ilike.%${suffix}%`)
+    .join(',');
+
+  const { data: historyRows, error: historyError } = await supabase
+    .from('review_requests')
+    .select(
+      'id, business_id, customer_name, customer_phone, status, scheduled_for, created_at'
+    )
+    .eq('business_id', business.id)
+    .or(orFilters)
+    .order('created_at', { ascending: false })
+    .limit(1000);
+
+  if (historyError) {
+    return {
+      alerts: [],
+      error: 'No se pudo consultar el historial de envíos del negocio.',
+    };
+  }
+
+  const mergedById = new Map<string, RequestHistoryRecord>();
+  for (const row of pendingBatchRows as RequestHistoryRecord[]) {
+    mergedById.set(row.id, row);
+  }
+  for (const row of (historyRows ?? []) as RequestHistoryRecord[]) {
+    mergedById.set(row.id, row);
+  }
+
+  const alerts = findPendingRequestsWithHistory(
+    Array.from(mergedById.values()),
+    {
+      businessId: business.id,
+      onlyDueAsOfMs: includeFuture ? undefined : nowMs,
+      limitPending: PENDING_BATCH_CHECK_LIMIT,
+    }
+  );
 
   return { alerts };
 }

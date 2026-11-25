@@ -30,6 +30,7 @@ interface ReviewRequestFormProps {
   blockedReason?: string | null;
   trialUsageLabel?: string | null;
   pendingDuplicateAlerts?: PendingRequestDuplicateAlert[];
+  requestsSyncHash?: number;
   onCreated: (request: ReviewRequest) => void;
 }
 
@@ -54,6 +55,7 @@ export default function ReviewRequestForm({
   blockedReason = null,
   trialUsageLabel = null,
   pendingDuplicateAlerts = [],
+  requestsSyncHash = 0,
   onCreated,
 }: ReviewRequestFormProps) {
   const [customerName, setCustomerName] = useState('');
@@ -123,7 +125,14 @@ export default function ReviewRequestForm({
     return () => {
       window.clearTimeout(timer);
     };
-  }, [businessId, canLookupPhone, dialCode, normalizedE164, trimmedPhone]);
+  }, [
+    businessId,
+    canLookupPhone,
+    dialCode,
+    normalizedE164,
+    requestsSyncHash,
+    trimmedPhone,
+  ]);
 
   function handlePhoneInputChange(rawValue: string) {
     setError(null);

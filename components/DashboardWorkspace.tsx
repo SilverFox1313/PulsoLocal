@@ -39,6 +39,7 @@ import type {
   Business,
   PrivateFeedbackItem,
   ReviewRequest,
+  ReviewRequestStatus,
 } from '@/types/database';
 
 interface WhatsAppEnvStatus {
@@ -71,7 +72,11 @@ interface DispatchSummary {
   failed: number;
   pendingFutureCount: number;
   items: ProcessedReminderItem[];
-  errors?: Array<{ id: string; error: string }>;
+  errors?: Array<{
+    id: string;
+    error: string;
+    status?: 'failed' | 'pending';
+  }>;
 }
 
 type DashboardTab = 'requests' | 'feedback' | 'settings' | 'subscription';
@@ -458,6 +463,47 @@ export default function DashboardWorkspace({
     return findPendingRequestsWithHistory(requests, { businessId });
   }, [businessId, requests]);
 
+  const requestsSyncHash = useMemo(() => {
+    let hash = 2166136261;
+    for (const req of requests) {
+      const token = `${req.id}:${req.status}:${req.customer_phone}|`;
+      for (let i = 0; i < token.length; i += 1) {
+        hash ^= token.charCodeAt(i);
+        hash = Math.imul(hash, 16777619);
+      }
+    }
+    return hash >>> 0;
+  }, [requests]);
+
+  async function syncRequestsFromDb() {
+    if (!businessId) {
+      return;
+    }
+
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from('review_requests')
+        .select(
+          'id, business_id, customer_name, customer_phone, status, scheduled_for, created_at'
+        )
+        .eq('business_id', businessId)
+        .order('created_at', { ascending: false });
+
+      if (error || !data) {
+        return;
+      }
+
+      const freshRequests = data as ReviewRequest[];
+      requestsByIdRef.current = new Map(
+        freshRequests.map((item) => [item.id, item])
+      );
+      setRequests(freshRequests);
+    } catch {
+      // Silencioso si no hay conexión momentánea
+    }
+  }
+
   function handleRequestCreated(newRequest: ReviewRequest) {
     markLocalMutation(newRequest.id);
     requestsByIdRef.current.set(newRequest.id, newRequest);
@@ -612,8 +658,8 @@ export default function DashboardWorkspace({
           'No se pudo ejecutar la verificación de envíos pendientes.';
         setDispatchError(errMsg);
         toast.error(errMsg, { id: toastId });
-        manualDispatchActiveRef.current = false;
-        setDispatching(false);
+        await syncRequestsFromDb();
+        router.refresh();
         return;
       }
 
@@ -625,13 +671,34 @@ export default function DashboardWorkspace({
           requestsByIdRef.current.set(id, { ...existing, status: 'sent' });
         }
       }
-      manualDispatchActiveRef.current = false;
 
-      if (sentIds.size > 0) {
+      const errorStatusById = new Map<string, ReviewRequestStatus>();
+      for (const errItem of payload.errors ?? []) {
+        if (errItem.status === 'failed' || errItem.status === 'pending') {
+          errorStatusById.set(errItem.id, errItem.status);
+          markLocalMutation(errItem.id);
+          const existing = requestsByIdRef.current.get(errItem.id);
+          if (existing) {
+            requestsByIdRef.current.set(errItem.id, {
+              ...existing,
+              status: errItem.status,
+            });
+          }
+        }
+      }
+
+      if (sentIds.size > 0 || errorStatusById.size > 0) {
         setRequests((prev) =>
-          prev.map((req) =>
-            sentIds.has(req.id) ? { ...req, status: 'sent' } : req
-          )
+          prev.map((req) => {
+            if (sentIds.has(req.id)) {
+              return { ...req, status: 'sent' };
+            }
+            const nextErrStatus = errorStatusById.get(req.id);
+            if (nextErrStatus) {
+              return { ...req, status: nextErrStatus };
+            }
+            return req;
+          })
         );
       }
 
@@ -679,13 +746,14 @@ export default function DashboardWorkspace({
         );
       }
 
+      await syncRequestsFromDb();
       router.refresh();
     } catch {
-      manualDispatchActiveRef.current = false;
       const errMsg =
         'Error de conexión al ejecutar la verificación de envíos.';
       setDispatchError(errMsg);
       toast.error(errMsg, { id: toastId });
+      await syncRequestsFromDb();
     } finally {
       manualDispatchActiveRef.current = false;
       setDispatching(false);
@@ -889,6 +957,7 @@ export default function DashboardWorkspace({
                 : null
             }
             pendingDuplicateAlerts={pendingDuplicateAlerts}
+            requestsSyncHash={requestsSyncHash}
             onCreated={handleRequestCreated}
           />
 
@@ -1190,11 +1259,23 @@ export default function DashboardWorkspace({
         <ConfirmDuplicateSendModal
           alerts={duplicateConfirmState.alerts}
           submitting={dispatching}
-          onCancel={() => setDuplicateConfirmState(null)}
-          onConfirm={() => {
-            const { includeFuture } = duplicateConfirmState;
+          onCancel={() => {
+            if (dispatching) {
+              return;
+            }
             setDuplicateConfirmState(null);
-            void runSendReminders(includeFuture);
+            void syncRequestsFromDb();
+          }}
+          onConfirm={async () => {
+            if (dispatching) {
+              return;
+            }
+            const { includeFuture } = duplicateConfirmState;
+            try {
+              await runSendReminders(includeFuture);
+            } finally {
+              setDuplicateConfirmState(null);
+            }
           }}
         />
       )}

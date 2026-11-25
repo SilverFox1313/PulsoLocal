@@ -1,12 +1,10 @@
 import PublicReviewFlow from '@/components/PublicReviewFlow';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
+import { isValidUuid } from '@/lib/validation/uuid';
 import type { PublicReviewRequestData } from '@/types/database';
 
 export const dynamic = 'force-dynamic';
-
-const UUID_REGEX =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 interface PublicReviewPageProps {
   params: Promise<{ requestId: string }>;
@@ -15,7 +13,7 @@ interface PublicReviewPageProps {
 async function fetchPublicReviewRequest(
   requestId: string
 ): Promise<{ data: PublicReviewRequestData | null; error?: string }> {
-  if (!UUID_REGEX.test(requestId)) {
+  if (!isValidUuid(requestId, { strictVersion: true })) {
     return { data: null, error: 'invalid_id' };
   }
 

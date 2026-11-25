@@ -12,7 +12,7 @@ interface ConfirmDuplicateSendModalProps {
   alerts: PendingRequestDuplicateAlert[];
   submitting?: boolean;
   onCancel: () => void;
-  onConfirm: () => void;
+  onConfirm: () => void | Promise<void>;
 }
 
 function formatAlertDate(iso: string | null): string | null {
@@ -139,9 +139,9 @@ export default function ConfirmDuplicateSendModal({
                   key={item.pendingRequestId}
                   className="rounded-lg border border-amber-200/80 bg-amber-50/70 px-3.5 py-3 text-sm dark:border-amber-500/25 dark:bg-amber-500/10"
                 >
-                  <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-                    <span className="font-semibold text-slate-900 dark:text-zinc-100">
-                      {item.customerName}
+                  <div className="flex min-w-0 flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+                    <span className="min-w-0 break-words font-semibold text-slate-900 dark:text-zinc-100">
+                      {item.customerName || 'Cliente'}
                     </span>
                     <span className="font-mono text-sm tabular-nums text-slate-700 dark:text-slate-300">
                       {item.customerPhone}

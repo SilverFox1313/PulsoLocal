@@ -171,3 +171,14 @@ export function getComparablePhoneKey(
   return digits.length >= 7 ? digits : null;
 }
 
+/**
+ * Extrae los últimos 4 dígitos numéricos de una clave o teléfono para filtrar consultas en SQL de forma acotada.
+ */
+export function getPhoneSearchSuffix(phoneOrKey: string): string | null {
+  const digits = phoneOrKey.replace(/\D/g, '');
+  if (digits.length < 4) {
+    return null;
+  }
+  return digits.slice(-4);
+}
+
