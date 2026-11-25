@@ -2,6 +2,7 @@ import { isValidUuid } from '@/lib/validation/uuid';
 
 export const MIN_TEMPLATE_NAME_LENGTH = 2;
 export const MAX_TEMPLATE_NAME_LENGTH = 50;
+export const MAX_PRIVATE_FEEDBACK_COMMENT_LENGTH = 500;
 
 const URL_OR_PROTOCOL_REGEX =
   /https?:\/\/|ftp:\/\/|mailto:|tel:|whatsapp:|\bwww\.|\bwa\.me\/|\bt\.me\/|\bbit\.ly\b|\btinyurl\.com\b|\bgoo\.gl\b/i;
@@ -12,6 +13,33 @@ const KNOWN_DOMAIN_REGEX =
 const DOMAIN_WITH_PATH_REGEX = /\b[a-z0-9-]{2,}\.[a-z]{2,10}\/\S*/i;
 
 const HTML_BRACKET_REGEX = /[<>]/;
+
+const HOMOGLYPH_MAP: Record<string, string> = {
+  а: 'a',
+  е: 'e',
+  ё: 'e',
+  і: 'i',
+  ї: 'i',
+  о: 'o',
+  р: 'p',
+  с: 'c',
+  у: 'y',
+  х: 'x',
+  ѕ: 's',
+  ј: 'j',
+  ӏ: 'l',
+  α: 'a',
+  β: 'b',
+  ε: 'e',
+  ι: 'i',
+  κ: 'k',
+  ν: 'v',
+  ο: 'o',
+  ρ: 'p',
+  τ: 't',
+  υ: 'y',
+  χ: 'x',
+};
 
 const ABUSIVE_OR_SPAM_PATTERNS: RegExp[] = [
   /\bput[ao]s?\b/i,
@@ -43,19 +71,51 @@ const ABUSIVE_OR_SPAM_PATTERNS: RegExp[] = [
   /\bdinero\s+facil\b/i,
 ];
 
-function isControlOrInvisibleCharCode(code: number): boolean {
+function isAsciiOrBidiControlChar(code: number): boolean {
   return (
     code <= 31 ||
     (code >= 127 && code <= 159) ||
-    code === 160 ||
-    (code >= 0x200b && code <= 0x200d) ||
-    code === 0xfeff
+    (code >= 0x2028 && code <= 0x202e) ||
+    (code >= 0x2066 && code <= 0x2069)
+  );
+}
+
+function isZeroWidthOrInvisibleFormatChar(code: number): boolean {
+  return (
+    code === 0x00ad ||
+    code === 0x034f ||
+    code === 0x061c ||
+    code === 0x115f ||
+    code === 0x1160 ||
+    code === 0x17b4 ||
+    code === 0x17b5 ||
+    code === 0x180e ||
+    (code >= 0x200b && code <= 0x200f) ||
+    (code >= 0x202a && code <= 0x202e) ||
+    (code >= 0x2060 && code <= 0x206f) ||
+    code === 0x3164 ||
+    (code >= 0xfe00 && code <= 0xfe0f) ||
+    code === 0xfeff ||
+    code === 0xffa0
+  );
+}
+
+function isUnicodeSpaceSeparator(code: number): boolean {
+  return (
+    code === 0x00a0 ||
+    (code >= 0x2000 && code <= 0x200a) ||
+    code === 0x2028 ||
+    code === 0x2029 ||
+    code === 0x202f ||
+    code === 0x205f ||
+    code === 0x3000
   );
 }
 
 export function containsControlOrNewlineChars(value: string): boolean {
   for (let i = 0; i < value.length; i += 1) {
-    if (isControlOrInvisibleCharCode(value.charCodeAt(i))) {
+    const code = value.charCodeAt(i);
+    if (isAsciiOrBidiControlChar(code) || isZeroWidthOrInvisibleFormatChar(code)) {
       return true;
     }
   }
@@ -66,33 +126,55 @@ export function stripControlAndInvisibleChars(value: string): string {
   let out = '';
   for (let i = 0; i < value.length; i += 1) {
     const code = value.charCodeAt(i);
-    if (isControlOrInvisibleCharCode(code)) {
+    if (isZeroWidthOrInvisibleFormatChar(code)) {
+      continue;
+    }
+    if (isAsciiOrBidiControlChar(code) || isUnicodeSpaceSeparator(code)) {
       out += ' ';
     } else {
       out += value[i];
     }
   }
-  return out.replace(/ {2,}/g, ' ').trim();
+  return out.normalize('NFKC').replace(/ {2,}/g, ' ').trim();
 }
 
-export function containsHtmlOrMarkup(value: string): boolean {
-  return HTML_BRACKET_REGEX.test(value);
-}
-
-export function containsUrlOrDomain(value: string): boolean {
-  return (
-    URL_OR_PROTOCOL_REGEX.test(value) ||
-    KNOWN_DOMAIN_REGEX.test(value) ||
-    DOMAIN_WITH_PATH_REGEX.test(value)
-  );
-}
-
-export function containsAbusiveOrSpamTerms(value: string): boolean {
-  const normalized = value
+export function normalizeForSafetyComparison(value: string): string {
+  const stripped = stripControlAndInvisibleChars(value)
+    .normalize('NFKC')
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase();
 
+  let folded = '';
+  for (let i = 0; i < stripped.length; i += 1) {
+    const ch = stripped[i];
+    folded += HOMOGLYPH_MAP[ch] ?? ch;
+  }
+
+  return folded;
+}
+
+export function containsHtmlOrMarkup(value: string): boolean {
+  return (
+    HTML_BRACKET_REGEX.test(value) ||
+    HTML_BRACKET_REGEX.test(normalizeForSafetyComparison(value))
+  );
+}
+
+export function containsUrlOrDomain(value: string): boolean {
+  const normalized = normalizeForSafetyComparison(value);
+  return (
+    URL_OR_PROTOCOL_REGEX.test(value) ||
+    KNOWN_DOMAIN_REGEX.test(value) ||
+    DOMAIN_WITH_PATH_REGEX.test(value) ||
+    URL_OR_PROTOCOL_REGEX.test(normalized) ||
+    KNOWN_DOMAIN_REGEX.test(normalized) ||
+    DOMAIN_WITH_PATH_REGEX.test(normalized)
+  );
+}
+
+export function containsAbusiveOrSpamTerms(value: string): boolean {
+  const normalized = normalizeForSafetyComparison(value);
   return ABUSIVE_OR_SPAM_PATTERNS.some((pattern) => pattern.test(normalized));
 }
 
@@ -103,14 +185,16 @@ export function validateAndSanitizeTemplateName(
 ): { ok: true; value: string } | { ok: false; error: string } {
   const trimmed = rawValue.trim();
 
-  if (containsControlOrNewlineChars(trimmed)) {
-    return {
-      ok: false,
-      error: `El ${fieldLabel} no puede contener saltos de línea ni caracteres de control.`,
-    };
+  for (let i = 0; i < trimmed.length; i += 1) {
+    if (isAsciiOrBidiControlChar(trimmed.charCodeAt(i))) {
+      return {
+        ok: false,
+        error: `El ${fieldLabel} no puede contener saltos de línea ni caracteres de control.`,
+      };
+    }
   }
 
-  const cleaned = trimmed.replace(/ {2,}/g, ' ').trim();
+  const cleaned = stripControlAndInvisibleChars(trimmed);
 
   if (cleaned.length < MIN_TEMPLATE_NAME_LENGTH || cleaned.length > maxLength) {
     return {
@@ -166,6 +250,7 @@ export function sanitizeWhatsAppTemplateVariable(
 
   if (
     cleaned.length < MIN_TEMPLATE_NAME_LENGTH ||
+    containsUrlOrDomain(cleaned) ||
     containsAbusiveOrSpamTerms(cleaned)
   ) {
     return fallback;

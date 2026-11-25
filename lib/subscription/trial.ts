@@ -2,8 +2,107 @@ import type { Business, SubscriptionStatus } from '@/types/database';
 
 export const TRIAL_DURATION_DAYS = 7;
 export const TRIAL_MAX_REQUESTS = 15;
+export const MAX_PENDING_REQUESTS_TRIAL = 50;
+export const MAX_PENDING_REQUESTS_ACTIVE = 500;
+export const MAX_SCHEDULE_AHEAD_DAYS = 30;
 export const MS_PER_DAY = 86_400_000;
 export const TRIAL_DURATION_MS = TRIAL_DURATION_DAYS * MS_PER_DAY;
+export const MAX_SCHEDULE_AHEAD_MS = MAX_SCHEDULE_AHEAD_DAYS * MS_PER_DAY;
+export const SCHEDULE_PAST_GRACE_MS = 5 * 60_000;
+
+const DISPOSABLE_EMAIL_DOMAINS = new Set([
+  '10minutemail.com',
+  '10minutemail.net',
+  '10minmail.com',
+  'armyspy.com',
+  'burnermail.io',
+  'cool.fr.nf',
+  'courriel.fr.nf',
+  'crazymailing.com',
+  'cuvox.de',
+  'dayrep.com',
+  'discard.email',
+  'dispostable.com',
+  'dropmail.me',
+  'einrot.com',
+  'emailondeck.com',
+  'fakeinbox.com',
+  'fakemailgenerator.com',
+  'fleckens.hu',
+  'getairmail.com',
+  'getnada.com',
+  'grr.la',
+  'guerrillamail.biz',
+  'guerrillamail.com',
+  'guerrillamail.de',
+  'guerrillamail.info',
+  'guerrillamail.net',
+  'guerrillamail.org',
+  'guerrillamailblock.com',
+  'gustr.com',
+  'inboxbear.com',
+  'incognitomail.org',
+  'jetable.fr.nf',
+  'jourrapide.com',
+  'mailcatch.com',
+  'maildrop.cc',
+  'mailexpire.com',
+  'mailinator.com',
+  'mailinator.net',
+  'mailinator.org',
+  'mailinator2.com',
+  'mailnesia.com',
+  'mailnull.com',
+  'mega.zik.dj',
+  'mintemail.com',
+  'mohmal.com',
+  'moncourrier.fr.nf',
+  'monemail.fr.nf',
+  'monmail.fr.nf',
+  'mytemp.email',
+  'nada.email',
+  'nada.ltd',
+  'nomail.xl.cx',
+  'nospam.ze.tc',
+  'rhyta.com',
+  'sharklasers.com',
+  'spamgourmet.com',
+  'speed.1s.fr',
+  'superrito.com',
+  'teleworm.us',
+  'temp-mail.io',
+  'temp-mail.org',
+  'tempail.com',
+  'tempinbox.com',
+  'tempmail.com',
+  'tenminutemail.com',
+  'throwaway.email',
+  'throwawaymail.com',
+  'tmpmail.net',
+  'tmpmail.org',
+  'trash-mail.com',
+  'trashmail.com',
+  'trashmail.me',
+  'trashmail.net',
+  'trashmail.org',
+  'yopmail.com',
+  'yopmail.fr',
+  'yopmail.net',
+]);
+
+export function isDisposableEmailDomain(domain: string): boolean {
+  const cleanDomain = domain.trim().toLowerCase();
+  if (!cleanDomain) return false;
+  if (DISPOSABLE_EMAIL_DOMAINS.has(cleanDomain)) {
+    return true;
+  }
+  for (const blocked of DISPOSABLE_EMAIL_DOMAINS) {
+    if (cleanDomain.endsWith(`.${blocked}`)) {
+      return true;
+    }
+  }
+  return false;
+}
 
 const TRACKING_QUERY_PARAMS = new Set([
   'utm_source',
@@ -183,6 +282,7 @@ export interface EmailTrialAnalysis {
   normalizedEmail: string;
   canonicalEmail: string;
   hasSubaddressing: boolean;
+  isDisposable: boolean;
 }
 
 export function analyzeEmailForTrialAbuse(
@@ -196,7 +296,14 @@ export function analyzeEmailForTrialAbuse(
 
   const rawLocal = normalizedEmail.slice(0, atIndex);
   let domain = normalizedEmail.slice(atIndex + 1);
-  if (!domain || domain.includes('@')) {
+  if (
+    !domain ||
+    domain.includes('@') ||
+    !domain.includes('.') ||
+    domain.startsWith('.') ||
+    domain.endsWith('.') ||
+    domain.includes('..')
+  ) {
     return null;
   }
 
@@ -211,10 +318,15 @@ export function analyzeEmailForTrialAbuse(
     canonicalLocal = canonicalLocal.replaceAll('.', '');
   }
 
+  if (!canonicalLocal) {
+    return null;
+  }
+
   return {
     normalizedEmail,
     canonicalEmail: `${canonicalLocal}@${domain}`,
     hasSubaddressing,
+    isDisposable: isDisposableEmailDomain(domain),
   };
 }
 

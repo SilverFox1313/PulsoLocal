@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
 import { sanitizeGoogleReviewUrl } from '@/lib/validation/google-review-url';
+import { MAX_PRIVATE_FEEDBACK_COMMENT_LENGTH } from '@/lib/validation/messaging-safety';
 import { isValidUuid } from '@/lib/validation/uuid';
 
 export interface SubmitPublicRatingResult {
@@ -133,6 +134,12 @@ export async function submitPublicRatingAction(
     };
   }
 
+  if (payload?.error === 'comment_too_long') {
+    return {
+      error: `El comentario no puede superar los ${MAX_PRIVATE_FEEDBACK_COMMENT_LENGTH} caracteres.`,
+    };
+  }
+
   if (payload?.error === 'not_found' || !payload?.success) {
     return { error: 'No se encontró la solicitud de reseña.' };
   }
@@ -156,8 +163,10 @@ export async function savePrivateFeedbackCommentAction(
   }
 
   const cleanComment = comment.trim();
-  if (cleanComment.length > 2000) {
-    return { error: 'El comentario no puede superar los 2000 caracteres.' };
+  if (cleanComment.length > MAX_PRIVATE_FEEDBACK_COMMENT_LENGTH) {
+    return {
+      error: `El comentario no puede superar los ${MAX_PRIVATE_FEEDBACK_COMMENT_LENGTH} caracteres.`,
+    };
   }
 
   if (!cleanComment) {
@@ -237,6 +246,12 @@ export async function savePrivateFeedbackCommentAction(
 
   if (payload?.error === 'empty_comment') {
     return { error: 'Escribe un comentario antes de enviarlo.' };
+  }
+
+  if (payload?.error === 'comment_too_long') {
+    return {
+      error: `El comentario no puede superar los ${MAX_PRIVATE_FEEDBACK_COMMENT_LENGTH} caracteres.`,
+    };
   }
 
   if (!payload?.success) {

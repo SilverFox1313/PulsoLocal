@@ -14,7 +14,11 @@ import {
 } from '@/lib/messaging/request-history';
 import {
   evaluateTrialStatus,
+  MAX_PENDING_REQUESTS_ACTIVE,
+  MAX_PENDING_REQUESTS_TRIAL,
+  MAX_SCHEDULE_AHEAD_MS,
   normalizeGoogleReviewUrl,
+  SCHEDULE_PAST_GRACE_MS,
 } from '@/lib/subscription/trial';
 import { checkSlidingWindowRateLimit } from '@/lib/security/rate-limit';
 import { createAdminClient } from '@/lib/supabase/admin';
@@ -595,11 +599,48 @@ export async function createReviewRequestAction(
     }
   }
 
+  // Tope máximo de solicitudes pendientes simultáneas en cola (50 Trial / 500 Activo)
+  const maxPendingLimit =
+    typedBusiness.subscription_status === 'active'
+      ? MAX_PENDING_REQUESTS_ACTIVE
+      : MAX_PENDING_REQUESTS_TRIAL;
+
+  const { count: pendingRequestsCount, error: pendingCountError } =
+    await supabase
+      .from('review_requests')
+      .select('id', { count: 'exact', head: true })
+      .eq('business_id', typedBusiness.id)
+      .eq('status', 'pending');
+
+  if (pendingCountError) {
+    return {
+      error:
+        'No se pudo verificar el límite de solicitudes pendientes en cola. Inténtalo nuevamente.',
+    };
+  }
+
+  if ((pendingRequestsCount ?? 0) >= maxPendingLimit) {
+    return {
+      error: `Has alcanzado el máximo de ${maxPendingLimit} solicitudes pendientes simultáneas en cola. Envía o elimina solicitudes pendientes antes de agregar más.`,
+    };
+  }
+
+  const nowMs = Date.now();
   const delayMinutes = Math.max(0, Number(typedBusiness.delay_minutes ?? 60));
-  const scheduledFor =
-    delayMinutes === 0
-      ? new Date(Date.now() - 1000).toISOString()
-      : new Date(Date.now() + delayMinutes * 60_000).toISOString();
+  const scheduledForMs =
+    delayMinutes === 0 ? nowMs - 1000 : nowMs + delayMinutes * 60_000;
+
+  if (
+    scheduledForMs < nowMs - SCHEDULE_PAST_GRACE_MS ||
+    scheduledForMs > nowMs + MAX_SCHEDULE_AHEAD_MS
+  ) {
+    return {
+      error:
+        'La fecha de envío programada debe estar dentro de los próximos 30 días.',
+    };
+  }
+
+  const scheduledFor = new Date(scheduledForMs).toISOString();
 
   const { data: inserted, error: insertError } = await supabase
     .from('review_requests')
@@ -692,6 +733,22 @@ export async function updateReviewRequestAction(
     if (!rawDate || Number.isNaN(parsedDate.getTime())) {
       return { error: 'Selecciona una fecha y hora programada válida.' };
     }
+
+    const nowMs = Date.now();
+    const targetMs = parsedDate.getTime();
+    if (targetMs < nowMs - SCHEDULE_PAST_GRACE_MS) {
+      return {
+        error:
+          'La fecha programada no puede estar en el pasado. Selecciona una hora actual o futura (o usa "Enviar ahora").',
+      };
+    }
+    if (targetMs > nowMs + MAX_SCHEDULE_AHEAD_MS) {
+      return {
+        error:
+          'La fecha programada no puede superar los 30 días hacia adelante.',
+      };
+    }
+
     nextScheduledFor = parsedDate.toISOString();
   }
 

@@ -1033,6 +1033,11 @@ begin
     raise exception 'La calificación debe estar entre 1 y 5 estrellas.';
   end if;
 
+  v_clean_comment := nullif(trim(coalesce(p_comment, '')), '');
+  if v_clean_comment is not null and char_length(v_clean_comment) > 500 then
+    return jsonb_build_object('error', 'comment_too_long');
+  end if;
+
   select
     rr.id,
     rr.business_id,
@@ -1060,22 +1065,26 @@ begin
   end if;
 
   v_redirected := (p_rating >= 4);
-  v_clean_comment := nullif(trim(coalesce(p_comment, '')), '');
 
-  insert into public.feedback (
-    request_id,
-    business_id,
-    rating,
-    comment,
-    redirected_to_google
-  )
-  values (
-    p_request_id,
-    v_request.business_id,
-    p_rating,
-    v_clean_comment,
-    v_redirected
-  );
+  begin
+    insert into public.feedback (
+      request_id,
+      business_id,
+      rating,
+      comment,
+      redirected_to_google
+    )
+    values (
+      p_request_id,
+      v_request.business_id,
+      p_rating,
+      v_clean_comment,
+      v_redirected
+    );
+  exception
+    when unique_violation then
+      return jsonb_build_object('error', 'already_submitted');
+  end;
 
   update public.review_requests
   set status = 'completed'
@@ -1107,6 +1116,10 @@ begin
   v_clean_comment := nullif(trim(coalesce(p_comment, '')), '');
   if v_clean_comment is null then
     return jsonb_build_object('error', 'empty_comment');
+  end if;
+
+  if char_length(v_clean_comment) > 500 then
+    return jsonb_build_object('error', 'comment_too_long');
   end if;
 
   if auth.uid() is not null and exists (

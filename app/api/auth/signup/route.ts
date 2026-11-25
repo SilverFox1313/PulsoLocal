@@ -97,6 +97,16 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  if (emailAnalysis.isDisposable) {
+    return NextResponse.json(
+      {
+        error:
+          'No se permiten correos temporales o desechables. Utiliza un correo electrónico permanente para crear tu cuenta.',
+      },
+      { status: 400 }
+    );
+  }
+
   const emailRateLimit = checkSlidingWindowRateLimit(
     `signup:email:${emailAnalysis.canonicalEmail}`,
     {

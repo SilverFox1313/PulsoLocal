@@ -17,6 +17,7 @@ import {
   submitPublicRatingAction,
 } from '@/app/r/[requestId]/actions';
 import { sanitizeGoogleReviewUrl } from '@/lib/validation/google-review-url';
+import { MAX_PRIVATE_FEEDBACK_COMMENT_LENGTH } from '@/lib/validation/messaging-safety';
 import type { PublicReviewRequestData } from '@/types/database';
 
 interface PublicReviewFlowProps {
@@ -137,15 +138,23 @@ export default function PublicReviewFlow({
     event.preventDefault();
     setError(null);
 
-    if (!comment.trim()) {
+    const trimmedComment = comment.trim();
+    if (!trimmedComment) {
       setStep('empathetic_done');
+      return;
+    }
+
+    if (trimmedComment.length > MAX_PRIVATE_FEEDBACK_COMMENT_LENGTH) {
+      setError(
+        `El comentario no puede superar los ${MAX_PRIVATE_FEEDBACK_COMMENT_LENGTH} caracteres.`
+      );
       return;
     }
 
     setSubmittingComment(true);
     const result = await savePrivateFeedbackCommentAction(
       data.request_id,
-      comment
+      trimmedComment
     );
     setSubmittingComment(false);
 
@@ -295,12 +304,16 @@ export default function PublicReviewFlow({
             <textarea
               id="private-feedback-comment"
               rows={4}
+              maxLength={MAX_PRIVATE_FEEDBACK_COMMENT_LENGTH}
               disabled={submittingComment}
               value={comment}
               onChange={(e) => setComment(e.target.value)}
               placeholder="Escribe aquí tu experiencia o sugerencia..."
               className="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-3 text-sm leading-relaxed text-slate-900 placeholder:text-slate-400 transition-colors focus:border-amber-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30 disabled:cursor-not-allowed disabled:opacity-60 dark:border-transparent dark:bg-[#27272E] dark:text-zinc-100 dark:shadow-sm dark:shadow-black/40 dark:placeholder:text-zinc-400 dark:focus:bg-[#32323A] dark:focus:border-amber-500/60"
             />
+            <p className="mt-1.5 text-right text-xs tabular-nums text-slate-500 dark:text-zinc-400">
+              {comment.length}/{MAX_PRIVATE_FEEDBACK_COMMENT_LENGTH}
+            </p>
           </div>
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
