@@ -2,7 +2,15 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { normalizePhoneToE164 } from '@/lib/messaging/phone';
+import {
+  getComparablePhoneKey,
+  normalizePhoneToE164,
+} from '@/lib/messaging/phone';
+import {
+  findPendingRequestsWithHistory,
+  type PendingRequestDuplicateAlert,
+  type RequestHistoryRecord,
+} from '@/lib/messaging/request-history';
 import {
   evaluateTrialStatus,
   normalizeGoogleReviewUrl,
@@ -10,7 +18,11 @@ import {
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
 import { isValidUuid } from '@/lib/validation/uuid';
-import type { Business, ReviewRequest } from '@/types/database';
+import type {
+  Business,
+  ReviewRequest,
+  ReviewRequestStatus,
+} from '@/types/database';
 
 export async function signOutAction(): Promise<{ error?: string }> {
   const supabase = await createClient();
@@ -225,6 +237,222 @@ export async function updateBusinessSettingsAction(
   }
 
   return { business: finalBusiness };
+}
+
+export interface CheckCustomerPhoneHistoryInput {
+  businessId?: string;
+  phone: string;
+  dialCode?: string;
+}
+
+export interface CustomerPhoneHistoryResult {
+  hasPreviousRequests: boolean;
+  totalCount: number;
+  latestStatus: ReviewRequestStatus | null;
+  latestCreatedAt: string | null;
+  latestScheduledFor: string | null;
+  error?: string;
+}
+
+export async function checkCustomerPhoneHistoryAction(
+  input: CheckCustomerPhoneHistoryInput
+): Promise<CustomerPhoneHistoryResult> {
+  const emptyResult: CustomerPhoneHistoryResult = {
+    hasPreviousRequests: false,
+    totalCount: 0,
+    latestStatus: null,
+    latestCreatedAt: null,
+    latestScheduledFor: null,
+  };
+
+  const rawPhone = input.phone?.trim() ?? '';
+  const dialCode = input.dialCode?.trim() || '+1';
+  const targetPhoneKey = getComparablePhoneKey(rawPhone, dialCode);
+  if (!targetPhoneKey) {
+    return emptyResult;
+  }
+
+  const supabase = await createClient();
+  if (!supabase) {
+    return {
+      ...emptyResult,
+      error: 'La conexión con Supabase no está configurada.',
+    };
+  }
+
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    return {
+      ...emptyResult,
+      error: 'Tu sesión expiró. Vuelve a iniciar sesión.',
+    };
+  }
+
+  const { data: business, error: businessError } = await supabase
+    .from('businesses')
+    .select('id')
+    .eq('user_id', user.id)
+    .single();
+
+  if (businessError || !business) {
+    return emptyResult;
+  }
+
+  if (input.businessId && input.businessId !== business.id) {
+    return emptyResult;
+  }
+
+  const { data: rows, error: queryError } = await supabase
+    .from('review_requests')
+    .select('customer_phone, status, created_at, scheduled_for')
+    .eq('business_id', business.id)
+    .order('created_at', { ascending: false })
+    .limit(1000);
+
+  if (queryError || !rows || rows.length === 0) {
+    return emptyResult;
+  }
+
+  const matchingRows = rows.filter((row) => {
+    const storedKey = getComparablePhoneKey(row.customer_phone ?? '', dialCode);
+    return Boolean(storedKey && storedKey === targetPhoneKey);
+  });
+
+  if (matchingRows.length === 0) {
+    return emptyResult;
+  }
+
+  const latest = matchingRows[0];
+  return {
+    hasPreviousRequests: true,
+    totalCount: matchingRows.length,
+    latestStatus: latest.status as ReviewRequestStatus,
+    latestCreatedAt: latest.created_at ?? null,
+    latestScheduledFor: latest.scheduled_for ?? null,
+  };
+}
+
+export interface CheckPendingBatchDuplicatesInput {
+  businessId?: string;
+  includeFuture?: boolean;
+}
+
+export async function checkPendingRequestsDuplicateHistoryAction(
+  input: CheckPendingBatchDuplicatesInput = {}
+): Promise<{ alerts: PendingRequestDuplicateAlert[]; error?: string }> {
+  const supabase = await createClient();
+  if (!supabase) {
+    return {
+      alerts: [],
+      error: 'La conexión con Supabase no está configurada.',
+    };
+  }
+
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    return {
+      alerts: [],
+      error: 'Tu sesión expiró. Vuelve a iniciar sesión.',
+    };
+  }
+
+  const { data: business, error: businessError } = await supabase
+    .from('businesses')
+    .select('id')
+    .eq('user_id', user.id)
+    .single();
+
+  if (businessError || !business) {
+    return {
+      alerts: [],
+      error: 'No se encontró el perfil de tu negocio.',
+    };
+  }
+
+  if (input.businessId && input.businessId !== business.id) {
+    return {
+      alerts: [],
+      error: 'No autorizado para consultar otro negocio.',
+    };
+  }
+
+  const nowMs = Date.now();
+  const nowIso = new Date(nowMs).toISOString();
+  const includeFuture = Boolean(input.includeFuture);
+
+  let pendingProbeQuery = supabase
+    .from('review_requests')
+    .select('id')
+    .eq('business_id', business.id)
+    .eq('status', 'pending')
+    .order('scheduled_for', { ascending: true })
+    .limit(10);
+
+  if (!includeFuture) {
+    pendingProbeQuery = pendingProbeQuery.lte('scheduled_for', nowIso);
+  }
+
+  const { data: pendingProbe, error: probeError } = await pendingProbeQuery;
+  if (probeError) {
+    return {
+      alerts: [],
+      error: 'No se pudo verificar el historial de solicitudes pendientes.',
+    };
+  }
+
+  if (!pendingProbe || pendingProbe.length === 0) {
+    return { alerts: [] };
+  }
+
+  const allRows: RequestHistoryRecord[] = [];
+  const PAGE_LIMIT = 1000;
+  const MAX_PAGES = 5;
+
+  for (let page = 0; page < MAX_PAGES; page += 1) {
+    const from = page * PAGE_LIMIT;
+    const to = from + PAGE_LIMIT - 1;
+    const { data: pageRows, error: pageError } = await supabase
+      .from('review_requests')
+      .select(
+        'id, business_id, customer_name, customer_phone, status, scheduled_for, created_at'
+      )
+      .eq('business_id', business.id)
+      .order('created_at', { ascending: false })
+      .range(from, to);
+
+    if (pageError) {
+      return {
+        alerts: [],
+        error: 'No se pudo consultar el historial de envíos del negocio.',
+      };
+    }
+
+    if (!pageRows || pageRows.length === 0) {
+      break;
+    }
+
+    allRows.push(...(pageRows as RequestHistoryRecord[]));
+
+    if (pageRows.length < PAGE_LIMIT) {
+      break;
+    }
+  }
+
+  const alerts = findPendingRequestsWithHistory(allRows, {
+    businessId: business.id,
+    onlyDueAsOfMs: includeFuture ? undefined : nowMs,
+    limitPending: 10,
+  });
+
+  return { alerts };
 }
 
 export interface CreateReviewRequestInput {

@@ -148,3 +148,26 @@ export function normalizePhoneToE164(
 
   return `+${finalDigits}`;
 }
+
+/**
+ * Devuelve una clave comparable basada en dígitos normalizados (sin `+` ni `00` iniciales)
+ * para detectar coincidencias de un mismo número aunque cambie el formato.
+ */
+export function getComparablePhoneKey(
+  rawPhone: string,
+  defaultDialCode = '+1'
+): string | null {
+  const trimmed = rawPhone?.trim() ?? '';
+  if (!trimmed) {
+    return null;
+  }
+
+  const normalizedE164 = normalizePhoneToE164(trimmed, defaultDialCode);
+  if (normalizedE164) {
+    return normalizedE164.slice(1);
+  }
+
+  const digits = trimmed.replace(/\D/g, '').replace(/^00+/, '');
+  return digits.length >= 7 ? digits : null;
+}
+

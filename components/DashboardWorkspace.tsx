@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   AlertCircle,
@@ -17,12 +17,18 @@ import {
   Users,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { checkPendingRequestsDuplicateHistoryAction } from '@/app/dashboard/actions';
 import BusinessSettingsForm from '@/components/BusinessSettingsForm';
+import ConfirmDuplicateSendModal from '@/components/ConfirmDuplicateSendModal';
 import CronCountdownIndicator from '@/components/CronCountdownIndicator';
 import PrivateFeedbackList from '@/components/PrivateFeedbackList';
 import ReviewRequestForm from '@/components/ReviewRequestForm';
 import ReviewRequestsTable from '@/components/ReviewRequestsTable';
 import SubscriptionPanel from '@/components/SubscriptionPanel';
+import {
+  findPendingRequestsWithHistory,
+  type PendingRequestDuplicateAlert,
+} from '@/lib/messaging/request-history';
 import {
   evaluateTrialStatus,
   getRemainingTrialDays,
@@ -106,6 +112,11 @@ export default function DashboardWorkspace({
   const [feedbackItems, setFeedbackItems] =
     useState<PrivateFeedbackItem[]>(initialFeedback);
 
+  const [checkingDuplicates, setCheckingDuplicates] = useState(false);
+  const [duplicateConfirmState, setDuplicateConfirmState] = useState<{
+    alerts: PendingRequestDuplicateAlert[];
+    includeFuture: boolean;
+  } | null>(null);
   const [dispatching, setDispatching] = useState(false);
   const [dispatchError, setDispatchError] = useState<string | null>(null);
   const [dispatchSummary, setDispatchSummary] =
@@ -442,6 +453,11 @@ export default function DashboardWorkspace({
 
   const pendingCount = requests.filter((r) => r.status === 'pending').length;
 
+  const pendingDuplicateAlerts = useMemo(() => {
+    if (!businessId) return [];
+    return findPendingRequestsWithHistory(requests, { businessId });
+  }, [businessId, requests]);
+
   function handleRequestCreated(newRequest: ReviewRequest) {
     markLocalMutation(newRequest.id);
     requestsByIdRef.current.set(newRequest.id, newRequest);
@@ -525,6 +541,46 @@ export default function DashboardWorkspace({
     } catch {
       toast.error('No se pudo copiar al portapapeles');
     }
+  }
+
+  async function handleTriggerSendReminders(includeFuture = false) {
+    if (checkingDuplicates || dispatching || !businessId) {
+      return;
+    }
+
+    setDispatchError(null);
+    setCheckingDuplicates(true);
+
+    try {
+      const checkResult = await checkPendingRequestsDuplicateHistoryAction({
+        businessId,
+        includeFuture,
+      });
+
+      if (checkResult.error) {
+        setDispatchError(checkResult.error);
+        toast.error(checkResult.error);
+        return;
+      }
+
+      if (checkResult.alerts.length > 0) {
+        setDuplicateConfirmState({
+          alerts: checkResult.alerts,
+          includeFuture,
+        });
+        return;
+      }
+    } catch {
+      const errMsg =
+        'Error de conexión al verificar el historial de envíos previos.';
+      setDispatchError(errMsg);
+      toast.error(errMsg);
+      return;
+    } finally {
+      setCheckingDuplicates(false);
+    }
+
+    await runSendReminders(includeFuture);
   }
 
   async function runSendReminders(includeFuture = false) {
@@ -824,6 +880,7 @@ export default function DashboardWorkspace({
           )}
 
           <ReviewRequestForm
+            businessId={business.id}
             delayMinutes={business.delay_minutes}
             blockedReason={trialEval.creationErrorMessage}
             trialUsageLabel={
@@ -831,6 +888,7 @@ export default function DashboardWorkspace({
                 ? `${requests.length} / ${TRIAL_MAX_REQUESTS} incluidas en Trial`
                 : null
             }
+            pendingDuplicateAlerts={pendingDuplicateAlerts}
             onCreated={handleRequestCreated}
           />
 
@@ -860,11 +918,15 @@ export default function DashboardWorkspace({
 
               <button
                 type="button"
-                disabled={dispatching || trialEval.isSendingBlocked}
-                onClick={() => runSendReminders(false)}
+                disabled={
+                  checkingDuplicates ||
+                  dispatching ||
+                  trialEval.isSendingBlocked
+                }
+                onClick={() => void handleTriggerSendReminders(false)}
                 className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-orange-500 bg-transparent px-5 text-sm font-semibold shadow-xs transition-all hover:bg-orange-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/60 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-zinc-900 disabled:cursor-not-allowed disabled:opacity-50 whitespace-nowrap shrink-0"
               >
-                {dispatching ? (
+                {checkingDuplicates || dispatching ? (
                   <>
                     <Loader2
                       className="h-4 w-4 shrink-0 animate-spin text-orange-500 dark:text-orange-400"
@@ -1004,8 +1066,8 @@ export default function DashboardWorkspace({
                     dispatchSummary.pendingFutureCount > 0 && (
                       <button
                         type="button"
-                        disabled={dispatching}
-                        onClick={() => runSendReminders(true)}
+                        disabled={checkingDuplicates || dispatching}
+                        onClick={() => void handleTriggerSendReminders(true)}
                         className="inline-flex h-9 items-center justify-center rounded-lg border border-slate-300 bg-slate-100 px-3.5 text-xs font-medium text-slate-800 transition-colors hover:border-slate-400 hover:bg-slate-200 disabled:opacity-60 dark:border-none dark:bg-[#27272E] dark:text-zinc-100 dark:shadow-md dark:shadow-black/40 hover:dark:bg-[#32323A] whitespace-nowrap shrink-0"
                       >
                         Enviar programadas ahora
@@ -1121,6 +1183,19 @@ export default function DashboardWorkspace({
           userEmail={userEmail}
           totalRequestsCount={requests.length}
           onUpdated={handleBusinessUpdated}
+        />
+      )}
+
+      {duplicateConfirmState && (
+        <ConfirmDuplicateSendModal
+          alerts={duplicateConfirmState.alerts}
+          submitting={dispatching}
+          onCancel={() => setDuplicateConfirmState(null)}
+          onConfirm={() => {
+            const { includeFuture } = duplicateConfirmState;
+            setDuplicateConfirmState(null);
+            void runSendReminders(includeFuture);
+          }}
         />
       )}
     </div>
