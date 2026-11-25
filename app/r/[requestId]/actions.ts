@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
+import { sanitizeGoogleReviewUrl } from '@/lib/validation/google-review-url';
 import { isValidUuid } from '@/lib/validation/uuid';
 
 export interface SubmitPublicRatingResult {
@@ -142,7 +143,7 @@ export async function submitPublicRatingAction(
   return {
     success: true,
     redirectedToGoogle: Boolean(payload.redirected_to_google),
-    googleReviewUrl: payload.google_review_url ?? null,
+    googleReviewUrl: sanitizeGoogleReviewUrl(payload.google_review_url),
   };
 }
 

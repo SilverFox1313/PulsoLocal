@@ -1,6 +1,7 @@
 import PublicReviewFlow from '@/components/PublicReviewFlow';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
+import { sanitizeGoogleReviewUrl } from '@/lib/validation/google-review-url';
 import { isValidUuid } from '@/lib/validation/uuid';
 import type { PublicReviewRequestData } from '@/types/database';
 
@@ -57,7 +58,9 @@ async function fetchPublicReviewRequest(
         status: reqRow.status,
         business_id: businessRow.id,
         business_name: businessRow.business_name,
-        google_review_url: businessRow.google_review_url,
+        google_review_url: sanitizeGoogleReviewUrl(
+          businessRow.google_review_url
+        ),
         already_submitted: reqRow.status === 'completed' || Boolean(feedbackRow),
         submitted_rating: feedbackRow?.rating ?? null,
         needs_private_comment: needsPrivateComment,
@@ -82,7 +85,13 @@ async function fetchPublicReviewRequest(
     return { data: null, error: 'not_found' };
   }
 
-  return { data: data as PublicReviewRequestData };
+  const rpcData = data as PublicReviewRequestData;
+  return {
+    data: {
+      ...rpcData,
+      google_review_url: sanitizeGoogleReviewUrl(rpcData.google_review_url),
+    },
+  };
 }
 
 async function checkIsBusinessOwner(businessId: string): Promise<boolean> {

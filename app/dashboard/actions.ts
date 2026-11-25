@@ -19,6 +19,7 @@ import {
 import { checkSlidingWindowRateLimit } from '@/lib/security/rate-limit';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
+import { validateGoogleReviewUrl } from '@/lib/validation/google-review-url';
 import { validateAndSanitizeTemplateName } from '@/lib/validation/messaging-safety';
 import { isValidUuid } from '@/lib/validation/uuid';
 import type {
@@ -79,24 +80,17 @@ export async function updateBusinessSettingsAction(
   }
 
   const businessName = businessNameCheck.value;
-  const googleReviewUrl = input.googleReviewUrl.trim();
+  const rawGoogleReviewUrl = input.googleReviewUrl.trim();
+  let googleReviewUrl: string | null = null;
   const messageTemplate = input.messageTemplate.trim();
   const delayMinutes = Number(input.delayMinutes);
 
-  if (googleReviewUrl.length > 0) {
-    try {
-      const parsed = new URL(googleReviewUrl);
-      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-        return {
-          error:
-            'El enlace de Google Reviews debe comenzar con https:// o http://.',
-        };
-      }
-    } catch {
-      return {
-        error: 'Ingresa una URL válida para el enlace de reseñas de Google.',
-      };
+  if (rawGoogleReviewUrl.length > 0) {
+    const googleUrlCheck = validateGoogleReviewUrl(rawGoogleReviewUrl);
+    if (!googleUrlCheck.ok) {
+      return { error: googleUrlCheck.error };
     }
+    googleReviewUrl = googleUrlCheck.value;
   }
 
   if (messageTemplate.length < 5) {
@@ -123,16 +117,15 @@ export async function updateBusinessSettingsAction(
     .maybeSingle();
 
   const previousStatus = currentBusiness?.subscription_status ?? 'trialing';
-  const normalizedUrl =
-    googleReviewUrl.length > 0
-      ? normalizeGoogleReviewUrl(googleReviewUrl)
-      : null;
+  const normalizedUrl = googleReviewUrl
+    ? normalizeGoogleReviewUrl(googleReviewUrl)
+    : null;
 
   const { data, error } = await supabase
     .from('businesses')
     .update({
       business_name: businessName,
-      google_review_url: googleReviewUrl.length > 0 ? googleReviewUrl : null,
+      google_review_url: googleReviewUrl,
       message_template: messageTemplate,
       delay_minutes: delayMinutes,
     })

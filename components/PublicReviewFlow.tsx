@@ -16,6 +16,7 @@ import {
   savePrivateFeedbackCommentAction,
   submitPublicRatingAction,
 } from '@/app/r/[requestId]/actions';
+import { sanitizeGoogleReviewUrl } from '@/lib/validation/google-review-url';
 import type { PublicReviewRequestData } from '@/types/database';
 
 interface PublicReviewFlowProps {
@@ -37,19 +38,6 @@ const RATING_LABELS: Record<number, string> = {
   4: 'Muy buena experiencia',
   5: 'Excelente experiencia',
 };
-
-function isSafeHttpUrl(url: string | null | undefined): url is string {
-  if (!url) return false;
-  const trimmed = url.trim();
-  if (!/^https?:\/\//i.test(trimmed)) return false;
-
-  try {
-    const parsed = new URL(trimmed);
-    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
-  } catch {
-    return false;
-  }
-}
 
 export default function PublicReviewFlow({
   data,
@@ -82,9 +70,7 @@ export default function PublicReviewFlow({
   const [submittingComment, setSubmittingComment] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const safeGoogleReviewUrl = isSafeHttpUrl(googleReviewUrl)
-    ? googleReviewUrl.trim()
-    : null;
+  const safeGoogleReviewUrl = sanitizeGoogleReviewUrl(googleReviewUrl);
 
   useEffect(() => {
     if (step !== 'redirect_google' || !safeGoogleReviewUrl || countdown <= 0) {
