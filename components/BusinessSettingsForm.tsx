@@ -164,12 +164,8 @@ export default function BusinessSettingsForm({
             className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3.5 font-mono text-sm text-slate-900 placeholder:font-sans placeholder:text-slate-400 transition-colors focus:border-amber-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30 disabled:cursor-not-allowed disabled:opacity-60 dark:border-transparent dark:bg-[#27272E] dark:text-zinc-100 dark:shadow-sm dark:shadow-black/40 dark:placeholder:text-zinc-400 dark:focus:bg-[#32323A] dark:focus:border-amber-500/60"
           />
           <p className="mt-1.5 text-xs text-slate-500 dark:text-zinc-400">
-            Copia este enlace <span className="font-mono">https://</span> desde
-            tu perfil de Google Business Profile (&ldquo;Solicitar reseñas&rdquo;)
-            o Google Maps (<span className="font-mono">g.page</span>,{' '}
-            <span className="font-mono">maps.app.goo.gl</span>,{' '}
-            <span className="font-mono">maps.google.com</span> o{' '}
-            <span className="font-mono">google.com/maps</span>).
+            Copia el enlace desde Google Maps o desde el botón &ldquo;Solicitar
+            reseñas&rdquo; de tu perfil de Google.
           </p>
         </div>
 

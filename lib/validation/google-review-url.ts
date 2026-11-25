@@ -199,7 +199,7 @@ const GOOGLE_OFFICIAL_TLDS = new Set([
 ]);
 
 export const GOOGLE_REVIEW_URL_INVALID_ERROR =
-  'Ingresa un enlace https:// válido perteneciente a un dominio oficial de Google Maps o Google Business Profile (por ejemplo: g.page, maps.app.goo.gl, maps.google.com, google.com/maps o search.google.com/local/writereview).';
+  'El enlace no es válido. Copia y pega el enlace de reseñas directo desde Google Maps o tu perfil de negocio de Google.';
 
 function isOfficialGoogleTld(tld: string): boolean {
   return GOOGLE_OFFICIAL_TLDS.has(tld);
