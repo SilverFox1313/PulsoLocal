@@ -135,6 +135,7 @@ export default function DashboardWorkspace({
   );
   const localMutationTimestampsRef = useRef<Map<string, number>>(new Map());
   const manualDispatchActiveRef = useRef(false);
+  const dispatchLockRef = useRef(false);
   const shouldFocusGoogleUrlRef = useRef(false);
 
   function markLocalMutation(requestId: string) {
@@ -217,7 +218,12 @@ export default function DashboardWorkspace({
 
     async function refreshAllSilently() {
       try {
-        const [requestsRes, feedbackRes] = await Promise.all([
+        const [businessRes, requestsRes, feedbackRes] = await Promise.all([
+          supabase
+            .from('businesses')
+            .select('*')
+            .eq('id', businessId)
+            .maybeSingle(),
           supabase
             .from('review_requests')
             .select(
@@ -236,6 +242,10 @@ export default function DashboardWorkspace({
 
         if (!isMounted) {
           return;
+        }
+
+        if (!businessRes.error && businessRes.data) {
+          setBusiness(businessRes.data as Business);
         }
 
         if (!requestsRes.error && requestsRes.data) {
@@ -512,7 +522,9 @@ export default function DashboardWorkspace({
         ? prev
         : [newRequest, ...prev]
     );
+    setDispatchError(null);
     setDispatchSummary(null);
+    router.refresh();
   }
 
   function handleRequestUpdated(updatedRequest: ReviewRequest) {
@@ -523,6 +535,7 @@ export default function DashboardWorkspace({
         item.id === updatedRequest.id ? updatedRequest : item
       )
     );
+    setDispatchError(null);
     setDispatchSummary(null);
     router.refresh();
   }
@@ -531,12 +544,14 @@ export default function DashboardWorkspace({
     markLocalMutation(deletedId);
     requestsByIdRef.current.delete(deletedId);
     setRequests((prev) => prev.filter((item) => item.id !== deletedId));
+    setDispatchError(null);
     setDispatchSummary(null);
     router.refresh();
   }
 
   function handleBusinessUpdated(updated: Business) {
     setBusiness(updated);
+    router.refresh();
   }
 
   function scrollToAndFocusGoogleUrl() {
@@ -590,10 +605,16 @@ export default function DashboardWorkspace({
   }
 
   async function handleTriggerSendReminders(includeFuture = false) {
-    if (checkingDuplicates || dispatching || !businessId) {
+    if (
+      dispatchLockRef.current ||
+      checkingDuplicates ||
+      dispatching ||
+      !businessId
+    ) {
       return;
     }
 
+    dispatchLockRef.current = true;
     setDispatchError(null);
     setCheckingDuplicates(true);
 
@@ -624,12 +645,17 @@ export default function DashboardWorkspace({
       return;
     } finally {
       setCheckingDuplicates(false);
+      dispatchLockRef.current = false;
     }
 
     await runSendReminders(includeFuture);
   }
 
   async function runSendReminders(includeFuture = false) {
+    if (dispatchLockRef.current || dispatching) {
+      return;
+    }
+    dispatchLockRef.current = true;
     setDispatchError(null);
     setDispatching(true);
     manualDispatchActiveRef.current = true;
@@ -756,6 +782,7 @@ export default function DashboardWorkspace({
       await syncRequestsFromDb();
     } finally {
       manualDispatchActiveRef.current = false;
+      dispatchLockRef.current = false;
       setDispatching(false);
     }
   }

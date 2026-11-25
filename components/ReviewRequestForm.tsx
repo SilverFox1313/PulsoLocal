@@ -155,6 +155,7 @@ export default function ReviewRequestForm({
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (submitting) return;
     setError(null);
 
     if (blockedReason) {
@@ -183,28 +184,35 @@ export default function ReviewRequestForm({
 
     setSubmitting(true);
 
-    const result = await createReviewRequestAction({
-      customerName: trimmedName,
-      customerPhone: normalizedPhone,
-    });
+    try {
+      const result = await createReviewRequestAction({
+        customerName: trimmedName,
+        customerPhone: normalizedPhone,
+      });
 
-    setSubmitting(false);
+      if (result.error) {
+        setError(result.error);
+        toast.error(result.error);
+        return;
+      }
 
-    if (result.error) {
-      setError(result.error);
-      toast.error(result.error);
-      return;
-    }
-
-    if (result.request) {
-      lookupSeqRef.current += 1;
-      setPhoneHistory(null);
-      onCreated(result.request);
-      setCustomerName('');
-      setDialCode('+1');
-      setCustomerPhone('');
-      const msg = `Solicitud programada para ${result.request.customer_name}`;
-      toast.success(msg);
+      if (result.request) {
+        lookupSeqRef.current += 1;
+        setPhoneHistory(null);
+        onCreated(result.request);
+        setCustomerName('');
+        setDialCode('+1');
+        setCustomerPhone('');
+        const msg = `Solicitud programada para ${result.request.customer_name}`;
+        toast.success(msg);
+      }
+    } catch {
+      const msg =
+        'No se pudo registrar la solicitud por un problema de conexión. Inténtalo nuevamente.';
+      setError(msg);
+      toast.error(msg);
+    } finally {
+      setSubmitting(false);
     }
   }
 
@@ -299,6 +307,7 @@ export default function ReviewRequestForm({
             disabled={submitting || Boolean(blockedReason)}
             value={customerName}
             onChange={(e) => {
+              setError(null);
               setCustomerName(e.target.value);
             }}
             placeholder="Ej. Carlos Mendoza"

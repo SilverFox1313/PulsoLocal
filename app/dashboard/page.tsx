@@ -4,6 +4,7 @@ import DashboardWorkspace from '@/components/DashboardWorkspace';
 import { getWhatsAppEnvStatus } from '@/lib/messaging/send-reminder';
 import { analyzeEmailForTrialAbuse } from '@/lib/subscription/trial';
 import { createClient } from '@/lib/supabase/server';
+import { validateAndSanitizeTemplateName } from '@/lib/validation/messaging-safety';
 import type {
   Business,
   PrivateFeedbackItem,
@@ -45,11 +46,15 @@ export default async function DashboardPage() {
   } else if (existingBusiness) {
     business = existingBusiness as Business;
   } else {
-    const metadataName =
-      typeof user.user_metadata?.business_name === 'string' &&
-      user.user_metadata.business_name.trim().length > 0
-        ? user.user_metadata.business_name.trim()
-        : 'Mi Negocio';
+    const rawMetadataName =
+      typeof user.user_metadata?.business_name === 'string'
+        ? user.user_metadata.business_name
+        : '';
+    const sanitizedName = validateAndSanitizeTemplateName(
+      rawMetadataName,
+      'nombre del negocio'
+    );
+    const metadataName = sanitizedName.ok ? sanitizedName.value : 'Mi Negocio';
 
     const emailCheck = analyzeEmailForTrialAbuse(user.email ?? '');
     const initialStatus = emailCheck?.hasSubaddressing
@@ -62,6 +67,9 @@ export default async function DashboardPage() {
         user_id: user.id,
         business_name: metadataName,
         subscription_status: initialStatus,
+        ...(emailCheck?.canonicalEmail
+          ? { canonical_email: emailCheck.canonicalEmail }
+          : {}),
       })
       .select('*')
       .single();

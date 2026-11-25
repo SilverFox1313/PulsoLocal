@@ -56,6 +56,32 @@ export interface UpdateBusinessSettingsInput {
   delayMinutes: number;
 }
 
+function mapDashboardDbError(
+  rawMessage: string | null | undefined,
+  fallback: string,
+  context: string
+): string {
+  const msg = rawMessage?.trim() ?? '';
+  if (!msg) {
+    return fallback;
+  }
+
+  const isFriendlySpanishDomainError =
+    msg.includes('Plan Trial') ||
+    msg.includes('período de prueba') ||
+    msg.includes('suscripción') ||
+    msg.includes('correo electrónico') ||
+    msg.includes('prueba gratuita') ||
+    msg.includes('solicitudes');
+
+  if (isFriendlySpanishDomainError) {
+    return msg;
+  }
+
+  console.error(`[DashboardActions] ${context}:`, msg);
+  return fallback;
+}
+
 export async function updateBusinessSettingsAction(
   input: UpdateBusinessSettingsInput
 ): Promise<{ business?: Business; error?: string }> {
@@ -130,9 +156,11 @@ export async function updateBusinessSettingsAction(
 
   if (error || !data) {
     return {
-      error:
-        error?.message ||
+      error: mapDashboardDbError(
+        error?.message,
         'No se pudo actualizar la configuración del negocio.',
+        'updateBusinessSettingsAction'
+      ),
     };
   }
 
@@ -658,9 +686,11 @@ export async function createReviewRequestAction(
 
   if (insertError || !inserted) {
     return {
-      error:
-        insertError?.message ||
+      error: mapDashboardDbError(
+        insertError?.message,
         'No se pudo registrar la solicitud de reseña.',
+        'createReviewRequestAction'
+      ),
     };
   }
 
@@ -781,9 +811,11 @@ export async function updateReviewRequestAction(
 
   if (updateError) {
     return {
-      error:
-        updateError.message ||
+      error: mapDashboardDbError(
+        updateError.message,
         'No se pudo actualizar la solicitud de reseña.',
+        'updateReviewRequestAction'
+      ),
     };
   }
 
@@ -844,9 +876,11 @@ export async function deleteReviewRequestAction(
 
   if (deleteError) {
     return {
-      error:
-        deleteError.message ||
+      error: mapDashboardDbError(
+        deleteError.message,
         'No se pudo eliminar la solicitud pendiente.',
+        'deleteReviewRequestAction'
+      ),
     };
   }
 
@@ -867,6 +901,6 @@ export async function updateSubscriptionStatusAction(
   void nextStatus;
   return {
     error:
-      '403 Forbidden: El estado de la suscripción solo puede actualizarse desde el servidor tras verificar un pago válido.',
+      'El estado de la suscripción solo puede actualizarse tras verificar un pago válido.',
   };
 }

@@ -100,10 +100,18 @@ export async function POST(request: NextRequest) {
   });
 
   if (error || !data.session) {
-    return NextResponse.json(
-      { error: error?.message || 'No se pudo iniciar sesión.' },
-      { status: 401 }
-    );
+    const rawMsg = (error?.message ?? '').toLowerCase();
+    let friendlyError = 'No se pudo iniciar sesión. Verifica tus datos e inténtalo nuevamente.';
+    if (rawMsg.includes('invalid login credentials')) {
+      friendlyError = 'Correo electrónico o contraseña incorrectos.';
+    } else if (rawMsg.includes('email not confirmed')) {
+      friendlyError =
+        'Tu cuenta aún no está confirmada. Revisa tu bandeja de entrada para verificar tu correo.';
+    } else if (rawMsg.includes('rate limit') || rawMsg.includes('too many requests')) {
+      friendlyError =
+        'Demasiados intentos en poco tiempo. Espera un momento e inténtalo de nuevo.';
+    }
+    return NextResponse.json({ error: friendlyError }, { status: 401 });
   }
 
   const response = NextResponse.json({ ok: true });

@@ -39,7 +39,7 @@ interface ClaimedGlobalRow {
   customer_phone: string;
   scheduled_for: string;
   business_name: string;
-  message_template: string;
+  message_template?: string;
   subscription_status: SubscriptionStatus;
   business_created_at: string;
 }
@@ -61,13 +61,11 @@ interface PendingRequestWithBusiness {
   businesses:
     | {
         business_name: string;
-        message_template: string;
         subscription_status: SubscriptionStatus;
         created_at: string;
       }
     | Array<{
         business_name: string;
-        message_template: string;
         subscription_status: SubscriptionStatus;
         created_at: string;
       }>
@@ -568,7 +566,7 @@ export async function processGlobalPendingReminders(
     const { data: dueRequests, error: fetchError } = await adminClient
       .from('review_requests')
       .select(
-        'id, business_id, customer_name, customer_phone, scheduled_for, businesses!inner(business_name, message_template, subscription_status, created_at)'
+        'id, business_id, customer_name, customer_phone, scheduled_for, businesses!inner(business_name, subscription_status, created_at)'
       )
       .eq('status', 'pending')
       .lte('scheduled_for', nowIso)
@@ -679,9 +677,14 @@ export async function processGlobalPendingReminders(
         .maybeSingle();
 
       if (claimErr) {
+        console.error('[Reminders] Error al reservar fila en lote global:', {
+          source,
+          requestId: row.id,
+          error: claimErr.message,
+        });
         blockedErrors.push({
           id: row.id,
-          error: claimErr.message,
+          error: 'No se pudo reservar la solicitud para envío en este momento.',
           status: 'pending',
         });
         continue;
@@ -695,7 +698,6 @@ export async function processGlobalPendingReminders(
           customer_phone: row.customer_phone,
           scheduled_for: row.scheduled_for,
           business_name: biz.business_name,
-          message_template: biz.message_template,
           subscription_status: biz.subscription_status,
           business_created_at: biz.created_at,
         });
@@ -759,7 +761,7 @@ export async function processGlobalPendingReminders(
       MAX_TEMPLATE_NAME_LENGTH
     );
     const reviewLink = buildReviewLink(origin, row.id);
-    const messagePreview = buildReminderMessage(row.message_template ?? '', {
+    const messagePreview = buildReminderMessage('', {
       customerName: safeCustomerName,
       businessName: safeBusinessName,
       reviewLink,
@@ -1047,18 +1049,29 @@ export async function processUserPendingReminders(
   if (!rpcUserErr) {
     rowsToSend = (rpcUserClaimed ?? []) as ClaimedUserRow[];
   } else if (!isMissingFunctionError(rpcUserErr)) {
-    const isTrialBlockMsg =
-      rpcUserErr.message.includes('Plan Trial') ||
-      rpcUserErr.message.includes('período de prueba') ||
-      rpcUserErr.message.includes('suscripción');
+    const rawMsg = rpcUserErr.message ?? '';
+    const isDomainBlockMsg =
+      rawMsg.includes('Plan Trial') ||
+      rawMsg.includes('período de prueba') ||
+      rawMsg.includes('suscripción') ||
+      rawMsg.includes('correo electrónico');
+
+    if (!isDomainBlockMsg) {
+      console.error('[Reminders] Error en RPC claim_user_pending_review_requests:', {
+        source,
+        businessId: typedBusiness.id,
+        code: rpcUserErr.code ?? null,
+        error: rawMsg,
+      });
+    }
 
     return {
-      status: isTrialBlockMsg ? 403 : 500,
+      status: isDomainBlockMsg ? 403 : 500,
       body: {
         ok: false,
-        error:
-          rpcUserErr.message ||
-          'No se pudieron reservar tus solicitudes pendientes.',
+        error: isDomainBlockMsg
+          ? rawMsg
+          : 'No se pudieron preparar tus solicitudes pendientes. Intenta nuevamente.',
       },
     };
   } else {
@@ -1130,9 +1143,16 @@ export async function processUserPendingReminders(
           .maybeSingle();
 
         if (claimErr) {
+          console.error('[Reminders] Error al reservar fila manual:', {
+            source,
+            businessId: typedBusiness.id,
+            requestId: row.id,
+            error: claimErr.message,
+          });
           failedItems.push({
             id: row.id,
-            error: claimErr.message,
+            error:
+              'No se pudo reservar la solicitud para envío. Intenta nuevamente.',
             status: 'pending',
           });
           break;
@@ -1169,14 +1189,11 @@ export async function processUserPendingReminders(
         MAX_TEMPLATE_NAME_LENGTH
       );
       const reviewLink = buildReviewLink(origin, row.id);
-      const messagePreview = buildReminderMessage(
-        business.message_template ?? '',
-        {
-          customerName: safeCustomerName,
-          businessName: safeBusinessName,
-          reviewLink,
-        }
-      );
+      const messagePreview = buildReminderMessage('', {
+        customerName: safeCustomerName,
+        businessName: safeBusinessName,
+        reviewLink,
+      });
 
       const delivery = await sendWhatsAppOrSimulate(row.customer_phone, {
         source,

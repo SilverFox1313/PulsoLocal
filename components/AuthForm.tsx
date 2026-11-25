@@ -26,10 +26,11 @@ function mapSupabaseError(message: string): string {
 
   if (
     normalized.includes('invalid path specified in request url') ||
-    normalized.includes('url') ||
+    normalized.includes('supabase_url') ||
+    normalized.includes('invalid api key') ||
     normalized.includes('apikey')
   ) {
-    return 'Error de configuración de Supabase. Asegúrate de configurar NEXT_PUBLIC_SUPABASE_URL y NEXT_PUBLIC_SUPABASE_ANON_KEY con valores válidos en .env.local.';
+    return 'El servicio de autenticación no está disponible temporalmente. Inténtalo más tarde.';
   }
   if (normalized.includes('invalid login credentials')) {
     return 'Correo electrónico o contraseña incorrectos.';
@@ -40,14 +41,28 @@ function mapSupabaseError(message: string): string {
   if (normalized.includes('user already registered')) {
     return 'Ya existe una cuenta registrada con ese correo electrónico.';
   }
-  if (normalized.includes('password should be at least')) {
+  if (normalized.includes('password should be at least') || normalized.includes('weak_password')) {
     return 'La contraseña debe tener al menos 6 caracteres.';
   }
-  if (normalized.includes('unable to validate email address')) {
+  if (
+    normalized.includes('unable to validate email address') ||
+    normalized.includes('email_address_invalid')
+  ) {
     return 'Ingresa un correo electrónico válido.';
   }
-  if (normalized.includes('rate limit')) {
+  if (normalized.includes('signup is disabled') || normalized.includes('signups not allowed')) {
+    return 'El registro de nuevas cuentas está deshabilitado temporalmente.';
+  }
+  if (normalized.includes('rate limit') || normalized.includes('too many requests')) {
     return 'Demasiados intentos en poco tiempo. Espera un momento e inténtalo de nuevo.';
+  }
+  if (
+    normalized.includes('failed to fetch') ||
+    normalized.includes('networkerror') ||
+    normalized.includes('load failed') ||
+    normalized.includes('fetch failed')
+  ) {
+    return 'No pudimos conectar con el servidor. Revisa tu conexión e inténtalo nuevamente.';
   }
 
   return message;
@@ -206,11 +221,13 @@ export default function AuthForm({
       router.refresh();
       window.location.assign('/dashboard');
     } catch (err) {
-      const message =
-        err instanceof Error
-          ? err.message
-          : 'Ocurrió un error inesperado. Inténtalo nuevamente.';
-      setError(mapSupabaseError(message));
+      const rawMessage = err instanceof Error ? err.message : '';
+      const mapped = rawMessage ? mapSupabaseError(rawMessage) : '';
+      setError(
+        mapped && mapped !== rawMessage
+          ? mapped
+          : 'No pudimos completar la solicitud por un problema de conexión. Inténtalo nuevamente.'
+      );
       unlockSubmission();
     }
   }
@@ -327,7 +344,10 @@ export default function AuthForm({
                 maxLength={50}
                 disabled={isSubmitting}
                 value={businessName}
-                onChange={(e) => setBusinessName(e.target.value)}
+                onChange={(e) => {
+                  setError(null);
+                  setBusinessName(e.target.value);
+                }}
                 placeholder="Ej. Clínica Dental Norte"
                 className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3.5 text-sm text-slate-900 placeholder:text-slate-400 transition-colors focus:border-amber-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30 disabled:cursor-not-allowed disabled:opacity-60 dark:border-transparent dark:bg-[#27272E] dark:text-zinc-100 dark:shadow-sm dark:shadow-black/40 dark:placeholder:text-zinc-400 dark:focus:bg-[#32323A] dark:focus:border-amber-500/60"
               />
@@ -349,7 +369,10 @@ export default function AuthForm({
               required
               disabled={isSubmitting}
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => {
+                setError(null);
+                setEmail(e.target.value);
+              }}
               placeholder="tu@negocio.com"
               className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3.5 text-sm text-slate-900 placeholder:text-slate-400 transition-colors focus:border-amber-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30 disabled:cursor-not-allowed disabled:opacity-60 dark:border-transparent dark:bg-[#27272E] dark:text-zinc-100 dark:shadow-sm dark:shadow-black/40 dark:placeholder:text-zinc-400 dark:focus:bg-[#32323A] dark:focus:border-amber-500/60"
             />
@@ -376,7 +399,10 @@ export default function AuthForm({
                 required
                 disabled={isSubmitting}
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => {
+                  setError(null);
+                  setPassword(e.target.value);
+                }}
                 placeholder={isSignup ? 'Mínimo 6 caracteres' : '••••••••'}
                 className="h-11 w-full rounded-lg border border-slate-300 bg-white pl-3.5 pr-11 text-sm text-slate-900 placeholder:text-slate-400 transition-colors focus:border-amber-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30 disabled:cursor-not-allowed disabled:opacity-60 dark:border-transparent dark:bg-[#27272E] dark:text-zinc-100 dark:shadow-sm dark:shadow-black/40 dark:placeholder:text-zinc-400 dark:focus:bg-[#32323A] dark:focus:border-amber-500/60"
               />
@@ -414,7 +440,10 @@ export default function AuthForm({
                 required
                 disabled={isSubmitting}
                 value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
+                onChange={(e) => {
+                  setError(null);
+                  setConfirmPassword(e.target.value);
+                }}
                 placeholder="Repite tu contraseña"
                 className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3.5 text-sm text-slate-900 placeholder:text-slate-400 transition-colors focus:border-amber-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30 disabled:cursor-not-allowed disabled:opacity-60 dark:border-transparent dark:bg-[#27272E] dark:text-zinc-100 dark:shadow-sm dark:shadow-black/40 dark:placeholder:text-zinc-400 dark:focus:bg-[#32323A] dark:focus:border-amber-500/60"
               />

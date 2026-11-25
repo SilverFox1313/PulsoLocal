@@ -32,23 +32,31 @@ export default function DeleteReviewRequestModal({
   }, [deleting, onClose]);
 
   async function handleConfirmDelete() {
+    if (deleting) return;
     setError(null);
     setDeleting(true);
 
-    const result = await deleteReviewRequestAction(request.id);
+    try {
+      const result = await deleteReviewRequestAction(request.id);
 
-    setDeleting(false);
+      if (result.error) {
+        setError(result.error);
+        toast.error(result.error);
+        return;
+      }
 
-    if (result.error) {
-      setError(result.error);
-      toast.error(result.error);
-      return;
-    }
-
-    if (result.deletedId) {
-      onDeleted(result.deletedId);
-      toast.success(`Solicitud de ${request.customer_name} eliminada`);
-      onClose();
+      if (result.deletedId) {
+        onDeleted(result.deletedId);
+        toast.success(`Solicitud de ${request.customer_name} eliminada`);
+        onClose();
+      }
+    } catch {
+      const msg =
+        'No se pudo eliminar la solicitud por un problema de conexión. Inténtalo nuevamente.';
+      setError(msg);
+      toast.error(msg);
+    } finally {
+      setDeleting(false);
     }
   }
 

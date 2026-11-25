@@ -179,9 +179,6 @@ function formatMetaErrorMessage(
   httpStatus: number
 ): string {
   const code = err?.code;
-  const rawMessage =
-    err?.message || `El servicio de WhatsApp respondió con estado ${httpStatus}.`;
-  const details = err?.error_data?.details;
 
   if (code === 190) {
     return 'La conexión con WhatsApp Empresarial expiró o no es válida. Renueva la autorización en el servidor.';
@@ -203,12 +200,23 @@ function formatMetaErrorMessage(
     return 'La plantilla de WhatsApp configurada no existe o aún no ha sido aprobada.';
   }
 
-  if (code === 132000 || code === 132012) {
+  if (code === 132000 || code === 132012 || code === 100 || code === 131008 || code === 131009) {
     return 'Los datos enviados no coinciden con las variables de la plantilla aprobada de WhatsApp.';
   }
 
-  const base = code ? `No se pudo enviar por WhatsApp (código ${code}): ${rawMessage}` : rawMessage;
-  return details ? `${base} (${details})` : base;
+  if (code === 130429 || code === 131056 || code === 80007 || httpStatus === 429) {
+    return 'WhatsApp alcanzó temporalmente el límite de envíos. Se reintentará automáticamente en unos minutos.';
+  }
+
+  if (code === 131042 || code === 131045) {
+    return 'La cuenta de WhatsApp Empresarial requiere revisión de facturación o verificación en Meta.';
+  }
+
+  if (httpStatus >= 500) {
+    return 'El servicio de WhatsApp presenta una falla temporal. Se reintentará automáticamente.';
+  }
+
+  return 'No se pudo entregar el mensaje por WhatsApp en este momento. Verifica el número del cliente o intenta más tarde.';
 }
 
 function isRetryableMetaFailure(
@@ -307,7 +315,7 @@ export async function sendWhatsAppOrSimulate(
       mode: 'whatsapp_cloud',
       retryable: true,
       error:
-        'Falta configurar la plantilla aprobada de WhatsApp (WHATSAPP_TEMPLATE_NAME) en el servidor.',
+        'Falta completar la configuración de la plantilla oficial de WhatsApp en el servidor.',
     };
   }
 
@@ -474,11 +482,11 @@ export async function sendWhatsAppOrSimulate(
     const isTimeout =
       err instanceof Error &&
       (err.name === 'TimeoutError' || err.name === 'AbortError');
-    const errorMessage = isTimeout
+    const logMessage =
+      err instanceof Error ? err.message : 'Error desconocido de red';
+    const userErrorMessage = isTimeout
       ? 'Tiempo de espera agotado al contactar a WhatsApp. Se reintentará automáticamente.'
-      : err instanceof Error
-      ? err.message
-      : 'Error de red al intentar enviar el mensaje por WhatsApp.';
+      : 'Error de conexión al intentar enviar el mensaje por WhatsApp. Se reintentará automáticamente.';
 
     console.error('[WhatsApp Cloud API] Error de red o excepción inesperada', {
       source,
@@ -486,7 +494,7 @@ export async function sendWhatsAppOrSimulate(
       isTimeout,
       recipient: maskedRecipient,
       phoneNumberId,
-      error: errorMessage,
+      error: logMessage,
       ...(process.env.NODE_ENV !== 'production' && err instanceof Error
         ? { stack: err.stack }
         : {}),
@@ -496,7 +504,7 @@ export async function sendWhatsAppOrSimulate(
       ok: false,
       mode: 'whatsapp_cloud',
       retryable: true,
-      error: errorMessage,
+      error: userErrorMessage,
     };
   }
 }

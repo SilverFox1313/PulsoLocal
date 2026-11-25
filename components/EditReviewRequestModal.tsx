@@ -133,6 +133,7 @@ export default function EditReviewRequestModal({
   }
 
   async function submitUpdate(sendNow: boolean) {
+    if (isSaving) return;
     setError(null);
     const validFields = validateCustomerFields();
     if (!validFields) {
@@ -151,30 +152,37 @@ export default function EditReviewRequestModal({
 
     setSavingMode(sendNow ? 'sendNow' : 'save');
 
-    const result = await updateReviewRequestAction({
-      requestId: request.id,
-      customerName: validFields.name,
-      customerPhone: validFields.phone,
-      scheduledForIso,
-      sendNow,
-    });
+    try {
+      const result = await updateReviewRequestAction({
+        requestId: request.id,
+        customerName: validFields.name,
+        customerPhone: validFields.phone,
+        scheduledForIso,
+        sendNow,
+      });
 
-    setSavingMode(null);
+      if (result.error) {
+        setError(result.error);
+        toast.error(result.error);
+        return;
+      }
 
-    if (result.error) {
-      setError(result.error);
-      toast.error(result.error);
-      return;
-    }
-
-    if (result.request) {
-      onSaved(result.request);
-      toast.success(
-        sendNow
-          ? `Envío programado ahora para ${result.request.customer_name}`
-          : `Solicitud de ${result.request.customer_name} actualizada`
-      );
-      onClose();
+      if (result.request) {
+        onSaved(result.request);
+        toast.success(
+          sendNow
+            ? `Envío programado ahora para ${result.request.customer_name}`
+            : `Solicitud de ${result.request.customer_name} actualizada`
+        );
+        onClose();
+      }
+    } catch {
+      const msg =
+        'No se pudieron guardar los cambios por un problema de conexión. Inténtalo nuevamente.';
+      setError(msg);
+      toast.error(msg);
+    } finally {
+      setSavingMode(null);
     }
   }
 

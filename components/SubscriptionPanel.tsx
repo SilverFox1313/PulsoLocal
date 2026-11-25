@@ -272,7 +272,7 @@ export default function SubscriptionPanel({
               </div>
               <div className="flex items-center justify-between border-b border-slate-200/80 pb-2.5 dark:border-white/[0.04]">
                 <dt className="text-slate-600 dark:text-zinc-300">
-                  Plantilla de invitación editable
+                  Plantilla oficial de WhatsApp
                 </dt>
                 <dd className="text-xs font-medium text-slate-800 dark:text-zinc-200">
                   Incluido

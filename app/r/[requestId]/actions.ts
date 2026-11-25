@@ -17,7 +17,7 @@ export interface SubmitPublicRatingResult {
 }
 
 const OWNER_FORBIDDEN_ERROR =
-  '403 Forbidden: El propietario del negocio no puede calificar solicitudes de clientes.';
+  'El propietario del negocio no puede calificar solicitudes de clientes.';
 
 async function isRequestOwnedByCurrentUser(
   requestId: string
@@ -190,6 +190,7 @@ export async function savePrivateFeedbackCommentAction(
       .maybeSingle();
 
     if (error) {
+      console.error('[PublicReview] Error al actualizar comentario privado:', error.message);
       return {
         error: 'No se pudo guardar tu comentario. Inténtalo de nuevo.',
       };
@@ -232,6 +233,7 @@ export async function savePrivateFeedbackCommentAction(
   );
 
   if (error) {
+    console.error('[PublicReview] Error RPC update_public_feedback_comment:', error.message);
     return { error: 'No se pudo guardar tu comentario. Inténtalo de nuevo.' };
   }
 

@@ -99,43 +99,51 @@ export default function PublicReviewFlow({
     setSelectedRating(rating);
     setSubmittingRating(true);
 
-    const result = await submitPublicRatingAction(data.request_id, rating);
+    try {
+      const result = await submitPublicRatingAction(data.request_id, rating);
 
-    setSubmittingRating(false);
+      if (result.alreadySubmitted) {
+        setStep('already_submitted');
+        return;
+      }
 
-    if (result.alreadySubmitted) {
-      setStep('already_submitted');
-      return;
-    }
+      if (result.ownerBlocked) {
+        setOwnerBlocked(true);
+        setError(result.error ?? null);
+        setSelectedRating(0);
+        setHoveredRating(0);
+        return;
+      }
 
-    if (result.ownerBlocked) {
-      setOwnerBlocked(true);
-      setError(result.error ?? null);
+      if (result.error) {
+        setError(result.error);
+        setSelectedRating(0);
+        return;
+      }
+
+      if (result.googleReviewUrl !== undefined) {
+        setGoogleReviewUrl(result.googleReviewUrl);
+      }
+
+      if (result.redirectedToGoogle) {
+        setCountdown(3);
+        setStep('redirect_google');
+      } else {
+        setStep('private_comment');
+      }
+    } catch {
+      setError(
+        'No pudimos registrar tu calificación por un problema de conexión. Inténtalo nuevamente.'
+      );
       setSelectedRating(0);
-      setHoveredRating(0);
-      return;
-    }
-
-    if (result.error) {
-      setError(result.error);
-      setSelectedRating(0);
-      return;
-    }
-
-    if (result.googleReviewUrl !== undefined) {
-      setGoogleReviewUrl(result.googleReviewUrl);
-    }
-
-    if (result.redirectedToGoogle) {
-      setCountdown(3);
-      setStep('redirect_google');
-    } else {
-      setStep('private_comment');
+    } finally {
+      setSubmittingRating(false);
     }
   }
 
   async function handleCommentSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (submittingComment) return;
     setError(null);
 
     const trimmedComment = comment.trim();
@@ -152,18 +160,25 @@ export default function PublicReviewFlow({
     }
 
     setSubmittingComment(true);
-    const result = await savePrivateFeedbackCommentAction(
-      data.request_id,
-      trimmedComment
-    );
-    setSubmittingComment(false);
+    try {
+      const result = await savePrivateFeedbackCommentAction(
+        data.request_id,
+        trimmedComment
+      );
 
-    if (result.error) {
-      setError(result.error);
-      return;
+      if (result.error) {
+        setError(result.error);
+        return;
+      }
+
+      setStep('empathetic_done');
+    } catch {
+      setError(
+        'No pudimos guardar tu comentario por un problema de conexión. Inténtalo nuevamente.'
+      );
+    } finally {
+      setSubmittingComment(false);
     }
-
-    setStep('empathetic_done');
   }
 
   const activeStarPreview = hoveredRating || selectedRating;
@@ -307,7 +322,10 @@ export default function PublicReviewFlow({
               maxLength={MAX_PRIVATE_FEEDBACK_COMMENT_LENGTH}
               disabled={submittingComment}
               value={comment}
-              onChange={(e) => setComment(e.target.value)}
+              onChange={(e) => {
+                setError(null);
+                setComment(e.target.value);
+              }}
               placeholder="Escribe aquí tu experiencia o sugerencia..."
               className="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-3 text-sm leading-relaxed text-slate-900 placeholder:text-slate-400 transition-colors focus:border-amber-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30 disabled:cursor-not-allowed disabled:opacity-60 dark:border-transparent dark:bg-[#27272E] dark:text-zinc-100 dark:shadow-sm dark:shadow-black/40 dark:placeholder:text-zinc-400 dark:focus:bg-[#32323A] dark:focus:border-amber-500/60"
             />
