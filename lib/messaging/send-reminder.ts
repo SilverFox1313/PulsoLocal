@@ -138,11 +138,15 @@ export function canSimulateWhatsAppInCurrentEnv(): boolean {
   return !isProduction || allowSimulated;
 }
 
+export const MAX_WHATSAPP_SEND_ATTEMPTS = 3;
+export const WHATSAPP_FETCH_TIMEOUT_MS = 15_000;
+
 export interface DeliveryResult {
   ok: boolean;
   mode: 'whatsapp_cloud' | 'simulated';
   externalId?: string;
   retryable?: boolean;
+  ambiguous?: boolean;
   error?: string;
 }
 
@@ -413,7 +417,7 @@ export async function sendWhatsAppOrSimulate(
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(messagePayload),
-      signal: AbortSignal.timeout(8000),
+      signal: AbortSignal.timeout(WHATSAPP_FETCH_TIMEOUT_MS),
     });
 
     const rawText = await response.text();
@@ -485,13 +489,14 @@ export async function sendWhatsAppOrSimulate(
     const logMessage =
       err instanceof Error ? err.message : 'Error desconocido de red';
     const userErrorMessage = isTimeout
-      ? 'Tiempo de espera agotado al contactar a WhatsApp. Se reintentará automáticamente.'
+      ? 'WhatsApp tardó demasiado en responder tras enviar la solicitud. Se detuvo el reintento automático para evitar mensajes duplicados al cliente.'
       : 'Error de conexión al intentar enviar el mensaje por WhatsApp. Se reintentará automáticamente.';
 
     console.error('[WhatsApp Cloud API] Error de red o excepción inesperada', {
       source,
       requestId,
       isTimeout,
+      ambiguous: isTimeout,
       recipient: maskedRecipient,
       phoneNumberId,
       error: logMessage,
@@ -503,7 +508,10 @@ export async function sendWhatsAppOrSimulate(
     return {
       ok: false,
       mode: 'whatsapp_cloud',
-      retryable: true,
+      // Si hubo timeout tras enviar la petición a Meta existe ambigüedad de entrega:
+      // no reintentar a ciegas para evitar duplicados por WhatsApp.
+      retryable: !isTimeout,
+      ambiguous: isTimeout,
       error: userErrorMessage,
     };
   }

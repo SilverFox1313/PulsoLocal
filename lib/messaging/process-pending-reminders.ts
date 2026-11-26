@@ -3,9 +3,10 @@ import {
   buildReviewLink,
   canSimulateWhatsAppInCurrentEnv,
   getWhatsAppEnvStatus,
+  MAX_WHATSAPP_SEND_ATTEMPTS,
   sendWhatsAppOrSimulate,
 } from '@/lib/messaging/send-reminder';
-import { checkSlidingWindowRateLimit } from '@/lib/security/rate-limit';
+import { checkPersistentSlidingWindowRateLimit } from '@/lib/security/rate-limit';
 import {
   evaluateTrialStatus,
   isTrialExpiredByDate,
@@ -24,6 +25,7 @@ const GLOBAL_CANDIDATE_POOL = BATCH_SIZE * 5;
 const CONCURRENCY_LIMIT = 4;
 const STALE_PROCESSING_MS = 5 * 60_000;
 const UPDATE_RETRY_DELAYS_MS = [150, 400];
+const MAX_ATTEMPTS_REACHED_MSG = `Se alcanzó el límite máximo de ${MAX_WHATSAPP_SEND_ATTEMPTS} intentos de envío por WhatsApp.`;
 
 interface SupabaseLikeError {
   code?: string | null;
@@ -38,6 +40,7 @@ interface ClaimedGlobalRow {
   customer_name: string;
   customer_phone: string;
   scheduled_for: string;
+  attempts?: number;
   business_name: string;
   message_template?: string;
   subscription_status: SubscriptionStatus;
@@ -50,6 +53,7 @@ interface ClaimedUserRow {
   customer_name: string;
   customer_phone: string;
   scheduled_for: string;
+  attempts?: number;
 }
 
 interface PendingRequestWithBusiness {
@@ -58,6 +62,7 @@ interface PendingRequestWithBusiness {
   customer_name: string;
   customer_phone: string;
   scheduled_for: string;
+  attempts?: number;
   businesses:
     | {
         business_name: string;
@@ -192,13 +197,51 @@ async function rescueStuckProcessingFallback(
     });
   }
 
-  // 2. Rescatar únicamente filas atascadas sin confirmación de envío
+  // 2a. Marcar como failed las filas atascadas que ya agotaron el máximo de intentos
+  let exhaustedStaleQuery = client
+    .from('review_requests')
+    .update({
+      status: 'failed',
+      processing_started_at: null,
+      last_error: MAX_ATTEMPTS_REACHED_MSG,
+    })
+    .eq('status', 'processing')
+    .is('whatsapp_message_id', null)
+    .is('sent_at', null)
+    .gte('attempts', MAX_WHATSAPP_SEND_ATTEMPTS)
+    .or(
+      `processing_started_at.lte.${staleBeforeIso},processing_started_at.is.null`
+    );
+
+  if (businessId) {
+    exhaustedStaleQuery = exhaustedStaleQuery.eq('business_id', businessId);
+  }
+
+  const { data: exhaustedRows, error: exhaustedError } =
+    await exhaustedStaleQuery.select('id');
+
+  if (exhaustedError && !isMissingColumnError(exhaustedError)) {
+    console.error('[Reminders] Error al cerrar solicitudes atascadas sin reintentos', {
+      source,
+      businessId: businessId ?? null,
+      error: exhaustedError.message,
+    });
+  } else if (exhaustedRows && exhaustedRows.length > 0) {
+    console.warn('[Reminders] Solicitudes atascadas cerradas como failed por límite de intentos', {
+      source,
+      businessId: businessId ?? null,
+      failedCount: exhaustedRows.length,
+    });
+  }
+
+  // 2b. Rescatar únicamente filas atascadas sin confirmación de envío y con intentos disponibles
   let rescueQuery = client
     .from('review_requests')
     .update({ status: 'pending', processing_started_at: null })
     .eq('status', 'processing')
     .is('whatsapp_message_id', null)
     .is('sent_at', null)
+    .lt('attempts', MAX_WHATSAPP_SEND_ATTEMPTS)
     .or(
       `processing_started_at.lte.${staleBeforeIso},processing_started_at.is.null`
     );
@@ -259,6 +302,29 @@ async function rescueStuckProcessingFallback(
   }
 }
 
+function formatTerminalAttemptError(
+  errMsg: string,
+  retryable: boolean,
+  maxAttemptsReached: boolean
+): string {
+  const cleanMsg = errMsg.trim();
+  if (!retryable || !maxAttemptsReached) {
+    return cleanMsg.slice(0, 500);
+  }
+
+  const strippedRetryHint = cleanMsg
+    .replace(/\s*Se reintentará automáticamente(?:\s+en unos minutos)?\.?$/i, '')
+    .trim();
+
+  const base = strippedRetryHint
+    ? strippedRetryHint.endsWith('.')
+      ? strippedRetryHint
+      : `${strippedRetryHint}.`
+    : '';
+
+  return `${base ? `${base} ` : ''}${MAX_ATTEMPTS_REACHED_MSG}`.slice(0, 500);
+}
+
 async function markRequestAsSent(
   client: AdminOrServerClient,
   requestId: string,
@@ -279,55 +345,87 @@ async function markRequestAsSent(
     processing_started_at: null,
   };
 
+  let useDirectFallback = false;
   let useMinimal = false;
   let lastErrorMessage = 'No se pudo actualizar el estado a sent.';
 
+  // 1. Ruta atómica preferida vía RPC SECURITY DEFINER (funciona con service_role o usuario autenticado)
   for (let attempt = 0; attempt <= UPDATE_RETRY_DELAYS_MS.length; attempt += 1) {
     if (attempt > 0) {
       await sleep(UPDATE_RETRY_DELAYS_MS[attempt - 1]);
     }
 
-    let query = client
-      .from('review_requests')
-      .update(useMinimal ? minimalPayload : fullPayload)
-      .eq('id', requestId)
-      .eq('status', 'processing');
+    if (!useDirectFallback) {
+      const { data: rpcData, error: rpcErr } = await client.rpc(
+        'complete_review_request_delivery',
+        {
+          p_request_id: requestId,
+          p_external_id: externalId ?? null,
+          p_sent_at: sentAtIso,
+          p_business_id: businessId ?? null,
+        }
+      );
 
-    if (businessId) {
-      query = query.eq('business_id', businessId);
+      if (!rpcErr) {
+        const rpcPayload = rpcData as { ok?: boolean; error?: string } | null;
+        if (rpcPayload?.ok) {
+          return { ok: true };
+        }
+        lastErrorMessage =
+          rpcPayload?.error ?? 'La solicitud ya no estaba en procesamiento.';
+      } else if (isMissingFunctionError(rpcErr)) {
+        useDirectFallback = true;
+      } else {
+        lastErrorMessage = rpcErr.message;
+        continue;
+      }
     }
 
-    const { error } = await query;
-    if (!error) {
-      return { ok: true };
-    }
-
-    lastErrorMessage = error.message;
-    if (!useMinimal && isMissingColumnError(error)) {
-      useMinimal = true;
-      let retryMinimal = client
+    if (useDirectFallback) {
+      let query = client
         .from('review_requests')
-        .update(minimalPayload)
+        .update(useMinimal ? minimalPayload : fullPayload)
         .eq('id', requestId)
         .eq('status', 'processing');
+
       if (businessId) {
-        retryMinimal = retryMinimal.eq('business_id', businessId);
+        query = query.eq('business_id', businessId);
       }
-      const { error: minErr } = await retryMinimal;
-      if (!minErr) {
+
+      const { error } = await query;
+      if (!error) {
         return { ok: true };
       }
-      lastErrorMessage = minErr.message;
+
+      lastErrorMessage = error.message;
+      if (!useMinimal && isMissingColumnError(error)) {
+        useMinimal = true;
+        let retryMinimal = client
+          .from('review_requests')
+          .update(minimalPayload)
+          .eq('id', requestId)
+          .eq('status', 'processing');
+        if (businessId) {
+          retryMinimal = retryMinimal.eq('business_id', businessId);
+        }
+        const { error: minErr } = await retryMinimal;
+        if (!minErr) {
+          return { ok: true };
+        }
+        lastErrorMessage = minErr.message;
+      }
     }
   }
 
-  // Último respaldo: guardar al menos la marca de confirmación externa para evitar reenvío en rescates
-  if (!useMinimal && (externalId || sentAtIso)) {
+  // 2. Respaldo crítico: guardar al menos marca externa de envío + sent_at y verificar error explícitamente
+  if (!useMinimal) {
     let markerQuery = client
       .from('review_requests')
       .update({
         whatsapp_message_id: externalId ?? null,
         sent_at: sentAtIso,
+        last_error:
+          'Mensaje aceptado por WhatsApp; falló la transición final de estado en base de datos.',
       })
       .eq('id', requestId)
       .eq('status', 'processing');
@@ -335,7 +433,22 @@ async function markRequestAsSent(
     if (businessId) {
       markerQuery = markerQuery.eq('business_id', businessId);
     }
-    await markerQuery;
+
+    const { error: markerError } = await markerQuery;
+    if (markerError) {
+      console.error('[Reminders] Falló también el respaldo de marca externa tras envío en Meta', {
+        source,
+        requestId,
+        externalId: externalId ?? null,
+        markerError: markerError.message,
+      });
+    } else {
+      console.warn('[Reminders] Marca externa de envío guardada tras fallo en transición a sent', {
+        source,
+        requestId,
+        externalId: externalId ?? null,
+      });
+    }
   }
 
   console.error('[Reminders] Error crítico al persistir estado sent tras envío en Meta', {
@@ -354,11 +467,81 @@ async function markRequestAsFailedOrPending(
   retryable: boolean,
   errMsg: string,
   source: string,
-  businessId?: string
+  options: {
+    businessId?: string;
+    attemptCount?: number;
+  } = {}
 ): Promise<'failed' | 'pending' | undefined> {
-  const targetStatus = retryable ? 'pending' : 'failed';
-  const truncatedError = errMsg.slice(0, 500);
+  const { businessId, attemptCount } = options;
 
+  let resolvedAttempts = attemptCount;
+  if (typeof resolvedAttempts !== 'number') {
+    let attemptLookup = client
+      .from('review_requests')
+      .select('attempts')
+      .eq('id', requestId);
+    if (businessId) {
+      attemptLookup = attemptLookup.eq('business_id', businessId);
+    }
+    const { data: attemptRow } = await attemptLookup.maybeSingle();
+    resolvedAttempts =
+      typeof attemptRow?.attempts === 'number' ? attemptRow.attempts : 1;
+  }
+
+  const maxAttemptsReached = resolvedAttempts >= MAX_WHATSAPP_SEND_ATTEMPTS;
+  const effectiveRetryable = retryable && !maxAttemptsReached;
+  const targetStatus: 'failed' | 'pending' = effectiveRetryable
+    ? 'pending'
+    : 'failed';
+  const truncatedError = formatTerminalAttemptError(
+    errMsg,
+    retryable,
+    maxAttemptsReached
+  );
+
+  // 1. Ruta atómica vía RPC SECURITY DEFINER
+  const { data: rpcData, error: rpcErr } = await client.rpc(
+    'fail_or_requeue_review_request',
+    {
+      p_request_id: requestId,
+      p_retryable: effectiveRetryable,
+      p_error: truncatedError,
+      p_max_attempts: MAX_WHATSAPP_SEND_ATTEMPTS,
+      p_business_id: businessId ?? null,
+    }
+  );
+
+  if (!rpcErr) {
+    const rpcPayload = rpcData as {
+      ok?: boolean;
+      status?: 'failed' | 'pending';
+      error?: string;
+    } | null;
+
+    if (rpcPayload?.ok && rpcPayload.status) {
+      return rpcPayload.status;
+    }
+
+    console.error('[Reminders] RPC fail_or_requeue_review_request devolvió error', {
+      source,
+      requestId,
+      targetStatus,
+      error: rpcPayload?.error ?? 'Respuesta inesperada',
+    });
+    return undefined;
+  }
+
+  if (!isMissingFunctionError(rpcErr)) {
+    console.error('[Reminders] Error en RPC fail_or_requeue_review_request', {
+      source,
+      requestId,
+      targetStatus,
+      error: rpcErr.message,
+    });
+    return undefined;
+  }
+
+  // 2. Fallback directo si la RPC aún no ha sido migrada
   let query = client
     .from('review_requests')
     .update({
@@ -397,7 +580,7 @@ async function markRequestAsFailedOrPending(
       return targetStatus;
     }
 
-    if (!retryable && isCheckConstraintError(fallbackErr)) {
+    if (!effectiveRetryable && isCheckConstraintError(fallbackErr)) {
       console.warn('[Reminders] BD sin estado failed migrado; revirtiendo a pending temporalmente', {
         source,
         requestId,
@@ -411,7 +594,15 @@ async function markRequestAsFailedOrPending(
         legacyRevert = legacyRevert.eq('business_id', businessId);
       }
       const { error: revertErr } = await legacyRevert;
-      return revertErr ? undefined : 'pending';
+      if (revertErr) {
+        console.error('[Reminders] Error al revertir a pending (fallback)', {
+          source,
+          requestId,
+          error: revertErr.message,
+        });
+        return undefined;
+      }
+      return 'pending';
     }
 
     console.error('[Reminders] Error al actualizar estado tras fallo de envío', {
@@ -423,7 +614,7 @@ async function markRequestAsFailedOrPending(
     return undefined;
   }
 
-  if (!retryable && isCheckConstraintError(error)) {
+  if (!effectiveRetryable && isCheckConstraintError(error)) {
     console.warn('[Reminders] BD sin estado failed migrado; revirtiendo a pending temporalmente', {
       source,
       requestId,
@@ -437,7 +628,15 @@ async function markRequestAsFailedOrPending(
       legacyRevert = legacyRevert.eq('business_id', businessId);
     }
     const { error: revertErr } = await legacyRevert;
-    return revertErr ? undefined : 'pending';
+    if (revertErr) {
+      console.error('[Reminders] Error al revertir a pending (fallback)', {
+        source,
+        requestId,
+        error: revertErr.message,
+      });
+      return undefined;
+    }
+    return 'pending';
   }
 
   console.error('[Reminders] Error al actualizar estado tras fallo de envío', {
@@ -566,9 +765,10 @@ export async function processGlobalPendingReminders(
     const { data: dueRequests, error: fetchError } = await adminClient
       .from('review_requests')
       .select(
-        'id, business_id, customer_name, customer_phone, scheduled_for, businesses!inner(business_name, subscription_status, created_at)'
+        'id, business_id, customer_name, customer_phone, scheduled_for, attempts, businesses!inner(business_name, subscription_status, created_at)'
       )
       .eq('status', 'pending')
+      .lt('attempts', MAX_WHATSAPP_SEND_ATTEMPTS)
       .lte('scheduled_for', nowIso)
       .in('businesses.subscription_status', ['active', 'trialing'])
       .order('scheduled_for', { ascending: true })
@@ -668,9 +868,14 @@ export async function processGlobalPendingReminders(
       }
 
       // Reserva por fila para que un bloqueo en un negocio no aborte a los demás
+      const nextAttempts = (row.attempts ?? 0) + 1;
       const { data: claimedRow, error: claimErr } = await adminClient
         .from('review_requests')
-        .update({ status: 'processing', processing_started_at: nowIso })
+        .update({
+          status: 'processing',
+          processing_started_at: nowIso,
+          attempts: nextAttempts,
+        })
         .eq('id', row.id)
         .eq('status', 'pending')
         .select('id')
@@ -697,6 +902,7 @@ export async function processGlobalPendingReminders(
           customer_name: row.customer_name,
           customer_phone: row.customer_phone,
           scheduled_for: row.scheduled_for,
+          attempts: nextAttempts,
           business_name: biz.business_name,
           subscription_status: biz.subscription_status,
           business_created_at: biz.created_at,
@@ -740,7 +946,8 @@ export async function processGlobalPendingReminders(
         row.id,
         true,
         unconfirmedMsg,
-        source
+        source,
+        { attemptCount: row.attempts }
       );
       failedItems.push({
         id: row.id,
@@ -779,11 +986,13 @@ export async function processGlobalPendingReminders(
 
     if (!delivery.ok) {
       const errMsg = delivery.error ?? 'Error al enviar mensaje.';
-      const retryable = delivery.retryable !== false;
+      const retryable = delivery.retryable !== false && !delivery.ambiguous;
       console.error('[Reminders] Falló el envío en lote global', {
         source,
         requestId: row.id,
         retryable,
+        ambiguous: Boolean(delivery.ambiguous),
+        attempts: row.attempts ?? null,
         error: errMsg,
       });
 
@@ -792,7 +1001,8 @@ export async function processGlobalPendingReminders(
         row.id,
         retryable,
         errMsg,
-        source
+        source,
+        { attemptCount: row.attempts }
       );
 
       failedItems.push({
@@ -839,7 +1049,11 @@ export async function processGlobalPendingReminders(
     errors: allErrors,
   });
 
-  if (processedItems.length === 0 && failedItems.length > 0) {
+  const hasTransientOrPersistenceFailure = failedItems.some(
+    (item) => item.status !== 'failed'
+  );
+
+  if (processedItems.length === 0 && hasTransientOrPersistenceFailure) {
     return {
       status: 502,
       body: {
@@ -932,7 +1146,7 @@ export async function processUserPendingReminders(
     };
   }
 
-  const sendRateLimit = checkSlidingWindowRateLimit(
+  const sendRateLimit = await checkPersistentSlidingWindowRateLimit(
     `manual-send:user:${user.id}`,
     {
       maxRequests: 6,
@@ -1086,9 +1300,10 @@ export async function processUserPendingReminders(
 
     let query = supabase
       .from('review_requests')
-      .select('id, business_id, customer_name, customer_phone, scheduled_for')
+      .select('id, business_id, customer_name, customer_phone, scheduled_for, attempts')
       .eq('business_id', typedBusiness.id)
       .eq('status', 'pending')
+      .lt('attempts', MAX_WHATSAPP_SEND_ATTEMPTS)
       .order('scheduled_for', { ascending: true })
       .limit(BATCH_SIZE);
 
@@ -1133,9 +1348,14 @@ export async function processUserPendingReminders(
 
     if (candidateRows.length > 0) {
       for (const row of candidateRows) {
+        const nextAttempts = (row.attempts ?? 0) + 1;
         const { data: claimedRow, error: claimErr } = await supabase
           .from('review_requests')
-          .update({ status: 'processing', processing_started_at: nowIso })
+          .update({
+            status: 'processing',
+            processing_started_at: nowIso,
+            attempts: nextAttempts,
+          })
           .eq('id', row.id)
           .eq('business_id', typedBusiness.id)
           .eq('status', 'pending')
@@ -1159,7 +1379,7 @@ export async function processUserPendingReminders(
         }
 
         if (claimedRow) {
-          rowsToSend.push(row);
+          rowsToSend.push({ ...row, attempts: nextAttempts });
         }
       }
     }
@@ -1207,11 +1427,13 @@ export async function processUserPendingReminders(
 
       if (!delivery.ok) {
         const errMsg = delivery.error ?? 'Error al enviar mensaje.';
-        const retryable = delivery.retryable !== false;
+        const retryable = delivery.retryable !== false && !delivery.ambiguous;
         console.error('[Reminders] Falló el envío en lote manual', {
           source,
           requestId: row.id,
           retryable,
+          ambiguous: Boolean(delivery.ambiguous),
+          attempts: row.attempts ?? null,
           error: errMsg,
         });
 
@@ -1221,7 +1443,10 @@ export async function processUserPendingReminders(
           retryable,
           errMsg,
           source,
-          typedBusiness.id
+          {
+            businessId: typedBusiness.id,
+            attemptCount: row.attempts,
+          }
         );
 
         failedItems.push({

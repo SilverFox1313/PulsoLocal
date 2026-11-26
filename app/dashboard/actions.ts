@@ -19,7 +19,7 @@ import {
   normalizeGoogleReviewUrl,
   SCHEDULE_PAST_GRACE_MS,
 } from '@/lib/subscription/trial';
-import { checkSlidingWindowRateLimit } from '@/lib/security/rate-limit';
+import { checkPersistentSlidingWindowRateLimit } from '@/lib/security/rate-limit';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
 import { validateGoogleReviewUrl } from '@/lib/validation/google-review-url';
@@ -77,7 +77,17 @@ function mapDashboardDbError(
     msg.includes('suscripción') ||
     msg.includes('correo electrónico') ||
     msg.includes('prueba gratuita') ||
-    msg.includes('solicitudes');
+    msg.includes('solicitudes') ||
+    msg.includes('pendientes simultáneas') ||
+    msg.includes('límite temporal') ||
+    msg.includes('próximos 30 días') ||
+    msg.includes('fecha programada') ||
+    msg.includes('número de teléfono') ||
+    msg.includes('nombre del cliente') ||
+    msg.includes('nombre del negocio') ||
+    msg.includes('El enlace no es válido') ||
+    msg.includes('No tienes permisos') ||
+    msg.includes('ya fue procesada');
 
   if (isFriendlySpanishDomainError) {
     return msg;
@@ -553,7 +563,7 @@ export async function createReviewRequestAction(
     };
   }
 
-  const userCreationRate = checkSlidingWindowRateLimit(
+  const userCreationRate = await checkPersistentSlidingWindowRateLimit(
     `create-request:user:${user.id}`,
     {
       maxRequests: 10,

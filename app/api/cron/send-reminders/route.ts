@@ -10,7 +10,7 @@ import {
   isValidSameOriginPost,
 } from '@/lib/supabase/cookie-options';
 import {
-  checkSlidingWindowRateLimit,
+  checkPersistentSlidingWindowRateLimit,
   getRequestClientIp,
 } from '@/lib/security/rate-limit';
 
@@ -115,7 +115,7 @@ export async function POST(request: NextRequest) {
   }
 
   const clientIp = getRequestClientIp(request.headers);
-  const ipRateLimit = checkSlidingWindowRateLimit(
+  const ipRateLimit = await checkPersistentSlidingWindowRateLimit(
     `manual-send:ip:${clientIp}`,
     {
       maxRequests: 15,

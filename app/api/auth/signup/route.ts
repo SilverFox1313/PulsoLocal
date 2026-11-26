@@ -1,7 +1,7 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextRequest, NextResponse } from 'next/server';
 import {
-  checkSlidingWindowRateLimit,
+  checkPersistentSlidingWindowRateLimit,
   formatRateLimitWaitEs,
   getRequestClientIp,
 } from '@/lib/security/rate-limit';
@@ -47,10 +47,13 @@ export async function POST(request: NextRequest) {
   }
 
   const clientIp = getRequestClientIp(request.headers);
-  const ipRateLimit = checkSlidingWindowRateLimit(`signup:ip:${clientIp}`, {
-    maxRequests: 10,
-    windowMs: 3 * 60_000,
-  });
+  const ipRateLimit = await checkPersistentSlidingWindowRateLimit(
+    `signup:ip:${clientIp}`,
+    {
+      maxRequests: 10,
+      windowMs: 3 * 60_000,
+    }
+  );
   if (!ipRateLimit.allowed) {
     const waitText = formatRateLimitWaitEs(ipRateLimit.retryAfterSeconds);
     return NextResponse.json(
@@ -115,7 +118,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const emailRateLimit = checkSlidingWindowRateLimit(
+  const emailRateLimit = await checkPersistentSlidingWindowRateLimit(
     `signup:email:${emailAnalysis.canonicalEmail}`,
     {
       maxRequests: 5,

@@ -1,10 +1,10 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextRequest, NextResponse } from 'next/server';
 import {
-  checkSlidingWindowRateLimit,
+  checkPersistentSlidingWindowRateLimit,
   formatRateLimitWaitEs,
   getRequestClientIp,
-  resetRateLimit,
+  resetPersistentRateLimit,
 } from '@/lib/security/rate-limit';
 import {
   ALLOWED_EMAIL_PROVIDER_ERROR,
@@ -45,10 +45,13 @@ export async function POST(request: NextRequest) {
   }
 
   const clientIp = getRequestClientIp(request.headers);
-  const ipRateLimit = checkSlidingWindowRateLimit(`login:ip:${clientIp}`, {
-    maxRequests: 15,
-    windowMs: 2 * 60_000,
-  });
+  const ipRateLimit = await checkPersistentSlidingWindowRateLimit(
+    `login:ip:${clientIp}`,
+    {
+      maxRequests: 15,
+      windowMs: 2 * 60_000,
+    }
+  );
   if (!ipRateLimit.allowed) {
     const waitText = formatRateLimitWaitEs(ipRateLimit.retryAfterSeconds);
     return NextResponse.json(
@@ -98,10 +101,13 @@ export async function POST(request: NextRequest) {
   }
 
   const emailRateLimitKey = `login:email:${emailAnalysis.canonicalEmail}`;
-  const emailRateLimit = checkSlidingWindowRateLimit(emailRateLimitKey, {
-    maxRequests: 8,
-    windowMs: 2 * 60_000,
-  });
+  const emailRateLimit = await checkPersistentSlidingWindowRateLimit(
+    emailRateLimitKey,
+    {
+      maxRequests: 8,
+      windowMs: 2 * 60_000,
+    }
+  );
   if (!emailRateLimit.allowed) {
     const waitText = formatRateLimitWaitEs(emailRateLimit.retryAfterSeconds);
     return NextResponse.json(
@@ -157,7 +163,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: friendlyError }, { status: 401 });
   }
 
-  resetRateLimit(emailRateLimitKey);
+  await resetPersistentRateLimit(emailRateLimitKey);
 
   const response = NextResponse.json({ ok: true });
   cookiesToApply.forEach(({ name, value, options }) => {

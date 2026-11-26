@@ -1,3 +1,5 @@
+import { createAdminClient } from '@/lib/supabase/admin';
+
 interface RateLimitBucket {
   timestamps: number[];
   expiresAt: number;
@@ -73,6 +75,70 @@ export function checkSlidingWindowRateLimit(
 
 export function resetRateLimit(key: string): void {
   RATE_LIMIT_STORE.delete(key);
+}
+
+/**
+ * Rate limit persistente respaldado en PostgreSQL (Supabase RPC `check_and_consume_rate_limit`)
+ * para coordinar límites entre instancias serverless y cold starts.
+ * Si la RPC aún no existe o falta `SUPABASE_SERVICE_ROLE_KEY`, degrada de forma segura
+ * al almacenamiento en memoria del proceso.
+ */
+export async function checkPersistentSlidingWindowRateLimit(
+  key: string,
+  options: { maxRequests: number; windowMs: number }
+): Promise<RateLimitResult> {
+  const adminClient = createAdminClient();
+  if (adminClient) {
+    try {
+      const { data, error } = await adminClient.rpc(
+        'check_and_consume_rate_limit',
+        {
+          p_key: key,
+          p_max_requests: options.maxRequests,
+          p_window_ms: options.windowMs,
+          p_now: new Date().toISOString(),
+        }
+      );
+
+      if (!error && data && typeof data === 'object') {
+        const payload = data as {
+          allowed?: boolean;
+          remaining?: number;
+          retry_after_seconds?: number;
+        };
+
+        if (typeof payload.allowed === 'boolean') {
+          return {
+            allowed: payload.allowed,
+            remaining: Math.max(0, Number(payload.remaining ?? 0)),
+            retryAfterSeconds: Math.max(
+              0,
+              Number(payload.retry_after_seconds ?? 0)
+            ),
+          };
+        }
+      }
+    } catch {
+      // Fallback limpio al limitador en memoria
+    }
+  }
+
+  return checkSlidingWindowRateLimit(key, options);
+}
+
+export async function resetPersistentRateLimit(key: string): Promise<void> {
+  resetRateLimit(key);
+
+  const adminClient = createAdminClient();
+  if (!adminClient) {
+    return;
+  }
+
+  try {
+    await adminClient.rpc('reset_rate_limit_bucket', { p_key: key });
+  } catch {
+    // Ignorar si la RPC aún no ha sido creada
+  }
 }
 
 export function formatRateLimitWaitEs(retryAfterSeconds: number): string {
