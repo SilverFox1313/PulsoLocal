@@ -10,98 +10,26 @@ export const TRIAL_DURATION_MS = TRIAL_DURATION_DAYS * MS_PER_DAY;
 export const MAX_SCHEDULE_AHEAD_MS = MAX_SCHEDULE_AHEAD_DAYS * MS_PER_DAY;
 export const SCHEDULE_PAST_GRACE_MS = 5 * 60_000;
 
-const DISPOSABLE_EMAIL_DOMAINS = new Set([
-  '10minutemail.com',
-  '10minutemail.net',
-  '10minmail.com',
-  'armyspy.com',
-  'burnermail.io',
-  'cool.fr.nf',
-  'courriel.fr.nf',
-  'crazymailing.com',
-  'cuvox.de',
-  'dayrep.com',
-  'discard.email',
-  'dispostable.com',
-  'dropmail.me',
-  'einrot.com',
-  'emailondeck.com',
-  'fakeinbox.com',
-  'fakemailgenerator.com',
-  'fleckens.hu',
-  'getairmail.com',
-  'getnada.com',
-  'grr.la',
-  'guerrillamail.biz',
-  'guerrillamail.com',
-  'guerrillamail.de',
-  'guerrillamail.info',
-  'guerrillamail.net',
-  'guerrillamail.org',
-  'guerrillamailblock.com',
-  'gustr.com',
-  'inboxbear.com',
-  'incognitomail.org',
-  'jetable.fr.nf',
-  'jourrapide.com',
-  'mailcatch.com',
-  'maildrop.cc',
-  'mailexpire.com',
-  'mailinator.com',
-  'mailinator.net',
-  'mailinator.org',
-  'mailinator2.com',
-  'mailnesia.com',
-  'mailnull.com',
-  'mega.zik.dj',
-  'mintemail.com',
-  'mohmal.com',
-  'moncourrier.fr.nf',
-  'monemail.fr.nf',
-  'monmail.fr.nf',
-  'mytemp.email',
-  'nada.email',
-  'nada.ltd',
-  'nomail.xl.cx',
-  'nospam.ze.tc',
-  'rhyta.com',
-  'sharklasers.com',
-  'spamgourmet.com',
-  'speed.1s.fr',
-  'superrito.com',
-  'teleworm.us',
-  'temp-mail.io',
-  'temp-mail.org',
-  'tempail.com',
-  'tempinbox.com',
-  'tempmail.com',
-  'tenminutemail.com',
-  'throwaway.email',
-  'throwawaymail.com',
-  'tmpmail.net',
-  'tmpmail.org',
-  'trash-mail.com',
-  'trashmail.com',
-  'trashmail.me',
-  'trashmail.net',
-  'trashmail.org',
-  'yopmail.com',
-  'yopmail.fr',
-  'yopmail.net',
+export const ALLOWED_EMAIL_DOMAINS = new Set([
+  'gmail.com',
+  'googlemail.com',
+  'outlook.com',
+  'outlook.es',
+  'hotmail.com',
+  'hotmail.es',
+  'live.com',
+  'yahoo.com',
+  'yahoo.es',
+  'icloud.com',
+  'me.com',
 ]);
 
-export function isDisposableEmailDomain(domain: string): boolean {
+export const ALLOWED_EMAIL_PROVIDER_ERROR =
+  'Por seguridad, regístrate con un correo de Gmail, Outlook, Hotmail, Yahoo o iCloud.';
+
+export function isAllowedEmailProvider(domain: string): boolean {
   const cleanDomain = domain.trim().toLowerCase();
-  if (!cleanDomain) return false;
-  if (DISPOSABLE_EMAIL_DOMAINS.has(cleanDomain)) {
-    return true;
-  }
-  for (const blocked of DISPOSABLE_EMAIL_DOMAINS) {
-    if (cleanDomain.endsWith(`.${blocked}`)) {
-      return true;
-    }
-  }
-  return false;
+  return ALLOWED_EMAIL_DOMAINS.has(cleanDomain);
 }
 
 const TRACKING_QUERY_PARAMS = new Set([
@@ -281,28 +209,36 @@ export function evaluateTrialStatus(
 export interface EmailTrialAnalysis {
   normalizedEmail: string;
   canonicalEmail: string;
+  domain: string;
   hasSubaddressing: boolean;
-  isDisposable: boolean;
+  isAllowedProvider: boolean;
 }
 
 export function analyzeEmailForTrialAbuse(
   rawEmail: string
 ): EmailTrialAnalysis | null {
   const normalizedEmail = rawEmail.trim().toLowerCase();
+  if (!normalizedEmail || /\s/.test(normalizedEmail)) {
+    return null;
+  }
+
   const atIndex = normalizedEmail.indexOf('@');
   if (atIndex <= 0 || atIndex === normalizedEmail.length - 1) {
     return null;
   }
 
   const rawLocal = normalizedEmail.slice(0, atIndex);
-  let domain = normalizedEmail.slice(atIndex + 1);
+  const rawDomain = normalizedEmail.slice(atIndex + 1);
   if (
-    !domain ||
-    domain.includes('@') ||
-    !domain.includes('.') ||
-    domain.startsWith('.') ||
-    domain.endsWith('.') ||
-    domain.includes('..')
+    !rawDomain ||
+    rawDomain.includes('@') ||
+    !rawDomain.includes('.') ||
+    rawDomain.startsWith('.') ||
+    rawDomain.endsWith('.') ||
+    rawDomain.includes('..') ||
+    rawLocal.startsWith('.') ||
+    rawLocal.endsWith('.') ||
+    rawLocal.includes('..')
   ) {
     return null;
   }
@@ -311,10 +247,12 @@ export function analyzeEmailForTrialAbuse(
   const hasSubaddressing = plusIndex !== -1;
   let canonicalLocal = hasSubaddressing ? rawLocal.slice(0, plusIndex) : rawLocal;
 
-  if (domain === 'googlemail.com') {
-    domain = 'gmail.com';
+  const isAllowedProvider = isAllowedEmailProvider(rawDomain);
+  let canonicalDomain = rawDomain;
+  if (canonicalDomain === 'googlemail.com') {
+    canonicalDomain = 'gmail.com';
   }
-  if (domain === 'gmail.com') {
+  if (canonicalDomain === 'gmail.com') {
     canonicalLocal = canonicalLocal.replaceAll('.', '');
   }
 
@@ -324,9 +262,10 @@ export function analyzeEmailForTrialAbuse(
 
   return {
     normalizedEmail,
-    canonicalEmail: `${canonicalLocal}@${domain}`,
+    canonicalEmail: `${canonicalLocal}@${canonicalDomain}`,
+    domain: rawDomain,
     hasSubaddressing,
-    isDisposable: isDisposableEmailDomain(domain),
+    isAllowedProvider,
   };
 }
 

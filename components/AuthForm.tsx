@@ -13,7 +13,10 @@ import {
 import { motion } from 'motion/react';
 import ActionLink from '@/components/ActionLink';
 import { emitNavDone, emitNavStart } from '@/components/NavigationProgress';
-import { analyzeEmailForTrialAbuse } from '@/lib/subscription/trial';
+import {
+  ALLOWED_EMAIL_PROVIDER_ERROR,
+  analyzeEmailForTrialAbuse,
+} from '@/lib/subscription/trial';
 
 interface AuthFormProps {
   mode: 'login' | 'signup';
@@ -122,8 +125,14 @@ export default function AuthForm({
       return;
     }
 
-    if (!trimmedEmail || !trimmedEmail.includes('@')) {
+    const submittedEmailAnalysis = analyzeEmailForTrialAbuse(trimmedEmail);
+    if (!submittedEmailAnalysis) {
       setError('Ingresa un correo electrónico válido.');
+      return;
+    }
+
+    if (!submittedEmailAnalysis.isAllowedProvider) {
+      setError(ALLOWED_EMAIL_PROVIDER_ERROR);
       return;
     }
 
@@ -150,7 +159,7 @@ export default function AuthForm({
           },
           body: JSON.stringify({
             businessName: trimmedBusiness,
-            email: trimmedEmail,
+            email: submittedEmailAnalysis.normalizedEmail,
             password,
           }),
         });
@@ -198,7 +207,7 @@ export default function AuthForm({
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          email: trimmedEmail,
+          email: submittedEmailAnalysis.normalizedEmail,
           password,
         }),
       });
@@ -373,13 +382,19 @@ export default function AuthForm({
                 setError(null);
                 setEmail(e.target.value);
               }}
-              placeholder="tu@negocio.com"
+              placeholder="tu@gmail.com"
               className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3.5 text-sm text-slate-900 placeholder:text-slate-400 transition-colors focus:border-amber-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30 disabled:cursor-not-allowed disabled:opacity-60 dark:border-transparent dark:bg-[#27272E] dark:text-zinc-100 dark:shadow-sm dark:shadow-black/40 dark:placeholder:text-zinc-400 dark:focus:bg-[#32323A] dark:focus:border-amber-500/60"
             />
-            {showsSubaddressingNotice && (
+            {showsSubaddressingNotice ? (
               <p className="mt-1.5 text-xs text-amber-700 dark:text-amber-300">
                 Los correos con alias (&ldquo;+&rdquo;) pueden registrarse, pero no reciben el Plan Trial gratuito automático. Usa tu correo principal si es tu primer negocio.
               </p>
+            ) : (
+              isSignup && (
+                <p className="mt-1.5 text-xs text-slate-500 dark:text-zinc-400">
+                  Aceptamos Gmail, Outlook, Hotmail, Yahoo o iCloud.
+                </p>
+              )
             )}
           </div>
 

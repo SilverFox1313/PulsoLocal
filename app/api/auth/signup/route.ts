@@ -4,7 +4,10 @@ import {
   checkSlidingWindowRateLimit,
   getRequestClientIp,
 } from '@/lib/security/rate-limit';
-import { analyzeEmailForTrialAbuse } from '@/lib/subscription/trial';
+import {
+  ALLOWED_EMAIL_PROVIDER_ERROR,
+  analyzeEmailForTrialAbuse,
+} from '@/lib/subscription/trial';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getSupabaseEnv } from '@/lib/supabase/config';
 import {
@@ -97,12 +100,9 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  if (emailAnalysis.isDisposable) {
+  if (!emailAnalysis.isAllowedProvider) {
     return NextResponse.json(
-      {
-        error:
-          'No se permiten correos temporales o desechables. Utiliza un correo electrónico permanente para crear tu cuenta.',
-      },
+      { error: ALLOWED_EMAIL_PROVIDER_ERROR },
       { status: 400 }
     );
   }

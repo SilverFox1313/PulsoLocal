@@ -4,6 +4,10 @@ import {
   checkSlidingWindowRateLimit,
   getRequestClientIp,
 } from '@/lib/security/rate-limit';
+import {
+  ALLOWED_EMAIL_PROVIDER_ERROR,
+  analyzeEmailForTrialAbuse,
+} from '@/lib/subscription/trial';
 import { getSupabaseEnv } from '@/lib/supabase/config';
 import {
   adaptCookieOptions,
@@ -66,12 +70,27 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const email = body.email?.trim() ?? '';
+  const rawEmail = body.email?.trim() ?? '';
   const password = body.password ?? '';
 
-  if (!email || !password) {
+  if (!rawEmail || !password) {
     return NextResponse.json(
       { error: 'Ingresa tu correo y contraseña.' },
+      { status: 400 }
+    );
+  }
+
+  const emailAnalysis = analyzeEmailForTrialAbuse(rawEmail);
+  if (!emailAnalysis) {
+    return NextResponse.json(
+      { error: 'Ingresa un correo electrónico válido.' },
+      { status: 400 }
+    );
+  }
+
+  if (!emailAnalysis.isAllowedProvider) {
+    return NextResponse.json(
+      { error: ALLOWED_EMAIL_PROVIDER_ERROR },
       { status: 400 }
     );
   }
@@ -95,7 +114,7 @@ export async function POST(request: NextRequest) {
   });
 
   const { data, error } = await supabase.auth.signInWithPassword({
-    email,
+    email: emailAnalysis.normalizedEmail,
     password,
   });
 
