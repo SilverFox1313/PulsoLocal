@@ -1,9 +1,9 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Loader2, LogOut } from 'lucide-react';
 import { signOutAction } from '@/app/dashboard/actions';
-import { emitNavStart } from '@/components/NavigationProgress';
+import { emitNavDone, emitNavStart } from '@/components/NavigationProgress';
 
 interface SignOutButtonProps {
   fullWidth?: boolean;
@@ -14,6 +14,24 @@ let signOutInFlight = false;
 export default function SignOutButton({ fullWidth = false }: SignOutButtonProps) {
   const [isSigningOut, setIsSigningOut] = useState(false);
   const isSubmittingRef = useRef(false);
+
+  useEffect(() => {
+    const handlePageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) {
+        signOutInFlight = false;
+        isSubmittingRef.current = false;
+        setIsSigningOut(false);
+        emitNavDone();
+      }
+    };
+
+    window.addEventListener('pageshow', handlePageShow);
+    return () => {
+      window.removeEventListener('pageshow', handlePageShow);
+      isSubmittingRef.current = false;
+      signOutInFlight = false;
+    };
+  }, []);
 
   async function handleSignOut() {
     if (isSubmittingRef.current || isSigningOut || signOutInFlight) {

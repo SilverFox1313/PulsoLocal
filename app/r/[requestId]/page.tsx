@@ -11,87 +11,29 @@ interface PublicReviewPageProps {
   params: Promise<{ requestId: string }>;
 }
 
-async function fetchPublicReviewRequest(
-  requestId: string
-): Promise<{ data: PublicReviewRequestData | null; error?: string }> {
-  if (!isValidUuid(requestId, { strictVersion: true })) {
-    return { data: null, error: 'invalid_id' };
-  }
+interface RpcPublicReviewRow {
+  request_id: string;
+  customer_name: string;
+  business_id?: string;
+  business_name: string;
+  google_review_url: string | null;
+  already_submitted: boolean;
+  submitted_rating?: number | null;
+  needs_private_comment?: boolean;
+  is_owner?: boolean;
+}
 
-  const adminClient = createAdminClient();
-  if (adminClient) {
-    const { data: reqRow, error: reqError } = await adminClient
-      .from('review_requests')
-      .select('id, customer_name, status, business_id')
-      .eq('id', requestId)
-      .maybeSingle();
-
-    if (reqError || !reqRow) {
-      return { data: null, error: 'not_found' };
-    }
-
-    const [{ data: businessRow }, { data: feedbackRow }] = await Promise.all([
-      adminClient
-        .from('businesses')
-        .select('id, business_name, google_review_url')
-        .eq('id', reqRow.business_id)
-        .maybeSingle(),
-      adminClient
-        .from('feedback')
-        .select('id, rating, comment')
-        .eq('request_id', requestId)
-        .maybeSingle(),
-    ]);
-
-    if (!businessRow) {
-      return { data: null, error: 'not_found' };
-    }
-
-    const needsPrivateComment = Boolean(
-      feedbackRow && feedbackRow.rating <= 3 && feedbackRow.comment === null
-    );
-
-    return {
-      data: {
-        request_id: reqRow.id,
-        customer_name: reqRow.customer_name,
-        status: reqRow.status,
-        business_id: businessRow.id,
-        business_name: businessRow.business_name,
-        google_review_url: sanitizeGoogleReviewUrl(
-          businessRow.google_review_url
-        ),
-        already_submitted: reqRow.status === 'completed' || Boolean(feedbackRow),
-        submitted_rating: feedbackRow?.rating ?? null,
-        needs_private_comment: needsPrivateComment,
-      },
-    };
-  }
-
+async function getAuthenticatedUserId(): Promise<string | null> {
   const supabase = await createClient();
   if (!supabase) {
-    return { data: null, error: 'not_configured' };
+    return null;
   }
 
-  const { data, error } = await supabase.rpc('get_public_review_request', {
-    p_request_id: requestId,
-  });
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  if (error) {
-    return { data: null, error: 'rpc_error' };
-  }
-
-  if (!data) {
-    return { data: null, error: 'not_found' };
-  }
-
-  const rpcData = data as PublicReviewRequestData;
-  return {
-    data: {
-      ...rpcData,
-      google_review_url: sanitizeGoogleReviewUrl(rpcData.google_review_url),
-    },
-  };
+  return user?.id ?? null;
 }
 
 async function checkIsBusinessOwner(businessId: string): Promise<boolean> {
@@ -129,12 +71,115 @@ async function checkIsBusinessOwner(businessId: string): Promise<boolean> {
   return Boolean(ownedBiz);
 }
 
+async function fetchPublicReviewRequest(requestId: string): Promise<{
+  data: PublicReviewRequestData | null;
+  isOwner: boolean;
+  error?: string;
+}> {
+  if (!isValidUuid(requestId, { strictVersion: true })) {
+    return { data: null, isOwner: false, error: 'invalid_id' };
+  }
+
+  const adminClient = createAdminClient();
+  if (adminClient) {
+    const { data: reqRow, error: reqError } = await adminClient
+      .from('review_requests')
+      .select('id, customer_name, status, business_id')
+      .eq('id', requestId)
+      .maybeSingle();
+
+    if (reqError || !reqRow) {
+      return { data: null, isOwner: false, error: 'not_found' };
+    }
+
+    const [{ data: businessRow }, { data: feedbackRow }, currentUserId] =
+      await Promise.all([
+        adminClient
+          .from('businesses')
+          .select('user_id, business_name, google_review_url')
+          .eq('id', reqRow.business_id)
+          .maybeSingle(),
+        adminClient
+          .from('feedback')
+          .select('id, rating, comment')
+          .eq('request_id', requestId)
+          .maybeSingle(),
+        getAuthenticatedUserId(),
+      ]);
+
+    if (!businessRow) {
+      return { data: null, isOwner: false, error: 'not_found' };
+    }
+
+    const needsPrivateComment = Boolean(
+      feedbackRow && feedbackRow.rating <= 3 && feedbackRow.comment === null
+    );
+
+    return {
+      isOwner: Boolean(currentUserId && businessRow.user_id === currentUserId),
+      data: {
+        request_id: reqRow.id,
+        customer_name: reqRow.customer_name,
+        business_name: businessRow.business_name,
+        google_review_url: sanitizeGoogleReviewUrl(
+          businessRow.google_review_url
+        ),
+        already_submitted: reqRow.status === 'completed' || Boolean(feedbackRow),
+        submitted_rating: needsPrivateComment
+          ? (feedbackRow?.rating ?? null)
+          : null,
+        needs_private_comment: needsPrivateComment,
+      },
+    };
+  }
+
+  const supabase = await createClient();
+  if (!supabase) {
+    return { data: null, isOwner: false, error: 'not_configured' };
+  }
+
+  const { data, error } = await supabase.rpc('get_public_review_request', {
+    p_request_id: requestId,
+  });
+
+  if (error) {
+    return { data: null, isOwner: false, error: 'rpc_error' };
+  }
+
+  if (!data) {
+    return { data: null, isOwner: false, error: 'not_found' };
+  }
+
+  const rpcData = data as RpcPublicReviewRow;
+  const needsPrivateComment = Boolean(rpcData.needs_private_comment);
+  const isOwner =
+    typeof rpcData.is_owner === 'boolean'
+      ? rpcData.is_owner
+      : rpcData.business_id
+        ? await checkIsBusinessOwner(rpcData.business_id)
+        : false;
+
+  return {
+    isOwner,
+    data: {
+      request_id: rpcData.request_id,
+      customer_name: rpcData.customer_name,
+      business_name: rpcData.business_name,
+      google_review_url: sanitizeGoogleReviewUrl(rpcData.google_review_url),
+      already_submitted: Boolean(rpcData.already_submitted),
+      submitted_rating: needsPrivateComment
+        ? (rpcData.submitted_rating ?? null)
+        : null,
+      needs_private_comment: needsPrivateComment,
+    },
+  };
+}
+
 export default async function PublicReviewPage({
   params,
 }: PublicReviewPageProps) {
   const { requestId } = await params;
-  const { data, error } = await fetchPublicReviewRequest(requestId);
-  const isOwner = data ? await checkIsBusinessOwner(data.business_id) : false;
+  const { data, isOwner, error } = await fetchPublicReviewRequest(requestId);
 
   return (
     <div className="flex min-h-screen flex-col bg-slate-50 px-4 py-12 text-slate-900 transition-colors duration-200 dark:bg-black dark:text-zinc-100">

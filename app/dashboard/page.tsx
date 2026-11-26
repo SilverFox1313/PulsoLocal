@@ -2,7 +2,10 @@ import { redirect } from 'next/navigation';
 import DashboardHeader from '@/components/DashboardHeader';
 import DashboardWorkspace from '@/components/DashboardWorkspace';
 import { getWhatsAppEnvStatus } from '@/lib/messaging/send-reminder';
-import { analyzeEmailForTrialAbuse } from '@/lib/subscription/trial';
+import {
+  analyzeEmailForTrialAbuse,
+  SUBADDRESSING_TRIAL_RESTRICTED_REASON,
+} from '@/lib/subscription/trial';
 import { createClient } from '@/lib/supabase/server';
 import { validateAndSanitizeTemplateName } from '@/lib/validation/messaging-safety';
 import type {
@@ -60,6 +63,9 @@ export default async function DashboardPage() {
     const initialStatus = emailCheck?.hasSubaddressing
       ? 'inactive'
       : 'trialing';
+    const trialRestrictedReason = emailCheck?.hasSubaddressing
+      ? SUBADDRESSING_TRIAL_RESTRICTED_REASON
+      : null;
 
     const { data: createdBusiness, error: createError } = await supabase
       .from('businesses')
@@ -67,6 +73,9 @@ export default async function DashboardPage() {
         user_id: user.id,
         business_name: metadataName,
         subscription_status: initialStatus,
+        ...(trialRestrictedReason
+          ? { trial_restricted_reason: trialRestrictedReason }
+          : {}),
         ...(emailCheck?.canonicalEmail
           ? { canonical_email: emailCheck.canonicalEmail }
           : {}),

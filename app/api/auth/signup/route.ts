@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextRequest, NextResponse } from 'next/server';
+import { mapSupabaseAuthError } from '@/lib/auth/error-messages';
 import {
   checkPersistentSlidingWindowRateLimit,
   formatRateLimitWaitEs,
@@ -8,6 +9,7 @@ import {
 import {
   ALLOWED_EMAIL_PROVIDER_ERROR,
   analyzeEmailForTrialAbuse,
+  SUBADDRESSING_TRIAL_RESTRICTED_REASON,
 } from '@/lib/subscription/trial';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getSupabaseEnv } from '@/lib/supabase/config';
@@ -165,7 +167,7 @@ export async function POST(request: NextRequest) {
   }
 
   const trialRestrictedReason = emailAnalysis.hasSubaddressing
-    ? 'El correo electrónico usa un alias con "+" y no califica para el Trial gratuito automático. Selecciona un plan para comenzar.'
+    ? SUBADDRESSING_TRIAL_RESTRICTED_REASON
     : duplicateCanonicalEmail
       ? 'Este correo ya utilizó una prueba gratuita anteriormente. Selecciona un plan de pago para continuar.'
       : null;
@@ -189,21 +191,50 @@ export async function POST(request: NextRequest) {
     },
   });
 
-  const { data, error } = await supabase.auth.signUp({
-    email: emailAnalysis.normalizedEmail,
-    password,
-    options: {
-      data: {
-        business_name: businessName,
+  let data: { user: { id: string; identities?: unknown[] } | null; session: unknown };
+  try {
+    const signUpResult = await supabase.auth.signUp({
+      email: emailAnalysis.normalizedEmail,
+      password,
+      options: {
+        data: {
+          business_name: businessName,
+        },
+        emailRedirectTo: `${publicOrigin}/auth/callback`,
       },
-      emailRedirectTo: `${publicOrigin}/auth/callback`,
-    },
-  });
+    });
 
-  if (error) {
+    if (signUpResult.error) {
+      return NextResponse.json(
+        {
+          error: mapSupabaseAuthError(
+            signUpResult.error.message,
+            'No se pudo crear la cuenta en este momento. Verifica tus datos e inténtalo de nuevo.'
+          ),
+        },
+        { status: 400 }
+      );
+    }
+
+    data = {
+      user: signUpResult.data.user
+        ? {
+            id: signUpResult.data.user.id,
+            identities: signUpResult.data.user.identities,
+          }
+        : null,
+      session: signUpResult.data.session,
+    };
+  } catch (err) {
+    const rawMsg = err instanceof Error ? err.message : '';
     return NextResponse.json(
-      { error: error.message || 'No se pudo crear la cuenta.' },
-      { status: 400 }
+      {
+        error: mapSupabaseAuthError(
+          rawMsg,
+          'No se pudo crear la cuenta en este momento. Inténtalo nuevamente.'
+        ),
+      },
+      { status: 500 }
     );
   }
 

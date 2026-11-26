@@ -13,6 +13,7 @@ import { motion } from 'motion/react';
 import ActionLink from '@/components/ActionLink';
 import { emitNavDone, emitNavStart } from '@/components/NavigationProgress';
 import { emitAuthBusy } from '@/lib/auth/auth-busy';
+import { ensureSpanishAuthError } from '@/lib/auth/error-messages';
 import {
   ALLOWED_EMAIL_PROVIDER_ERROR,
   analyzeEmailForTrialAbuse,
@@ -22,57 +23,6 @@ interface AuthFormProps {
   mode: 'login' | 'signup';
   isSupabaseConfigured: boolean;
   initialError?: string | null;
-}
-
-function mapSupabaseError(message: string): string {
-  const normalized = message.toLowerCase();
-
-  if (
-    normalized.includes('invalid path specified in request url') ||
-    normalized.includes('supabase_url') ||
-    normalized.includes('invalid api key') ||
-    normalized.includes('apikey')
-  ) {
-    return 'El servicio de autenticación no está disponible temporalmente. Inténtalo más tarde.';
-  }
-  if (normalized.includes('invalid login credentials')) {
-    return 'Correo electrónico o contraseña incorrectos.';
-  }
-  if (normalized.includes('email not confirmed')) {
-    return 'Tu cuenta aún no está confirmada. Revisa tu bandeja de entrada para verificar tu correo.';
-  }
-  if (normalized.includes('user already registered')) {
-    return 'Ya existe una cuenta registrada con ese correo electrónico.';
-  }
-  if (normalized.includes('password should be at least') || normalized.includes('weak_password')) {
-    return 'La contraseña debe tener al menos 6 caracteres.';
-  }
-  if (
-    normalized.includes('unable to validate email address') ||
-    normalized.includes('email_address_invalid')
-  ) {
-    return 'Ingresa un correo electrónico válido.';
-  }
-  if (normalized.includes('signup is disabled') || normalized.includes('signups not allowed')) {
-    return 'El registro de nuevas cuentas está deshabilitado temporalmente.';
-  }
-  if (
-    normalized.includes('rate limit') ||
-    normalized.includes('too many requests') ||
-    normalized.includes('only request this after')
-  ) {
-    return 'Hicimos una breve pausa por varios intentos seguidos. Espera un momento e inténtalo de nuevo.';
-  }
-  if (
-    normalized.includes('failed to fetch') ||
-    normalized.includes('networkerror') ||
-    normalized.includes('load failed') ||
-    normalized.includes('fetch failed')
-  ) {
-    return 'No pudimos conectar con el servidor. Revisa tu conexión e inténtalo nuevamente.';
-  }
-
-  return message;
 }
 
 export default function AuthForm({
@@ -102,7 +52,18 @@ export default function AuthForm({
   const showsSubaddressingNotice = Boolean(emailAnalysis?.hasSubaddressing);
 
   useEffect(() => {
+    const handlePageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) {
+        isSubmittingRef.current = false;
+        setIsSubmitting(false);
+        emitAuthBusy(false);
+        emitNavDone();
+      }
+    };
+
+    window.addEventListener('pageshow', handlePageShow);
     return () => {
+      window.removeEventListener('pageshow', handlePageShow);
       emitAuthBusy(false);
     };
   }, []);
@@ -185,8 +146,9 @@ export default function AuthForm({
 
         if (!response.ok || !payload.ok) {
           setError(
-            mapSupabaseError(
-              payload.error || 'No se pudo crear la cuenta. Inténtalo de nuevo.'
+            ensureSpanishAuthError(
+              payload.error,
+              'No se pudo crear la cuenta. Inténtalo de nuevo.'
             )
           );
           unlockSubmission();
@@ -230,8 +192,9 @@ export default function AuthForm({
 
       if (!response.ok || !payload.ok) {
         setError(
-          mapSupabaseError(
-            payload.error || 'Correo electrónico o contraseña incorrectos.'
+          ensureSpanishAuthError(
+            payload.error,
+            'Correo electrónico o contraseña incorrectos.'
           )
         );
         unlockSubmission();
@@ -241,11 +204,11 @@ export default function AuthForm({
       window.location.assign('/dashboard');
     } catch (err) {
       const rawMessage = err instanceof Error ? err.message : '';
-      const mapped = rawMessage ? mapSupabaseError(rawMessage) : '';
       setError(
-        mapped && mapped !== rawMessage
-          ? mapped
-          : 'No pudimos completar la solicitud por un problema de conexión. Inténtalo nuevamente.'
+        ensureSpanishAuthError(
+          rawMessage,
+          'No pudimos completar la solicitud por un problema de conexión. Inténtalo nuevamente.'
+        )
       );
       unlockSubmission();
     }

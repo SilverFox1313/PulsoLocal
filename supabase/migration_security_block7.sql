@@ -1390,3 +1390,54 @@ begin
   );
 end;
 $$;
+
+-- 7. Minimizar campos devueltos por get_public_review_request (sin business_id ni status)
+create or replace function public.get_public_review_request(p_request_id uuid)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_row record;
+  v_needs_private_comment boolean;
+begin
+  select
+    rr.id as request_id,
+    rr.customer_name,
+    rr.status,
+    b.user_id as owner_user_id,
+    b.business_name,
+    b.google_review_url,
+    f.rating as feedback_rating,
+    f.comment as feedback_comment
+  into v_row
+  from public.review_requests rr
+  inner join public.businesses b on b.id = rr.business_id
+  left join public.feedback f on f.request_id = rr.id
+  where rr.id = p_request_id;
+
+  if not found then
+    return null;
+  end if;
+
+  v_needs_private_comment := (
+    v_row.feedback_rating is not null
+    and v_row.feedback_rating <= 3
+    and v_row.feedback_comment is null
+  );
+
+  return jsonb_build_object(
+    'request_id', v_row.request_id,
+    'customer_name', v_row.customer_name,
+    'business_name', v_row.business_name,
+    'google_review_url', v_row.google_review_url,
+    'already_submitted', (v_row.status = 'completed' or v_row.feedback_rating is not null),
+    'submitted_rating', case when v_needs_private_comment then v_row.feedback_rating else null end,
+    'needs_private_comment', v_needs_private_comment,
+    'is_owner', (auth.uid() is not null and v_row.owner_user_id = auth.uid())
+  );
+end;
+$$;
+
+grant execute on function public.get_public_review_request(uuid) to anon, authenticated;

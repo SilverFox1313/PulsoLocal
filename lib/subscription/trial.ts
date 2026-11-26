@@ -27,6 +27,9 @@ export const ALLOWED_EMAIL_DOMAINS = new Set([
 export const ALLOWED_EMAIL_PROVIDER_ERROR =
   'Usa un correo de Gmail, Outlook, Hotmail, Yahoo o iCloud.';
 
+export const SUBADDRESSING_TRIAL_RESTRICTED_REASON =
+  'El correo electrónico usa un alias con "+" y no califica para el Trial gratuito automático. Selecciona un plan para comenzar.';
+
 export function isAllowedEmailProvider(domain: string): boolean {
   const cleanDomain = domain.trim().toLowerCase();
   return ALLOWED_EMAIL_DOMAINS.has(cleanDomain);

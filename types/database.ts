@@ -54,8 +54,6 @@ export interface Feedback {
 export interface PublicReviewRequestData {
   request_id: string;
   customer_name: string;
-  status: ReviewRequestStatus;
-  business_id: string;
   business_name: string;
   google_review_url: string | null;
   already_submitted: boolean;

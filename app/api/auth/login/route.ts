@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextRequest, NextResponse } from 'next/server';
+import { mapSupabaseAuthError } from '@/lib/auth/error-messages';
 import {
   checkPersistentSlidingWindowRateLimit,
   formatRateLimitWaitEs,
@@ -139,28 +140,30 @@ export async function POST(request: NextRequest) {
     },
   });
 
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email: emailAnalysis.normalizedEmail,
-    password,
-  });
+  try {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: emailAnalysis.normalizedEmail,
+      password,
+    });
 
-  if (error || !data.session) {
-    const rawMsg = (error?.message ?? '').toLowerCase();
-    let friendlyError = 'No se pudo iniciar sesión. Verifica tus datos e inténtalo nuevamente.';
-    if (rawMsg.includes('invalid login credentials')) {
-      friendlyError = 'Correo electrónico o contraseña incorrectos.';
-    } else if (rawMsg.includes('email not confirmed')) {
-      friendlyError =
-        'Tu cuenta aún no está confirmada. Revisa tu bandeja de entrada para verificar tu correo.';
-    } else if (
-      rawMsg.includes('rate limit') ||
-      rawMsg.includes('too many requests') ||
-      rawMsg.includes('only request this after')
-    ) {
-      friendlyError =
-        'Hicimos una breve pausa por varios intentos seguidos. Espera un momento e inténtalo de nuevo.';
+    if (error || !data.session) {
+      const friendlyError = mapSupabaseAuthError(
+        error?.message,
+        'No se pudo iniciar sesión. Verifica tus datos e inténtalo nuevamente.'
+      );
+      return NextResponse.json({ error: friendlyError }, { status: 401 });
     }
-    return NextResponse.json({ error: friendlyError }, { status: 401 });
+  } catch (err) {
+    const rawMsg = err instanceof Error ? err.message : '';
+    return NextResponse.json(
+      {
+        error: mapSupabaseAuthError(
+          rawMsg,
+          'No se pudo iniciar sesión en este momento. Inténtalo nuevamente.'
+        ),
+      },
+      { status: 500 }
+    );
   }
 
   await resetPersistentRateLimit(emailRateLimitKey);
