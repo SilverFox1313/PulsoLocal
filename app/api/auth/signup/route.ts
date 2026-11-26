@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr';
 import { NextRequest, NextResponse } from 'next/server';
 import {
   checkSlidingWindowRateLimit,
+  formatRateLimitWaitEs,
   getRequestClientIp,
 } from '@/lib/security/rate-limit';
 import {
@@ -47,14 +48,14 @@ export async function POST(request: NextRequest) {
 
   const clientIp = getRequestClientIp(request.headers);
   const ipRateLimit = checkSlidingWindowRateLimit(`signup:ip:${clientIp}`, {
-    maxRequests: 5,
-    windowMs: 15 * 60_000,
+    maxRequests: 10,
+    windowMs: 3 * 60_000,
   });
   if (!ipRateLimit.allowed) {
+    const waitText = formatRateLimitWaitEs(ipRateLimit.retryAfterSeconds);
     return NextResponse.json(
       {
-        error:
-          'Demasiados intentos de registro desde esta conexión. Espera unos minutos e inténtalo de nuevo.',
+        error: `Hicimos una breve pausa por varios intentos seguidos desde tu conexión. Espera ${waitText} e inténtalo de nuevo.`,
       },
       {
         status: 429,
@@ -107,30 +108,30 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  if (password.length < 6) {
+    return NextResponse.json(
+      { error: 'La contraseña debe tener al menos 6 caracteres.' },
+      { status: 400 }
+    );
+  }
+
   const emailRateLimit = checkSlidingWindowRateLimit(
     `signup:email:${emailAnalysis.canonicalEmail}`,
     {
-      maxRequests: 3,
-      windowMs: 15 * 60_000,
+      maxRequests: 5,
+      windowMs: 3 * 60_000,
     }
   );
   if (!emailRateLimit.allowed) {
+    const waitText = formatRateLimitWaitEs(emailRateLimit.retryAfterSeconds);
     return NextResponse.json(
       {
-        error:
-          'Demasiados intentos de registro con este correo. Espera unos minutos antes de volver a intentarlo.',
+        error: `Recibimos varios intentos seguidos con este correo. Espera ${waitText} para volver a intentarlo.`,
       },
       {
         status: 429,
         headers: { 'Retry-After': String(emailRateLimit.retryAfterSeconds) },
       }
-    );
-  }
-
-  if (password.length < 6) {
-    return NextResponse.json(
-      { error: 'La contraseña debe tener al menos 6 caracteres.' },
-      { status: 400 }
     );
   }
 

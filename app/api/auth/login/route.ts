@@ -2,7 +2,9 @@ import { createServerClient } from '@supabase/ssr';
 import { NextRequest, NextResponse } from 'next/server';
 import {
   checkSlidingWindowRateLimit,
+  formatRateLimitWaitEs,
   getRequestClientIp,
+  resetRateLimit,
 } from '@/lib/security/rate-limit';
 import {
   ALLOWED_EMAIL_PROVIDER_ERROR,
@@ -44,14 +46,14 @@ export async function POST(request: NextRequest) {
 
   const clientIp = getRequestClientIp(request.headers);
   const ipRateLimit = checkSlidingWindowRateLimit(`login:ip:${clientIp}`, {
-    maxRequests: 12,
-    windowMs: 10 * 60_000,
+    maxRequests: 15,
+    windowMs: 2 * 60_000,
   });
   if (!ipRateLimit.allowed) {
+    const waitText = formatRateLimitWaitEs(ipRateLimit.retryAfterSeconds);
     return NextResponse.json(
       {
-        error:
-          'Demasiados intentos de inicio de sesión. Espera unos minutos e inténtalo de nuevo.',
+        error: `Hicimos una breve pausa por varios intentos seguidos. Espera ${waitText} e inténtalo de nuevo.`,
       },
       {
         status: 429,
@@ -95,6 +97,24 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  const emailRateLimitKey = `login:email:${emailAnalysis.canonicalEmail}`;
+  const emailRateLimit = checkSlidingWindowRateLimit(emailRateLimitKey, {
+    maxRequests: 8,
+    windowMs: 2 * 60_000,
+  });
+  if (!emailRateLimit.allowed) {
+    const waitText = formatRateLimitWaitEs(emailRateLimit.retryAfterSeconds);
+    return NextResponse.json(
+      {
+        error: `Hicimos una breve pausa tras varios intentos con este correo. Espera ${waitText} e inténtalo de nuevo.`,
+      },
+      {
+        status: 429,
+        headers: { 'Retry-After': String(emailRateLimit.retryAfterSeconds) },
+      }
+    );
+  }
+
   const isHttps = isHttpsRequest(request.headers, request.url);
   const cookiesToApply: Array<{
     name: string;
@@ -126,12 +146,18 @@ export async function POST(request: NextRequest) {
     } else if (rawMsg.includes('email not confirmed')) {
       friendlyError =
         'Tu cuenta aún no está confirmada. Revisa tu bandeja de entrada para verificar tu correo.';
-    } else if (rawMsg.includes('rate limit') || rawMsg.includes('too many requests')) {
+    } else if (
+      rawMsg.includes('rate limit') ||
+      rawMsg.includes('too many requests') ||
+      rawMsg.includes('only request this after')
+    ) {
       friendlyError =
-        'Demasiados intentos en poco tiempo. Espera un momento e inténtalo de nuevo.';
+        'Hicimos una breve pausa por varios intentos seguidos. Espera un momento e inténtalo de nuevo.';
     }
     return NextResponse.json({ error: friendlyError }, { status: 401 });
   }
+
+  resetRateLimit(emailRateLimitKey);
 
   const response = NextResponse.json({ ok: true });
   cookiesToApply.forEach(({ name, value, options }) => {

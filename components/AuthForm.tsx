@@ -1,7 +1,6 @@
 'use client';
 
-import { useRef, useState, type FormEvent } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import {
   AlertCircle,
   CheckCircle2,
@@ -13,6 +12,7 @@ import {
 import { motion } from 'motion/react';
 import ActionLink from '@/components/ActionLink';
 import { emitNavDone, emitNavStart } from '@/components/NavigationProgress';
+import { emitAuthBusy } from '@/lib/auth/auth-busy';
 import {
   ALLOWED_EMAIL_PROVIDER_ERROR,
   analyzeEmailForTrialAbuse,
@@ -56,8 +56,12 @@ function mapSupabaseError(message: string): string {
   if (normalized.includes('signup is disabled') || normalized.includes('signups not allowed')) {
     return 'El registro de nuevas cuentas está deshabilitado temporalmente.';
   }
-  if (normalized.includes('rate limit') || normalized.includes('too many requests')) {
-    return 'Demasiados intentos en poco tiempo. Espera un momento e inténtalo de nuevo.';
+  if (
+    normalized.includes('rate limit') ||
+    normalized.includes('too many requests') ||
+    normalized.includes('only request this after')
+  ) {
+    return 'Hicimos una breve pausa por varios intentos seguidos. Espera un momento e inténtalo de nuevo.';
   }
   if (
     normalized.includes('failed to fetch') ||
@@ -76,7 +80,6 @@ export default function AuthForm({
   isSupabaseConfigured,
   initialError = null,
 }: AuthFormProps) {
-  const router = useRouter();
   const isSignup = mode === 'signup';
 
   const [businessName, setBusinessName] = useState('');
@@ -98,9 +101,16 @@ export default function AuthForm({
   const emailAnalysis = isSignup ? analyzeEmailForTrialAbuse(email) : null;
   const showsSubaddressingNotice = Boolean(emailAnalysis?.hasSubaddressing);
 
+  useEffect(() => {
+    return () => {
+      emitAuthBusy(false);
+    };
+  }, []);
+
   function unlockSubmission() {
     isSubmittingRef.current = false;
     setIsSubmitting(false);
+    emitAuthBusy(false);
     emitNavDone();
   }
 
@@ -148,6 +158,7 @@ export default function AuthForm({
 
     isSubmittingRef.current = true;
     setIsSubmitting(true);
+    emitAuthBusy(true);
     emitNavStart();
 
     try {
@@ -183,12 +194,12 @@ export default function AuthForm({
         }
 
         if (payload.hasSession) {
-          router.refresh();
           window.location.assign('/dashboard');
           return;
         }
 
         emitNavDone();
+        emitAuthBusy(false);
         isSubmittingRef.current = false;
         setIsSubmitting(false);
         setSignupTrialNotice(
@@ -227,7 +238,6 @@ export default function AuthForm({
         return;
       }
 
-      router.refresh();
       window.location.assign('/dashboard');
     } catch (err) {
       const rawMessage = err instanceof Error ? err.message : '';
@@ -496,9 +506,8 @@ export default function AuthForm({
             <ActionLink
               href="/login"
               loadingText="Cargando..."
-              className={`font-medium text-amber-600 transition-colors hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300 ${
-                isSubmitting ? 'pointer-events-none opacity-50' : ''
-              }`}
+              disabled={isSubmitting}
+              className="font-medium text-amber-600 transition-colors hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300"
             >
               Inicia sesión
             </ActionLink>
@@ -509,9 +518,8 @@ export default function AuthForm({
             <ActionLink
               href="/signup"
               loadingText="Cargando..."
-              className={`font-medium text-amber-600 transition-colors hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300 ${
-                isSubmitting ? 'pointer-events-none opacity-50' : ''
-              }`}
+              disabled={isSubmitting}
+              className="font-medium text-amber-600 transition-colors hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300"
             >
               Regístrate gratis
             </ActionLink>

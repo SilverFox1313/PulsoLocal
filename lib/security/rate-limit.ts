@@ -22,6 +22,12 @@ function pruneExpiredBuckets(nowMs: number) {
       RATE_LIMIT_STORE.delete(key);
     }
   }
+
+  while (RATE_LIMIT_STORE.size >= MAX_STORE_ENTRIES) {
+    const oldestKey = RATE_LIMIT_STORE.keys().next().value;
+    if (oldestKey === undefined) break;
+    RATE_LIMIT_STORE.delete(oldestKey);
+  }
 }
 
 export function checkSlidingWindowRateLimit(
@@ -42,7 +48,7 @@ export function checkSlidingWindowRateLimit(
     const retryAfterMs = Math.max(1000, oldestInWindow + options.windowMs - nowMs);
     RATE_LIMIT_STORE.set(key, {
       timestamps: recentTimestamps,
-      expiresAt: nowMs + options.windowMs,
+      expiresAt: oldestInWindow + options.windowMs,
     });
 
     return {
@@ -63,6 +69,22 @@ export function checkSlidingWindowRateLimit(
     remaining: Math.max(0, options.maxRequests - recentTimestamps.length),
     retryAfterSeconds: 0,
   };
+}
+
+export function resetRateLimit(key: string): void {
+  RATE_LIMIT_STORE.delete(key);
+}
+
+export function formatRateLimitWaitEs(retryAfterSeconds: number): string {
+  const safeSeconds = Math.max(1, Math.ceil(retryAfterSeconds));
+  if (safeSeconds <= 15) {
+    return 'unos segundos';
+  }
+  if (safeSeconds < 60) {
+    return `${safeSeconds} segundos`;
+  }
+  const minutes = Math.ceil(safeSeconds / 60);
+  return minutes === 1 ? '1 minuto' : `${minutes} minutos`;
 }
 
 export function getRequestClientIp(headers: Headers): string {

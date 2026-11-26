@@ -117,10 +117,13 @@ export default function SubscriptionPanel({
               Solicitudes registradas
             </p>
             <p className="mt-1 text-sm font-medium tabular-nums text-slate-900 dark:text-zinc-100">
-              {totalRequestsCount}{' '}
               {business.subscription_status === 'active'
-                ? '/ 300 este mes'
-                : `/ ${TRIAL_MAX_REQUESTS} incluidas en Trial`}
+                ? `${totalRequestsCount} / 300 este mes`
+                : business.subscription_status === 'trialing'
+                  ? `${totalRequestsCount} / ${TRIAL_MAX_REQUESTS} incluidas en Trial`
+                  : business.trial_restricted_reason
+                    ? `${totalRequestsCount} (sin Trial disponible)`
+                    : `${totalRequestsCount} (sin plan activo)`}
             </p>
           </div>
           <div>

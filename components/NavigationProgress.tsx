@@ -120,7 +120,8 @@ export default function NavigationProgress() {
         rawHref.startsWith('mailto:') ||
         rawHref.startsWith('tel:') ||
         anchor.target === '_blank' ||
-        anchor.hasAttribute('download')
+        anchor.hasAttribute('download') ||
+        anchor.getAttribute('aria-disabled') === 'true'
       ) {
         return;
       }

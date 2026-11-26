@@ -1,7 +1,6 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { redirect } from 'next/navigation';
 import {
   getComparablePhoneKey,
   getPhoneSearchSuffix,
@@ -32,22 +31,28 @@ import type {
   ReviewRequestStatus,
 } from '@/types/database';
 
-export async function signOutAction(): Promise<{ error?: string }> {
-  const supabase = await createClient();
+export async function signOutAction(): Promise<{ ok?: boolean; error?: string }> {
+  try {
+    const supabase = await createClient();
 
-  if (!supabase) {
-    redirect('/login');
-  }
+    if (!supabase) {
+      return { ok: true };
+    }
 
-  const { error } = await supabase.auth.signOut();
+    const { error } = await supabase.auth.signOut();
 
-  if (error) {
+    if (error) {
+      return {
+        error: 'No se pudo cerrar la sesión. Inténtalo de nuevo.',
+      };
+    }
+
+    return { ok: true };
+  } catch {
     return {
       error: 'No se pudo cerrar la sesión. Inténtalo de nuevo.',
     };
   }
-
-  redirect('/login');
 }
 
 export interface UpdateBusinessSettingsInput {

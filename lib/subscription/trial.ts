@@ -25,7 +25,7 @@ export const ALLOWED_EMAIL_DOMAINS = new Set([
 ]);
 
 export const ALLOWED_EMAIL_PROVIDER_ERROR =
-  'Por seguridad, regístrate con un correo de Gmail, Outlook, Hotmail, Yahoo o iCloud.';
+  'Usa un correo de Gmail, Outlook, Hotmail, Yahoo o iCloud.';
 
 export function isAllowedEmailProvider(domain: string): boolean {
   const cleanDomain = domain.trim().toLowerCase();

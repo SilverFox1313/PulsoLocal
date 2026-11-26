@@ -13,6 +13,7 @@ interface ActionLinkProps {
   className?: string;
   showSpinner?: boolean;
   ariaLabel?: string;
+  disabled?: boolean;
 }
 
 export default function ActionLink({
@@ -22,6 +23,7 @@ export default function ActionLink({
   className = '',
   showSpinner = true,
   ariaLabel,
+  disabled = false,
 }: ActionLinkProps) {
   const pathname = usePathname();
   const [navigatingFrom, setNavigatingFrom] = useState<string | null>(null);
@@ -32,6 +34,7 @@ export default function ActionLink({
     navigatingFrom !== null &&
     navigatingFrom === pathname &&
     targetPath !== pathname;
+  const isBlocked = disabled || isNavigating;
 
   useEffect(() => {
     if (!isNavigating) return;
@@ -45,6 +48,11 @@ export default function ActionLink({
   }, [isNavigating]);
 
   function handleClick(event: MouseEvent<HTMLAnchorElement>) {
+    if (disabled) {
+      event.preventDefault();
+      return;
+    }
+
     if (
       event.metaKey ||
       event.ctrlKey ||
@@ -74,11 +82,11 @@ export default function ActionLink({
       href={href}
       onClick={handleClick}
       aria-label={ariaLabel}
-      aria-disabled={isNavigating ? 'true' : undefined}
+      aria-disabled={isBlocked ? 'true' : undefined}
       aria-busy={isNavigating}
-      tabIndex={isNavigating ? -1 : undefined}
+      tabIndex={isBlocked ? -1 : undefined}
       className={`${className} ${
-        isNavigating
+        isBlocked
           ? 'pointer-events-none cursor-not-allowed opacity-60'
           : ''
       }`}
