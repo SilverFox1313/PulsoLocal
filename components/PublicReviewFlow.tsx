@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import {
   AlertCircle,
   CheckCircle2,
@@ -70,6 +70,8 @@ export default function PublicReviewFlow({
   const [submittingRating, setSubmittingRating] = useState(false);
   const [submittingComment, setSubmittingComment] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const ratingLockRef = useRef(false);
+  const commentLockRef = useRef(false);
 
   const safeGoogleReviewUrl = sanitizeGoogleReviewUrl(googleReviewUrl);
 
@@ -94,7 +96,10 @@ export default function PublicReviewFlow({
   }, [step, safeGoogleReviewUrl, countdown]);
 
   async function handleSelectRating(rating: number) {
-    if (submittingRating || ownerBlocked) return;
+    if (ratingLockRef.current || submittingRating || ownerBlocked) return;
+    ratingLockRef.current = true;
+    let keepLocked = false;
+
     setError(null);
     setSelectedRating(rating);
     setSubmittingRating(true);
@@ -103,11 +108,13 @@ export default function PublicReviewFlow({
       const result = await submitPublicRatingAction(data.request_id, rating);
 
       if (result.alreadySubmitted) {
+        keepLocked = true;
         setStep('already_submitted');
         return;
       }
 
       if (result.ownerBlocked) {
+        keepLocked = true;
         setOwnerBlocked(true);
         setError(result.error ?? null);
         setSelectedRating(0);
@@ -125,6 +132,7 @@ export default function PublicReviewFlow({
         setGoogleReviewUrl(result.googleReviewUrl);
       }
 
+      keepLocked = true;
       if (result.redirectedToGoogle) {
         setCountdown(3);
         setStep('redirect_google');
@@ -137,17 +145,21 @@ export default function PublicReviewFlow({
       );
       setSelectedRating(0);
     } finally {
+      if (!keepLocked) {
+        ratingLockRef.current = false;
+      }
       setSubmittingRating(false);
     }
   }
 
   async function handleCommentSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (submittingComment) return;
+    if (commentLockRef.current || submittingComment) return;
     setError(null);
 
     const trimmedComment = comment.trim();
     if (!trimmedComment) {
+      commentLockRef.current = true;
       setStep('empathetic_done');
       return;
     }
@@ -159,6 +171,8 @@ export default function PublicReviewFlow({
       return;
     }
 
+    commentLockRef.current = true;
+    let keepLocked = false;
     setSubmittingComment(true);
     try {
       const result = await savePrivateFeedbackCommentAction(
@@ -171,12 +185,16 @@ export default function PublicReviewFlow({
         return;
       }
 
+      keepLocked = true;
       setStep('empathetic_done');
     } catch {
       setError(
         'No pudimos guardar tu comentario por un problema de conexión. Inténtalo nuevamente.'
       );
     } finally {
+      if (!keepLocked) {
+        commentLockRef.current = false;
+      }
       setSubmittingComment(false);
     }
   }
@@ -338,7 +356,11 @@ export default function PublicReviewFlow({
             <button
               type="button"
               disabled={submittingComment}
-              onClick={() => setStep('empathetic_done')}
+              onClick={() => {
+                if (commentLockRef.current || submittingComment) return;
+                commentLockRef.current = true;
+                setStep('empathetic_done');
+              }}
               className="inline-flex h-11 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 px-4 text-sm font-medium text-slate-700 transition-colors hover:border-slate-300 hover:text-slate-900 disabled:opacity-60 dark:border-none dark:bg-[#27272E] dark:text-zinc-100 dark:shadow-sm dark:shadow-black/40 hover:dark:bg-[#32323A] whitespace-nowrap shrink-0"
             >
               Omitir

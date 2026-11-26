@@ -10,6 +10,7 @@ import { checkPersistentSlidingWindowRateLimit } from '@/lib/security/rate-limit
 import {
   evaluateTrialStatus,
   isTrialExpiredByDate,
+  TRIAL_DURATION_MS,
   TRIAL_MAX_REQUESTS,
 } from '@/lib/subscription/trial';
 import { createAdminClient } from '@/lib/supabase/admin';
@@ -21,7 +22,7 @@ import {
 import type { Business, SubscriptionStatus } from '@/types/database';
 
 const BATCH_SIZE = 10;
-const GLOBAL_CANDIDATE_POOL = BATCH_SIZE * 5;
+const GLOBAL_CANDIDATE_POOL = BATCH_SIZE * 10;
 const CONCURRENCY_LIMIT = 4;
 const STALE_PROCESSING_MS = 5 * 60_000;
 const UPDATE_RETRY_DELAYS_MS = [150, 400];
@@ -160,6 +161,45 @@ async function runInChunks<T>(
     const slice = items.slice(i, i + chunkSize);
     await Promise.all(slice.map((item) => worker(item)));
   }
+}
+
+function interleaveCandidatesByBusiness<T extends { business_id: string }>(
+  rows: T[]
+): T[] {
+  if (rows.length <= 1) {
+    return rows;
+  }
+
+  const queues = new Map<string, T[]>();
+  const businessOrder: string[] = [];
+
+  for (const row of rows) {
+    let list = queues.get(row.business_id);
+    if (!list) {
+      list = [];
+      queues.set(row.business_id, list);
+      businessOrder.push(row.business_id);
+    }
+    list.push(row);
+  }
+
+  const interleaved: T[] = [];
+  let cursor = 0;
+  let addedInPass = true;
+
+  while (addedInPass) {
+    addedInPass = false;
+    for (const bizId of businessOrder) {
+      const list = queues.get(bizId);
+      if (list && cursor < list.length) {
+        interleaved.push(list[cursor]);
+        addedInPass = true;
+      }
+    }
+    cursor += 1;
+  }
+
+  return interleaved;
 }
 
 async function rescueStuckProcessingFallback(
@@ -723,6 +763,7 @@ export async function processGlobalPendingReminders(
 
   let rowsToSend: ClaimedGlobalRow[] = [];
   const blockedErrors: FailedReminderItem[] = [];
+  const ownerConfirmedCache = new Map<string, boolean>();
 
   // 1. Intentar reserva atómica en PostgreSQL (evita TOCTOU, inanición de cola y reenvíos duplicados)
   const { data: rpcClaimed, error: rpcError } = await adminClient.rpc(
@@ -754,7 +795,7 @@ export async function processGlobalPendingReminders(
       },
     };
   } else {
-    // Fallback compatible si la migración Bloque 6 aún no fue aplicada en Supabase
+    // Fallback compatible si la migración aún no fue aplicada en Supabase
     await rescueStuckProcessingFallback(
       adminClient,
       staleBeforeIso,
@@ -762,7 +803,8 @@ export async function processGlobalPendingReminders(
       source
     );
 
-    const { data: dueRequests, error: fetchError } = await adminClient
+    const sevenDaysAgoIso = new Date(nowMs - TRIAL_DURATION_MS).toISOString();
+    let { data: dueRequests, error: fetchError } = await adminClient
       .from('review_requests')
       .select(
         'id, business_id, customer_name, customer_phone, scheduled_for, attempts, businesses!inner(business_name, subscription_status, created_at)'
@@ -770,9 +812,29 @@ export async function processGlobalPendingReminders(
       .eq('status', 'pending')
       .lt('attempts', MAX_WHATSAPP_SEND_ATTEMPTS)
       .lte('scheduled_for', nowIso)
-      .in('businesses.subscription_status', ['active', 'trialing'])
+      .or(
+        `subscription_status.eq.active,and(subscription_status.eq.trialing,created_at.gt.${sevenDaysAgoIso})`,
+        { referencedTable: 'businesses' }
+      )
       .order('scheduled_for', { ascending: true })
       .limit(GLOBAL_CANDIDATE_POOL);
+
+    if (fetchError) {
+      const legacyFetch = await adminClient
+        .from('review_requests')
+        .select(
+          'id, business_id, customer_name, customer_phone, scheduled_for, attempts, businesses!inner(business_name, subscription_status, created_at)'
+        )
+        .eq('status', 'pending')
+        .lt('attempts', MAX_WHATSAPP_SEND_ATTEMPTS)
+        .lte('scheduled_for', nowIso)
+        .in('businesses.subscription_status', ['active', 'trialing'])
+        .order('scheduled_for', { ascending: true })
+        .limit(GLOBAL_CANDIDATE_POOL);
+
+      dueRequests = legacyFetch.data;
+      fetchError = legacyFetch.error;
+    }
 
     if (fetchError) {
       console.error('[Reminders] Error al consultar solicitudes pendientes globales', {
@@ -788,7 +850,9 @@ export async function processGlobalPendingReminders(
       };
     }
 
-    const rawCandidateRows = (dueRequests ?? []) as PendingRequestWithBusiness[];
+    const rawCandidateRows = interleaveCandidatesByBusiness(
+      (dueRequests ?? []) as PendingRequestWithBusiness[]
+    );
     const businessAllowance = new Map<
       string,
       { remainingSends: number; blockError: string | null }
@@ -804,6 +868,16 @@ export async function processGlobalPendingReminders(
         : row.businesses;
 
       if (!biz) {
+        continue;
+      }
+
+      const isOwnerConfirmed = await isBusinessOwnerEmailConfirmed(
+        adminClient,
+        row.business_id,
+        ownerConfirmedCache
+      );
+
+      if (!isOwnerConfirmed) {
         continue;
       }
 
@@ -929,7 +1003,6 @@ export async function processGlobalPendingReminders(
 
   const processedItems: ProcessedReminderItem[] = [];
   const failedItems: FailedReminderItem[] = [];
-  const ownerConfirmedCache = new Map<string, boolean>();
 
   await runInChunks(rowsToSend, CONCURRENCY_LIMIT, async (row) => {
     const isOwnerConfirmed = await isBusinessOwnerEmailConfirmed(

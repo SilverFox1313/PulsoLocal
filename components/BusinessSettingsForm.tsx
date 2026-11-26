@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Loader2, Save } from 'lucide-react';
 import { toast } from 'sonner';
 import { updateBusinessSettingsAction } from '@/app/dashboard/actions';
@@ -24,9 +24,25 @@ export default function BusinessSettingsForm({
     String(business.delay_minutes)
   );
   const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
+
+  useEffect(() => {
+    if (!savingRef.current) {
+      setBusinessName(business.business_name);
+      setGoogleReviewUrl(business.google_review_url ?? '');
+      setDelayMinutes(String(business.delay_minutes));
+    }
+  }, [
+    business.business_name,
+    business.google_review_url,
+    business.delay_minutes,
+  ]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (savingRef.current || saving) {
+      return;
+    }
 
     const parsedDelay = Number(delayMinutes);
     if (
@@ -50,30 +66,38 @@ export default function BusinessSettingsForm({
       }
     }
 
+    savingRef.current = true;
     setSaving(true);
 
-    const result = await updateBusinessSettingsAction({
-      businessName,
-      googleReviewUrl,
-      delayMinutes: parsedDelay,
-    });
+    try {
+      const result = await updateBusinessSettingsAction({
+        businessName,
+        googleReviewUrl,
+        delayMinutes: parsedDelay,
+      });
 
-    setSaving(false);
+      if (result.business) {
+        onUpdated(result.business);
+        setBusinessName(result.business.business_name);
+        setGoogleReviewUrl(result.business.google_review_url ?? '');
+        setDelayMinutes(String(result.business.delay_minutes));
+      }
 
-    if (result.business) {
-      onUpdated(result.business);
-      setBusinessName(result.business.business_name);
-      setGoogleReviewUrl(result.business.google_review_url ?? '');
-      setDelayMinutes(String(result.business.delay_minutes));
-    }
+      if (result.error) {
+        toast.error(result.error);
+        return;
+      }
 
-    if (result.error) {
-      toast.error(result.error);
-      return;
-    }
-
-    if (result.business) {
-      toast.success('Configuración del negocio guardada');
+      if (result.business) {
+        toast.success('Configuración del negocio guardada');
+      }
+    } catch {
+      toast.error(
+        'No se pudo guardar la configuración por un problema de conexión. Inténtalo de nuevo.'
+      );
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
     }
   }
 

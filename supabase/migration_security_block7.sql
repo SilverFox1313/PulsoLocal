@@ -797,6 +797,7 @@ set search_path = public
 as $$
 declare
   v_row record;
+  v_locked_id uuid;
   v_biz_status text;
   v_biz_created_at timestamptz;
   v_dispatched_count integer;
@@ -853,43 +854,77 @@ begin
     and coalesce(rr.attempts, 0) >= v_max_attempts;
 
   for v_row in
-    select
-      rr.id,
-      rr.business_id,
-      rr.customer_name,
-      rr.customer_phone,
-      rr.scheduled_for,
-      b.business_name,
-      b.message_template,
-      b.subscription_status,
-      b.created_at as business_created_at
-    from public.review_requests rr
-    inner join public.businesses b on b.id = rr.business_id
-    where rr.status = 'pending'
-      and coalesce(rr.attempts, 0) < v_max_attempts
-      and rr.scheduled_for <= p_now
-      and exists (
-        select 1
-        from auth.users u
-        where u.id = b.user_id
-          and u.email_confirmed_at is not null
-      )
-      and (
-        b.subscription_status = 'active'
-        or (
-          b.subscription_status = 'trialing'
-          and b.created_at > p_now - interval '7 days'
-          and (
-            select count(*)
-            from public.review_requests r2
-            where r2.business_id = b.id
-              and r2.status in ('processing', 'sent', 'clicked', 'completed')
-          ) < 15
+    with eligible_businesses as (
+      select
+        b.id,
+        b.business_name,
+        b.message_template,
+        b.subscription_status,
+        b.created_at,
+        case
+          when b.subscription_status = 'active' then v_target_limit
+          else greatest(
+            0,
+            least(
+              v_target_limit,
+              15 - (
+                select count(*)::integer
+                from public.review_requests r2
+                where r2.business_id = b.id
+                  and r2.status in ('processing', 'sent', 'clicked', 'completed')
+              )
+            )
+          )
+        end as biz_allowance
+      from public.businesses b
+      inner join auth.users u on u.id = b.user_id
+      where u.email_confirmed_at is not null
+        and (
+          b.subscription_status = 'active'
+          or (
+            b.subscription_status = 'trialing'
+            and b.created_at > p_now - interval '7 days'
+          )
         )
-      )
-    order by rr.scheduled_for asc
-    for update of rr skip locked
-    limit greatest(v_target_limit * 5, 50)
+    ),
+    ranked_candidates as (
+      select
+        rr.id,
+        rr.business_id,
+        rr.customer_name,
+        rr.customer_phone,
+        rr.scheduled_for,
+        rr.created_at,
+        eb.business_name,
+        eb.message_template,
+        eb.subscription_status,
+        eb.created_at as business_created_at,
+        eb.biz_allowance,
+        row_number() over (
+          partition by rr.business_id
+          order by rr.scheduled_for asc, rr.created_at asc
+        ) as biz_rank
+      from public.review_requests rr
+      inner join eligible_businesses eb on eb.id = rr.business_id
+      where eb.biz_allowance > 0
+        and rr.status = 'pending'
+        and coalesce(rr.attempts, 0) < v_max_attempts
+        and rr.scheduled_for <= p_now
+    )
+    select
+      rc.id,
+      rc.business_id,
+      rc.customer_name,
+      rc.customer_phone,
+      rc.scheduled_for,
+      rc.business_name,
+      rc.message_template,
+      rc.subscription_status,
+      rc.business_created_at
+    from ranked_candidates rc
+    where rc.biz_rank <= rc.biz_allowance
+    order by rc.biz_rank asc, rc.scheduled_for asc, rc.created_at asc
+    limit greatest(v_target_limit * 5, 100)
   loop
     select b.subscription_status, b.created_at
     into v_biz_status, v_biz_created_at
@@ -923,12 +958,24 @@ begin
       continue;
     end if;
 
+    select rr.id
+    into v_locked_id
+    from public.review_requests rr
+    where rr.id = v_row.id
+      and rr.status = 'pending'
+      and coalesce(rr.attempts, 0) < v_max_attempts
+    for update skip locked;
+
+    if not found then
+      continue;
+    end if;
+
     update public.review_requests rr
     set
       status = 'processing',
       processing_started_at = p_now,
       attempts = coalesce(rr.attempts, 0) + 1
-    where rr.id = v_row.id
+    where rr.id = v_locked_id
       and rr.status = 'pending'
       and coalesce(rr.attempts, 0) < v_max_attempts
     returning rr.attempts into v_new_attempts;

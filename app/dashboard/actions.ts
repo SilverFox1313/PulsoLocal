@@ -100,179 +100,190 @@ function mapDashboardDbError(
 export async function updateBusinessSettingsAction(
   input: UpdateBusinessSettingsInput
 ): Promise<{ business?: Business; error?: string }> {
-  const supabase = await createClient();
+  try {
+    const supabase = await createClient();
 
-  if (!supabase) {
-    return { error: 'La conexión con Supabase no está configurada.' };
-  }
-
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-
-  if (authError || !user) {
-    return { error: 'Tu sesión expiró. Vuelve a iniciar sesión.' };
-  }
-
-  const businessNameCheck = validateAndSanitizeTemplateName(
-    input.businessName ?? '',
-    'nombre del negocio'
-  );
-  if (!businessNameCheck.ok) {
-    return { error: businessNameCheck.error };
-  }
-
-  const businessName = businessNameCheck.value;
-  const rawGoogleReviewUrl = input.googleReviewUrl.trim();
-  let googleReviewUrl: string | null = null;
-  const delayMinutes = Number(input.delayMinutes);
-
-  if (rawGoogleReviewUrl.length > 0) {
-    const googleUrlCheck = validateGoogleReviewUrl(rawGoogleReviewUrl);
-    if (!googleUrlCheck.ok) {
-      return { error: googleUrlCheck.error };
+    if (!supabase) {
+      return { error: 'La conexión con Supabase no está configurada.' };
     }
-    googleReviewUrl = googleUrlCheck.value;
-  }
 
-  if (
-    !Number.isInteger(delayMinutes) ||
-    delayMinutes < 0 ||
-    delayMinutes > 10080
-  ) {
-    return {
-      error:
-        'El retraso en minutos debe ser un número entero entre 0 y 10080 (7 días).',
-    };
-  }
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
 
-  const { data: currentBusiness } = await supabase
-    .from('businesses')
-    .select('*')
-    .eq('user_id', user.id)
-    .maybeSingle();
+    if (authError || !user) {
+      return { error: 'Tu sesión expiró. Vuelve a iniciar sesión.' };
+    }
 
-  const previousStatus = currentBusiness?.subscription_status ?? 'trialing';
-  const normalizedUrl = googleReviewUrl
-    ? normalizeGoogleReviewUrl(googleReviewUrl)
-    : null;
+    const businessNameCheck = validateAndSanitizeTemplateName(
+      input.businessName ?? '',
+      'nombre del negocio'
+    );
+    if (!businessNameCheck.ok) {
+      return { error: businessNameCheck.error };
+    }
 
-  const { data, error } = await supabase
-    .from('businesses')
-    .update({
-      business_name: businessName,
-      google_review_url: googleReviewUrl,
-      delay_minutes: delayMinutes,
-    })
-    .eq('user_id', user.id)
-    .select('*')
-    .single();
+    const businessName = businessNameCheck.value;
+    const rawGoogleReviewUrl = (input.googleReviewUrl ?? '').trim();
+    let googleReviewUrl: string | null = null;
+    const delayMinutes = Number(input.delayMinutes);
 
-  if (error || !data) {
-    return {
-      error: mapDashboardDbError(
-        error?.message,
-        'No se pudo actualizar la configuración del negocio.',
-        'updateBusinessSettingsAction'
-      ),
-    };
-  }
+    if (rawGoogleReviewUrl.length > 0) {
+      const googleUrlCheck = validateGoogleReviewUrl(rawGoogleReviewUrl);
+      if (!googleUrlCheck.ok) {
+        return { error: googleUrlCheck.error };
+      }
+      googleReviewUrl = googleUrlCheck.value;
+    }
 
-  let finalBusiness = data as Business;
-  let duplicateUrlRestrictionMsg: string | null = null;
+    if (
+      !Number.isInteger(delayMinutes) ||
+      delayMinutes < 0 ||
+      delayMinutes > 10080
+    ) {
+      return {
+        error:
+          'El retraso en minutos debe ser un número entero entre 0 y 10080 (7 días).',
+      };
+    }
 
-  // Caso 1: El trigger de PostgreSQL restringió el Trial automáticamente al detectar URL reutilizada
-  if (
-    previousStatus === 'trialing' &&
-    finalBusiness.subscription_status === 'inactive'
-  ) {
-    duplicateUrlRestrictionMsg =
-      finalBusiness.trial_restricted_reason ||
-      'Este enlace de Google Reviews ya utilizó una prueba gratuita anteriormente. Activa un plan de pago para continuar.';
-  }
+    const { data: currentBusiness } = await supabase
+      .from('businesses')
+      .select('*')
+      .eq('user_id', user.id)
+      .maybeSingle();
 
-  // Caso 2: Refuerzo en backend con adminClient (útil también antes de ejecutar la migración SQL)
-  if (
-    previousStatus !== 'active' &&
-    finalBusiness.subscription_status === 'trialing' &&
-    normalizedUrl
-  ) {
-    const adminClient = createAdminClient();
-    if (adminClient) {
-      let hasDuplicateUrl = false;
+    const previousStatus = currentBusiness?.subscription_status ?? 'trialing';
+    const normalizedUrl = googleReviewUrl
+      ? normalizeGoogleReviewUrl(googleReviewUrl)
+      : null;
 
-      const { data: claimMatches, error: claimErr } = await adminClient
-        .from('trial_claims')
-        .select('id, business_id')
-        .eq('claim_type', 'google_review_url')
-        .eq('claim_value', normalizedUrl)
-        .neq('business_id', finalBusiness.id)
-        .limit(1);
+    const { data, error } = await supabase
+      .from('businesses')
+      .update({
+        business_name: businessName,
+        google_review_url: googleReviewUrl,
+        delay_minutes: delayMinutes,
+      })
+      .eq('user_id', user.id)
+      .select('*')
+      .single();
 
-      if (!claimErr && claimMatches && claimMatches.length > 0) {
-        hasDuplicateUrl = true;
-      } else {
-        const { data: bizMatches } = await adminClient
-          .from('businesses')
-          .select('id')
-          .eq('normalized_google_review_url', normalizedUrl)
-          .neq('id', finalBusiness.id)
+    if (error || !data) {
+      return {
+        error: mapDashboardDbError(
+          error?.message,
+          'No se pudo actualizar la configuración del negocio.',
+          'updateBusinessSettingsAction'
+        ),
+      };
+    }
+
+    let finalBusiness = data as Business;
+    let duplicateUrlRestrictionMsg: string | null = null;
+
+    // Caso 1: El trigger de PostgreSQL restringió el Trial automáticamente al detectar URL reutilizada
+    if (
+      previousStatus === 'trialing' &&
+      finalBusiness.subscription_status === 'inactive'
+    ) {
+      duplicateUrlRestrictionMsg =
+        finalBusiness.trial_restricted_reason ||
+        'Este enlace de Google Reviews ya utilizó una prueba gratuita anteriormente. Activa un plan de pago para continuar.';
+    }
+
+    // Caso 2: Refuerzo en backend con adminClient (útil también antes de ejecutar la migración SQL)
+    if (
+      previousStatus !== 'active' &&
+      finalBusiness.subscription_status === 'trialing' &&
+      normalizedUrl
+    ) {
+      const adminClient = createAdminClient();
+      if (adminClient) {
+        let hasDuplicateUrl = false;
+
+        const { data: claimMatches, error: claimErr } = await adminClient
+          .from('trial_claims')
+          .select('id, business_id')
+          .eq('claim_type', 'google_review_url')
+          .eq('claim_value', normalizedUrl)
+          .neq('business_id', finalBusiness.id)
           .limit(1);
 
-        if (bizMatches && bizMatches.length > 0) {
+        if (!claimErr && claimMatches && claimMatches.length > 0) {
           hasDuplicateUrl = true;
-        }
-      }
-
-      if (hasDuplicateUrl) {
-        const restrictionReason =
-          'Este enlace de Google Reviews ya utilizó una prueba gratuita anteriormente. Activa un plan de pago para continuar.';
-
-        const { data: restrictedBiz, error: restrictErr } = await adminClient
-          .from('businesses')
-          .update({
-            subscription_status: 'inactive',
-            trial_restricted_reason: restrictionReason,
-            normalized_google_review_url: normalizedUrl,
-          })
-          .eq('id', finalBusiness.id)
-          .select('*')
-          .single();
-
-        if (!restrictErr && restrictedBiz) {
-          finalBusiness = restrictedBiz as Business;
         } else {
-          const { data: fallbackRestricted } = await adminClient
+          const { data: bizMatches } = await adminClient
             .from('businesses')
-            .update({ subscription_status: 'inactive' })
+            .select('id')
+            .eq('normalized_google_review_url', normalizedUrl)
+            .neq('id', finalBusiness.id)
+            .limit(1);
+
+          if (bizMatches && bizMatches.length > 0) {
+            hasDuplicateUrl = true;
+          }
+        }
+
+        if (hasDuplicateUrl) {
+          const restrictionReason =
+            'Este enlace de Google Reviews ya utilizó una prueba gratuita anteriormente. Activa un plan de pago para continuar.';
+
+          const { data: restrictedBiz, error: restrictErr } = await adminClient
+            .from('businesses')
+            .update({
+              subscription_status: 'inactive',
+              trial_restricted_reason: restrictionReason,
+              normalized_google_review_url: normalizedUrl,
+            })
             .eq('id', finalBusiness.id)
             .select('*')
             .single();
 
-          if (fallbackRestricted) {
-            finalBusiness = {
-              ...(fallbackRestricted as Business),
-              trial_restricted_reason: restrictionReason,
-            };
-          }
-        }
+          if (!restrictErr && restrictedBiz) {
+            finalBusiness = restrictedBiz as Business;
+          } else {
+            const { data: fallbackRestricted } = await adminClient
+              .from('businesses')
+              .update({ subscription_status: 'inactive' })
+              .eq('id', finalBusiness.id)
+              .select('*')
+              .single();
 
-        duplicateUrlRestrictionMsg = restrictionReason;
+            if (fallbackRestricted) {
+              finalBusiness = {
+                ...(fallbackRestricted as Business),
+                trial_restricted_reason: restrictionReason,
+              };
+            }
+          }
+
+          duplicateUrlRestrictionMsg = restrictionReason;
+        }
       }
     }
-  }
 
-  revalidatePath('/dashboard');
+    revalidatePath('/dashboard');
 
-  if (duplicateUrlRestrictionMsg) {
+    if (duplicateUrlRestrictionMsg) {
+      return {
+        business: finalBusiness,
+        error: duplicateUrlRestrictionMsg,
+      };
+    }
+
+    return { business: finalBusiness };
+  } catch (err) {
+    console.error(
+      '[DashboardActions] Error inesperado en updateBusinessSettingsAction:',
+      err instanceof Error ? err.message : String(err)
+    );
     return {
-      business: finalBusiness,
-      error: duplicateUrlRestrictionMsg,
+      error:
+        'No se pudo guardar la configuración en este momento. Inténtalo nuevamente.',
     };
   }
-
-  return { business: finalBusiness };
 }
 
 export interface CheckCustomerPhoneHistoryInput {

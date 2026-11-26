@@ -134,11 +134,22 @@ export default function DashboardWorkspace({
     new Map(initialRequests.map((item) => [item.id, item]))
   );
   const localMutationTimestampsRef = useRef<Map<string, number>>(new Map());
+  const mutationVersionRef = useRef(0);
+  const refreshSeqRef = useRef(0);
+  const isMountedRef = useRef(true);
   const manualDispatchActiveRef = useRef(false);
   const dispatchLockRef = useRef(false);
   const shouldFocusGoogleUrlRef = useRef(false);
 
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
   function markLocalMutation(requestId: string) {
+    mutationVersionRef.current += 1;
     localMutationTimestampsRef.current.set(requestId, Date.now());
   }
 
@@ -217,6 +228,13 @@ export default function DashboardWorkspace({
     }
 
     async function refreshAllSilently() {
+      if (manualDispatchActiveRef.current) {
+        return;
+      }
+
+      const seq = ++refreshSeqRef.current;
+      const startMutationVersion = mutationVersionRef.current;
+
       try {
         const [businessRes, requestsRes, feedbackRes] = await Promise.all([
           supabase
@@ -240,7 +258,13 @@ export default function DashboardWorkspace({
             .order('created_at', { ascending: false }),
         ]);
 
-        if (!isMounted) {
+        if (
+          !isMounted ||
+          !isMountedRef.current ||
+          manualDispatchActiveRef.current ||
+          seq !== refreshSeqRef.current ||
+          mutationVersionRef.current !== startMutationVersion
+        ) {
           return;
         }
 
@@ -307,6 +331,7 @@ export default function DashboardWorkspace({
           }
 
           if (payload.eventType === 'INSERT') {
+            mutationVersionRef.current += 1;
             const inserted = payload.new as ReviewRequest;
             requestsByIdRef.current.set(inserted.id, inserted);
             setRequests((prev) =>
@@ -318,6 +343,7 @@ export default function DashboardWorkspace({
           }
 
           if (payload.eventType === 'UPDATE') {
+            mutationVersionRef.current += 1;
             const updated = payload.new as ReviewRequest;
             const previous = requestsByIdRef.current.get(updated.id);
             requestsByIdRef.current.set(updated.id, updated);
@@ -365,6 +391,7 @@ export default function DashboardWorkspace({
           }
 
           if (payload.eventType === 'DELETE') {
+            mutationVersionRef.current += 1;
             const deletedId = (payload.old as { id?: string } | null)?.id;
             if (deletedId) {
               requestsByIdRef.current.delete(deletedId);
@@ -490,6 +517,9 @@ export default function DashboardWorkspace({
       return;
     }
 
+    const seq = ++refreshSeqRef.current;
+    const startMutationVersion = mutationVersionRef.current;
+
     try {
       const supabase = createClient();
       const { data, error } = await supabase
@@ -500,7 +530,13 @@ export default function DashboardWorkspace({
         .eq('business_id', businessId)
         .order('created_at', { ascending: false });
 
-      if (error || !data) {
+      if (
+        !isMountedRef.current ||
+        seq !== refreshSeqRef.current ||
+        mutationVersionRef.current !== startMutationVersion ||
+        error ||
+        !data
+      ) {
         return;
       }
 
@@ -550,8 +586,18 @@ export default function DashboardWorkspace({
   }
 
   function handleBusinessUpdated(updated: Business) {
+    mutationVersionRef.current += 1;
     setBusiness(updated);
     router.refresh();
+  }
+
+  function handleTabChange(nextTab: DashboardTab) {
+    if (nextTab === activeTab) {
+      return;
+    }
+    setDispatchError(null);
+    setDispatchSummary(null);
+    setActiveTab(nextTab);
   }
 
   function scrollToAndFocusGoogleUrl() {
@@ -584,7 +630,7 @@ export default function DashboardWorkspace({
       return;
     }
     shouldFocusGoogleUrlRef.current = true;
-    setActiveTab('settings');
+    handleTabChange('settings');
   }
 
   async function handleCopyText(key: string, value: string) {
@@ -843,7 +889,7 @@ export default function DashboardWorkspace({
               type="button"
               role="tab"
               aria-selected={activeTab === 'requests'}
-              onClick={() => setActiveTab('requests')}
+              onClick={() => handleTabChange('requests')}
               className={`inline-flex h-9 items-center justify-center gap-2 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors whitespace-nowrap shrink-0 sm:px-3.5 sm:text-sm ${
                 activeTab === 'requests'
                   ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-zinc-900 font-semibold shadow-xs dark:text-white'
@@ -858,7 +904,7 @@ export default function DashboardWorkspace({
               type="button"
               role="tab"
               aria-selected={activeTab === 'feedback'}
-              onClick={() => setActiveTab('feedback')}
+              onClick={() => handleTabChange('feedback')}
               className={`inline-flex h-9 items-center justify-center gap-2 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors whitespace-nowrap shrink-0 sm:px-3.5 sm:text-sm ${
                 activeTab === 'feedback'
                   ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-zinc-900 font-semibold shadow-xs dark:text-white'
@@ -876,7 +922,7 @@ export default function DashboardWorkspace({
               type="button"
               role="tab"
               aria-selected={activeTab === 'settings'}
-              onClick={() => setActiveTab('settings')}
+              onClick={() => handleTabChange('settings')}
               className={`inline-flex h-9 items-center justify-center gap-2 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors whitespace-nowrap shrink-0 sm:px-3.5 sm:text-sm ${
                 activeTab === 'settings'
                   ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-zinc-900 font-semibold shadow-xs dark:text-white'
@@ -891,7 +937,7 @@ export default function DashboardWorkspace({
               type="button"
               role="tab"
               aria-selected={activeTab === 'subscription'}
-              onClick={() => setActiveTab('subscription')}
+              onClick={() => handleTabChange('subscription')}
               className={`inline-flex h-9 items-center justify-center gap-2 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors whitespace-nowrap shrink-0 sm:px-3.5 sm:text-sm ${
                 activeTab === 'subscription'
                   ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-zinc-900 font-semibold shadow-xs dark:text-white'
@@ -966,7 +1012,7 @@ export default function DashboardWorkspace({
               </div>
               <button
                 type="button"
-                onClick={() => setActiveTab('subscription')}
+                onClick={() => handleTabChange('subscription')}
                 className="inline-flex h-9 items-center justify-center rounded-lg border border-red-500/30 bg-white px-3.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50 dark:border-red-400/30 dark:bg-[#27272E] dark:text-red-200 hover:dark:bg-[#32323A] whitespace-nowrap shrink-0"
               >
                 Ver planes
