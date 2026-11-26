@@ -262,23 +262,111 @@ export default function ReviewRequestsTable({
           </p>
         </div>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse text-left text-sm">
+        <div className="w-full overflow-x-hidden">
+          {/* Vista móvil (< md): Tarjetas verticales */}
+          <div className="divide-y divide-slate-200 md:hidden dark:divide-white/[0.04]">
+            {paginatedRequests.map((item) => {
+              const statusInfo =
+                STATUS_META[item.status] ?? STATUS_META.pending;
+              const StatusIcon = statusInfo.Icon;
+              const isCopied = copiedId === item.id;
+
+              return (
+                <div key={`mobile-${item.id}`} className="p-4 space-y-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold text-slate-900 break-words [overflow-wrap:anywhere] dark:text-zinc-100">
+                        {item.customer_name}
+                      </p>
+                      <p className="font-mono text-xs tabular-nums text-slate-500 dark:text-zinc-400">
+                        {item.customer_phone}
+                      </p>
+                    </div>
+                    <div className="shrink-0">
+                      <span
+                        className={`inline-flex items-center gap-1.5 text-xs font-medium ${statusInfo.textClass}`}
+                      >
+                        <StatusIcon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                        <span>{statusInfo.label}</span>
+                      </span>
+                    </div>
+                  </div>
+
+                  {item.last_error && (
+                    <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-2.5 text-xs text-red-700 break-words [overflow-wrap:anywhere] dark:text-red-200">
+                      <span className="font-medium">Error:</span> {item.last_error}
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-between text-xs text-slate-500 dark:text-zinc-400">
+                    <span className="font-mono tabular-nums">
+                      Programada: <FormattedDate dateString={item.scheduled_for} />
+                    </span>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2 pt-1">
+                    {item.status === 'pending' && (
+                      <button
+                        type="button"
+                        onClick={() => setEditingRequest(item)}
+                        aria-label={`Editar solicitud de ${item.customer_name}`}
+                        className="inline-flex h-8 items-center gap-1.5 rounded-md border border-slate-200 bg-slate-50 px-3 text-xs font-medium text-slate-700 transition-colors hover:border-amber-400 hover:bg-amber-500/10 hover:text-amber-600 dark:border-none dark:bg-[#27272E] dark:text-zinc-200 dark:shadow-sm dark:shadow-black/40 hover:dark:bg-[#32323A] dark:hover:text-amber-300 whitespace-nowrap shrink-0"
+                      >
+                        <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
+                        <span>Editar</span>
+                      </button>
+                    )}
+                    {item.status === 'pending' && (
+                      <button
+                        type="button"
+                        onClick={() => setDeletingRequest(item)}
+                        aria-label={`Eliminar solicitud pendiente de ${item.customer_name}`}
+                        className="inline-flex h-8 items-center gap-1.5 rounded-md border border-slate-200 bg-slate-50 px-3 text-xs font-medium text-slate-700 transition-colors hover:border-red-400 hover:bg-red-500/10 hover:text-red-600 dark:border-none dark:bg-[#27272E] dark:text-zinc-200 dark:shadow-sm dark:shadow-black/40 hover:dark:bg-[#32323A] dark:hover:text-red-300 whitespace-nowrap shrink-0"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                        <span>Borrar</span>
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => handleCopyLink(item.id)}
+                      className="inline-flex h-8 items-center gap-1.5 rounded-md border border-slate-200 bg-slate-50 px-3 text-xs font-medium text-slate-700 transition-colors hover:border-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-600 dark:border-none dark:bg-[#27272E] dark:text-zinc-200 dark:shadow-sm dark:shadow-black/40 hover:dark:bg-[#32323A] dark:hover:text-emerald-300 whitespace-nowrap shrink-0"
+                    >
+                      {isCopied ? (
+                        <>
+                          <Check className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
+                          <span className="text-emerald-700 dark:text-emerald-300">Copiado</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="h-3.5 w-3.5" aria-hidden="true" />
+                          <span>Copiar enlace</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Vista escritorio (>= md): Tabla fija sin scroll horizontal */}
+          <table className="hidden w-full table-fixed border-collapse text-left text-sm md:table">
             <thead>
               <tr className="border-b border-slate-200 text-xs font-medium text-slate-500 dark:border-white/[0.04] dark:text-zinc-300">
-                <th scope="col" className="px-6 py-3">
+                <th scope="col" className="w-[22%] px-4 py-3">
                   Cliente
                 </th>
-                <th scope="col" className="px-6 py-3">
+                <th scope="col" className="w-[16%] px-4 py-3">
                   Teléfono
                 </th>
-                <th scope="col" className="px-6 py-3">
+                <th scope="col" className="w-[18%] px-4 py-3">
                   Estado actual
                 </th>
-                <th scope="col" className="px-6 py-3 text-right">
+                <th scope="col" className="w-[18%] px-4 py-3 text-right">
                   Fecha programada
                 </th>
-                <th scope="col" className="px-6 py-3 text-right">
+                <th scope="col" className="w-[26%] px-4 py-3 text-right">
                   Acciones
                 </th>
               </tr>
@@ -295,13 +383,20 @@ export default function ReviewRequestsTable({
                     key={item.id}
                     className="transition-colors hover:bg-orange-500/[0.08] dark:hover:bg-orange-500/[0.08]"
                   >
-                    <td className="px-6 py-3.5 font-medium text-slate-900 dark:text-zinc-100">
-                      {item.customer_name}
+                    <td className="px-4 py-3.5 font-medium text-slate-900 truncate dark:text-zinc-100" title={item.customer_name}>
+                      <div className="break-words [overflow-wrap:anywhere]">
+                        {item.customer_name}
+                      </div>
+                      {item.last_error && (
+                        <div className="mt-0.5 text-[11px] text-red-600 truncate dark:text-red-400" title={item.last_error}>
+                          {item.last_error}
+                        </div>
+                      )}
                     </td>
-                    <td className="px-6 py-3.5 font-mono text-xs tabular-nums text-slate-600 dark:text-zinc-300">
-                      {item.customer_phone}
+                    <td className="px-4 py-3.5 font-mono text-xs tabular-nums text-slate-600 truncate dark:text-zinc-300" title={item.customer_phone}>
+                      <div className="truncate">{item.customer_phone}</div>
                     </td>
-                    <td className="px-6 py-3.5">
+                    <td className="px-4 py-3.5">
                       <span
                         className={`inline-flex items-center gap-1.5 text-xs font-medium ${statusInfo.textClass}`}
                       >
@@ -309,20 +404,20 @@ export default function ReviewRequestsTable({
                           className="h-3.5 w-3.5 shrink-0"
                           aria-hidden="true"
                         />
-                        <span>{statusInfo.label}</span>
+                        <span className="truncate">{statusInfo.label}</span>
                       </span>
                     </td>
-                    <td className="px-6 py-3.5 text-right font-mono text-xs tabular-nums text-slate-500 dark:text-zinc-300">
+                    <td className="px-4 py-3.5 text-right font-mono text-xs tabular-nums text-slate-500 dark:text-zinc-300">
                       <FormattedDate dateString={item.scheduled_for} />
                     </td>
-                      <td className="px-6 py-3.5 text-right">
-                      <div className="inline-flex items-center justify-end gap-2">
+                    <td className="px-4 py-3.5 text-right">
+                      <div className="inline-flex items-center justify-end gap-1.5">
                         {item.status === 'pending' && (
                           <button
                             type="button"
                             onClick={() => setEditingRequest(item)}
                             aria-label={`Editar solicitud de ${item.customer_name}`}
-                            className="inline-flex h-8 items-center gap-1.5 rounded-md border border-slate-200 bg-slate-50 px-3 text-xs font-medium text-slate-700 transition-colors hover:border-amber-400 hover:bg-amber-500/10 hover:text-amber-600 dark:border-none dark:bg-[#27272E] dark:text-zinc-200 dark:shadow-sm dark:shadow-black/40 hover:dark:bg-[#32323A] dark:hover:text-amber-300 whitespace-nowrap shrink-0"
+                            className="inline-flex h-8 items-center gap-1 rounded-md border border-slate-200 bg-slate-50 px-2.5 text-xs font-medium text-slate-700 transition-colors hover:border-amber-400 hover:bg-amber-500/10 hover:text-amber-600 dark:border-none dark:bg-[#27272E] dark:text-zinc-200 dark:shadow-sm dark:shadow-black/40 hover:dark:bg-[#32323A] dark:hover:text-amber-300 whitespace-nowrap shrink-0"
                           >
                             <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
                             <span>Editar</span>
@@ -333,7 +428,7 @@ export default function ReviewRequestsTable({
                             type="button"
                             onClick={() => setDeletingRequest(item)}
                             aria-label={`Eliminar solicitud pendiente de ${item.customer_name}`}
-                            className="inline-flex h-8 items-center gap-1.5 rounded-md border border-slate-200 bg-slate-50 px-3 text-xs font-medium text-slate-700 transition-colors hover:border-red-400 hover:bg-red-500/10 hover:text-red-600 dark:border-none dark:bg-[#27272E] dark:text-zinc-200 dark:shadow-sm dark:shadow-black/40 hover:dark:bg-[#32323A] dark:hover:text-red-300 whitespace-nowrap shrink-0"
+                            className="inline-flex h-8 items-center gap-1 rounded-md border border-slate-200 bg-slate-50 px-2.5 text-xs font-medium text-slate-700 transition-colors hover:border-red-400 hover:bg-red-500/10 hover:text-red-600 dark:border-none dark:bg-[#27272E] dark:text-zinc-200 dark:shadow-sm dark:shadow-black/40 hover:dark:bg-[#32323A] dark:hover:text-red-300 whitespace-nowrap shrink-0"
                           >
                             <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
                             <span>Borrar</span>
@@ -342,7 +437,7 @@ export default function ReviewRequestsTable({
                         <button
                           type="button"
                           onClick={() => handleCopyLink(item.id)}
-                          className="inline-flex h-8 items-center gap-1.5 rounded-md border border-slate-200 bg-slate-50 px-3 text-xs font-medium text-slate-700 transition-colors hover:border-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-600 dark:border-none dark:bg-[#27272E] dark:text-zinc-200 dark:shadow-sm dark:shadow-black/40 hover:dark:bg-[#32323A] dark:hover:text-emerald-300 whitespace-nowrap shrink-0"
+                          className="inline-flex h-8 items-center gap-1 rounded-md border border-slate-200 bg-slate-50 px-2.5 text-xs font-medium text-slate-700 transition-colors hover:border-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-600 dark:border-none dark:bg-[#27272E] dark:text-zinc-200 dark:shadow-sm dark:shadow-black/40 hover:dark:bg-[#32323A] dark:hover:text-emerald-300 whitespace-nowrap shrink-0"
                         >
                           {isCopied ? (
                             <>
@@ -357,7 +452,7 @@ export default function ReviewRequestsTable({
                           ) : (
                             <>
                               <Copy className="h-3.5 w-3.5" aria-hidden="true" />
-                              <span>Copiar enlace</span>
+                              <span>Copiar</span>
                             </>
                           )}
                         </button>
