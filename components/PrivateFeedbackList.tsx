@@ -180,85 +180,38 @@ export default function PrivateFeedbackList({
           </p>
         </div>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse text-left text-sm">
+        <div className="w-full overflow-x-hidden">
+          {/* Vista móvil (< md): Tarjetas verticales */}
+          <div className="divide-y divide-slate-200 md:hidden dark:divide-white/[0.04]">
+            {paginatedItems.map((item) => (
+              <MobileFeedbackCard key={`mobile-${item.id}`} item={item} />
+            ))}
+          </div>
+
+          {/* Vista escritorio (>= md): Tabla fija sin scroll horizontal */}
+          <table className="hidden w-full table-fixed border-collapse text-left text-sm md:table">
             <thead>
               <tr className="border-b border-slate-200 text-xs font-medium text-slate-500 dark:border-white/[0.04] dark:text-zinc-300">
-                <th scope="col" className="px-6 py-3">
+                <th scope="col" className="w-[18%] px-4 py-3">
                   Cliente
                 </th>
-                <th scope="col" className="px-6 py-3">
+                <th scope="col" className="w-[15%] px-4 py-3">
                   Teléfono
                 </th>
-                <th scope="col" className="px-6 py-3">
+                <th scope="col" className="w-[20%] px-4 py-3">
                   Calificación
                 </th>
-                <th scope="col" className="px-6 py-3">
+                <th scope="col" className="w-[32%] px-4 py-3">
                   Comentario
                 </th>
-                <th scope="col" className="px-6 py-3 text-right">
+                <th scope="col" className="w-[15%] px-4 py-3 text-right">
                   Fecha
                 </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 dark:divide-white/[0.04]">
               {paginatedItems.map((item) => (
-                <tr
-                  key={item.id}
-                  className="transition-colors hover:bg-orange-500/[0.08] dark:hover:bg-orange-500/[0.08]"
-                >
-                  <td className="px-6 py-3.5 font-medium text-slate-900 whitespace-nowrap dark:text-zinc-100">
-                    {item.customer_name}
-                  </td>
-                  <td className="px-6 py-3.5 font-mono text-xs tabular-nums text-slate-600 whitespace-nowrap dark:text-zinc-300">
-                    {item.customer_phone || '—'}
-                  </td>
-                  <td className="px-6 py-3.5 whitespace-nowrap">
-                    <div className="flex items-center gap-2">
-                      <div
-                        className="flex items-center gap-0.5"
-                        aria-label={`${item.rating} de 5 estrellas`}
-                      >
-                        {[1, 2, 3, 4, 5].map((star) => (
-                          <Star
-                            key={star}
-                            className={`h-3.5 w-3.5 ${
-                              star <= item.rating
-                                ? item.rating <= 3
-                                  ? 'fill-amber-500 text-amber-500 dark:fill-amber-400 dark:text-amber-400'
-                                  : 'fill-emerald-500 text-emerald-500 dark:fill-emerald-400 dark:text-emerald-400'
-                                : 'text-slate-300 dark:text-zinc-700'
-                            }`}
-                            aria-hidden="true"
-                          />
-                        ))}
-                      </div>
-                      <span className="font-mono text-xs font-medium tabular-nums text-slate-700 dark:text-zinc-300">
-                        {item.rating}/5
-                      </span>
-                    </div>
-                    <p className="mt-1 text-xs text-slate-500 dark:text-zinc-400">
-                      {item.redirected_to_google
-                        ? 'Flujo directo a Google'
-                        : 'Seguimiento privado + enlace a Google'}
-                    </p>
-                  </td>
-                  <td className="min-w-[240px] max-w-md px-6 py-3.5 text-sm leading-relaxed">
-                    <span
-                      className={
-                        item.comment
-                          ? 'text-slate-700 dark:text-zinc-200'
-                          : 'italic text-slate-400 dark:text-zinc-400'
-                      }
-                    >
-                      {item.comment ||
-                        'El cliente no dejó comentarios adicionales.'}
-                    </span>
-                  </td>
-                  <td className="px-6 py-3.5 text-right font-mono text-xs tabular-nums text-slate-500 whitespace-nowrap dark:text-zinc-300">
-                    <FormattedDate dateString={item.created_at} />
-                  </td>
-                </tr>
+                <DesktopFeedbackRow key={item.id} item={item} />
               ))}
             </tbody>
           </table>
@@ -340,5 +293,131 @@ export default function PrivateFeedbackList({
         </div>
       )}
     </section>
+  );
+}
+
+function CommentCell({ comment }: { comment: string | null }) {
+  const [expanded, setExpanded] = useState(false);
+  const text = comment || 'El cliente no dejó comentarios adicionales.';
+  const isLong = text.length > 140;
+
+  return (
+    <div className="space-y-1 break-words [overflow-wrap:anywhere] whitespace-pre-wrap">
+      <span
+        className={
+          comment ? 'text-slate-700 dark:text-zinc-200' : 'italic text-slate-400 dark:text-zinc-400'
+        }
+      >
+        {isLong && !expanded ? `${text.slice(0, 135)}…` : text}
+      </span>
+      {isLong && (
+        <button
+          type="button"
+          onClick={() => setExpanded((prev) => !prev)}
+          className="block text-xs font-semibold text-orange-600 transition-colors hover:underline dark:text-orange-400"
+        >
+          {expanded ? 'Ver menos' : 'Ver más'}
+        </button>
+      )}
+    </div>
+  );
+}
+
+function DesktopFeedbackRow({ item }: { item: PrivateFeedbackItem }) {
+  return (
+    <tr className="transition-colors hover:bg-orange-500/[0.08] dark:hover:bg-orange-500/[0.08]">
+      <td className="px-4 py-3.5 font-medium text-slate-900 truncate dark:text-zinc-100" title={item.customer_name}>
+        <div className="truncate">{item.customer_name}</div>
+      </td>
+      <td className="px-4 py-3.5 font-mono text-xs tabular-nums text-slate-600 truncate dark:text-zinc-300" title={item.customer_phone}>
+        <div className="truncate">{item.customer_phone || '—'}</div>
+      </td>
+      <td className="px-4 py-3.5">
+        <div className="flex flex-col gap-0.5">
+          <div className="flex items-center gap-1.5">
+            <div
+              className="flex items-center gap-0.5 shrink-0"
+              aria-label={`${item.rating} de 5 estrellas`}
+            >
+              {[1, 2, 3, 4, 5].map((star) => (
+                <Star
+                  key={star}
+                  className={`h-3.5 w-3.5 shrink-0 ${
+                    star <= item.rating
+                      ? item.rating <= 3
+                        ? 'fill-amber-500 text-amber-500 dark:fill-amber-400 dark:text-amber-400'
+                        : 'fill-emerald-500 text-emerald-500 dark:fill-emerald-400 dark:text-emerald-400'
+                      : 'text-slate-300 dark:text-zinc-700'
+                  }`}
+                  aria-hidden="true"
+                />
+              ))}
+            </div>
+            <span className="font-mono text-xs font-medium tabular-nums text-slate-700 dark:text-zinc-300">
+              {item.rating}/5
+            </span>
+          </div>
+          <span className="text-[11px] text-slate-500 truncate dark:text-zinc-400">
+            {item.redirected_to_google ? 'Google directo' : 'Privado + Google'}
+          </span>
+        </div>
+      </td>
+      <td className="px-4 py-3.5 text-sm leading-relaxed">
+        <CommentCell comment={item.comment} />
+      </td>
+      <td className="px-4 py-3.5 text-right font-mono text-xs tabular-nums text-slate-500 whitespace-nowrap dark:text-zinc-300">
+        <FormattedDate dateString={item.created_at} />
+      </td>
+    </tr>
+  );
+}
+
+function MobileFeedbackCard({ item }: { item: PrivateFeedbackItem }) {
+  return (
+    <div className="p-4 space-y-3">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="font-semibold text-slate-900 truncate dark:text-zinc-100">
+            {item.customer_name}
+          </p>
+          <p className="font-mono text-xs tabular-nums text-slate-500 dark:text-zinc-400">
+            {item.customer_phone || 'Sin teléfono'}
+          </p>
+        </div>
+        <div className="text-right shrink-0">
+          <div className="flex items-center justify-end gap-0.5">
+            {[1, 2, 3, 4, 5].map((star) => (
+              <Star
+                key={star}
+                className={`h-3.5 w-3.5 ${
+                  star <= item.rating
+                    ? item.rating <= 3
+                      ? 'fill-amber-500 text-amber-500 dark:fill-amber-400 dark:text-amber-400'
+                      : 'fill-emerald-500 text-emerald-500 dark:fill-emerald-400 dark:text-emerald-400'
+                    : 'text-slate-300 dark:text-zinc-700'
+                }`}
+                aria-hidden="true"
+              />
+            ))}
+          </div>
+          <span className="mt-0.5 block font-mono text-xs font-medium tabular-nums text-slate-600 dark:text-zinc-300">
+            {item.rating}/5
+          </span>
+        </div>
+      </div>
+
+      <div className="rounded-lg bg-slate-50 p-3 text-sm leading-relaxed dark:bg-[#27272E]">
+        <CommentCell comment={item.comment} />
+      </div>
+
+      <div className="flex items-center justify-between text-xs text-slate-500 dark:text-zinc-400">
+        <span className="italic">
+          {item.redirected_to_google ? 'Google directo' : 'Seguimiento privado'}
+        </span>
+        <span className="font-mono tabular-nums">
+          <FormattedDate dateString={item.created_at} />
+        </span>
+      </div>
+    </div>
   );
 }
