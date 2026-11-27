@@ -22,14 +22,13 @@ export default async function HomePage() {
       <HomeHeader isAuthenticated={isAuthenticated} variant="home" />
 
       <main className="flex-1">
-        <section className="relative overflow-x-clip">
+        <section className="relative isolate overflow-hidden">
           {/* Decorative Ambient Hero Glow */}
           <div
             aria-hidden="true"
             className="pointer-events-none absolute inset-0 z-0 mx-auto max-w-6xl px-6"
           >
-            <div className="absolute -top-20 -left-12 h-[500px] w-[500px] rounded-full bg-gradient-to-tr from-sky-300/45 via-blue-200/40 to-purple-200/35 opacity-85 blur-[100px] sm:h-[540px] sm:w-[760px] dark:opacity-100 dark:from-cyan-400/35 dark:via-blue-500/30 dark:to-purple-500/25 dark:blur-[110px]" />
-            <div className="absolute top-12 left-20 h-[360px] w-[360px] rounded-full bg-gradient-to-br from-cyan-200/40 via-indigo-100/35 to-fuchsia-200/30 opacity-80 blur-[100px] sm:left-44 sm:h-[420px] sm:w-[540px] dark:opacity-100 dark:from-sky-400/25 dark:via-purple-500/25 dark:to-fuchsia-500/20 dark:blur-[105px]" />
+            <div className="absolute top-6 -left-8 h-[420px] w-[360px] rounded-full bg-gradient-to-tr from-cyan-300/40 via-teal-300/35 to-cyan-400/30 opacity-90 blur-[100px] sm:h-[480px] sm:w-[540px] dark:opacity-75 dark:from-cyan-400/28 dark:via-teal-400/22 dark:to-cyan-500/20 dark:blur-[110px]" />
           </div>
 
           <div className="relative z-10 mx-auto max-w-6xl px-6 pt-16 pb-20 lg:pt-24 lg:pb-28">
@@ -76,7 +75,7 @@ export default async function HomePage() {
 
         <section
           id="como-funciona"
-          className="relative z-10 border-t border-slate-200/80 bg-white/60 py-20 transition-colors duration-300 ease-in-out dark:border-transparent dark:bg-black"
+          className="relative z-10 border-t-0 bg-white/60 py-20 transition-colors duration-300 ease-in-out dark:border-transparent dark:bg-black"
         >
           <div className="mx-auto max-w-6xl px-6">
             <div className="max-w-2xl">

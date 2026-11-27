@@ -23,7 +23,7 @@ export default function LandingFooter() {
 
   return (
     <>
-      <footer className="border-t border-slate-200/80 bg-white/70 transition-colors duration-300 ease-in-out dark:border-transparent dark:bg-zinc-950/90">
+      <footer className="border-t border-slate-200/80 bg-white/70 transition-colors duration-300 ease-in-out dark:border-white/[0.08] dark:bg-zinc-950/90">
         <div className="mx-auto flex max-w-6xl flex-col gap-4 px-6 py-8 text-xs text-slate-500 dark:text-zinc-400 sm:flex-row sm:items-center sm:justify-between">
           <span>PulsoLocal · Automatizador de Reseñas y Reputación Local</span>
           <div className="flex items-center gap-6">
