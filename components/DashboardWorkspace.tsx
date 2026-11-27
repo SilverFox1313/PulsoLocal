@@ -1063,10 +1063,15 @@ export default function DashboardWorkspace({
                 disabled={
                   checkingDuplicates ||
                   dispatching ||
-                  trialEval.isSendingBlocked
+                  trialEval.isSendingBlocked ||
+                  pendingCount === 0
                 }
                 onClick={() => void handleTriggerSendReminders(false)}
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-orange-500 bg-transparent px-5 text-sm font-semibold shadow-xs transition-all hover:bg-orange-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/60 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-zinc-900 disabled:cursor-not-allowed disabled:opacity-50 whitespace-nowrap shrink-0"
+                className={`inline-flex h-11 items-center justify-center gap-2 rounded-lg border px-5 text-sm font-semibold shadow-xs transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-zinc-900 disabled:cursor-not-allowed disabled:opacity-50 whitespace-nowrap shrink-0 ${
+                  pendingCount === 0
+                    ? 'border-slate-300 bg-slate-100 text-slate-400 dark:border-transparent dark:bg-[#27272E] dark:text-zinc-500'
+                    : 'border-orange-500 bg-transparent hover:bg-orange-500/10 focus-visible:ring-orange-500/60'
+                }`}
               >
                 {checkingDuplicates || dispatching ? (
                   <>
@@ -1076,6 +1081,13 @@ export default function DashboardWorkspace({
                     />
                     <span className="bg-gradient-to-r from-orange-500 to-amber-500 bg-clip-text text-transparent font-semibold dark:from-orange-400 dark:to-amber-400">
                       Verificando envíos...
+                    </span>
+                  </>
+                ) : pendingCount === 0 ? (
+                  <>
+                    <Clock className="h-4 w-4 shrink-0 text-slate-400 dark:text-zinc-500" aria-hidden="true" />
+                    <span className="text-slate-500 dark:text-zinc-400 font-semibold">
+                      No hay pendientes
                     </span>
                   </>
                 ) : (
